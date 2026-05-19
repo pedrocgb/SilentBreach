@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d65e8a75d4e4458a8693e52f8ab0191, type: 3}
+  m_Name: Knife
+  m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.WeaponSystem.MeleeWeaponData
+  itemDisplayName: Knife
+  itemIcon: {fileID: -8779120279628979471, guid: bb17164f42feeda43b3ffc39f0ab066b, type: 3}
+  itemDescription: 
+  heldVisualSprite: {fileID: -1754120301, guid: 1ba5138f30967444dbf5be57280e6ffc, type: 3}
+  allowedSlots: 7
+  gripType: 0
+  equipTime: 0.15
+  holsterTime: 0.1
+  attackAnimationDuration: 0.35
+  attackActiveStartNormalized: 0.15
+  attackActiveEndNormalized: 0.55
+  damage: 20
+  armorPenetration: 5
+  staggerDuration: 0.15
+  attackReachDistance: 1.15
+  hitboxSize: {x: 0.6, y: 0.2}
+  hitboxOffset: {x: 0.3, y: 0}
+  attackNoise: 0.2
+  attackNoiseDuration: 0.15
+  attackNoiseType: 2
+  equipNoise: 0.2
+  equipNoiseDuration: 0.2
+  equipNoiseType: 1
+  holsterNoise: 0.2
+  holsterNoiseDuration: 0.2
+  holsterNoiseType: 1

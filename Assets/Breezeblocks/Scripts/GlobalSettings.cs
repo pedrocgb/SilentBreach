@@ -1,0 +1,72 @@
+using System;
+using Sirenix.OdinInspector;
+using UnityEngine;
+
+[AddComponentMenu("Breezeblocks/Global Settings")]
+public class GlobalSettings : MonoBehaviour
+{
+    public static GlobalSettings Instance { get; private set; }
+
+    [FoldoutGroup("Input Modes"), Tooltip("If true, sprint works as toggle (press once). If false, hold to sprint.")]
+    [SerializeField] private bool sprintToggleEnabled = false;
+
+    [FoldoutGroup("Noise"), MinValue(0f)]
+    [Tooltip("How long a firearm shot noise spike lasts.")]
+    [SerializeField] private float shotNoiseDuration = 0.1f;
+
+    [FoldoutGroup("Noise"), MinValue(0f)]
+    [Tooltip("How long an equip noise spike lasts.")]
+    [SerializeField] private float equipNoiseDuration = 0.4f;
+
+    [FoldoutGroup("Noise"), MinValue(0f)]
+    [Tooltip("How long a holster noise spike lasts.")]
+    [SerializeField] private float holsterNoiseDuration = 0.6f;
+
+    public bool SprintToggleEnabled => sprintToggleEnabled;
+    public float ShotNoiseDuration => shotNoiseDuration;
+    public float EquipNoiseDuration => equipNoiseDuration;
+    public float HolsterNoiseDuration => holsterNoiseDuration;
+
+    public event Action SettingsChanged;
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            Instance = null;
+    }
+
+    private void OnValidate()
+    {
+        shotNoiseDuration = Mathf.Max(0f, shotNoiseDuration);
+        equipNoiseDuration = Mathf.Max(0f, equipNoiseDuration);
+        holsterNoiseDuration = Mathf.Max(0f, holsterNoiseDuration);
+    }
+
+    [Button(ButtonSizes.Small)]
+    [FoldoutGroup("Actions")]
+    public void ToggleSprintMode()
+    {
+        SetSprintToggleEnabled(!sprintToggleEnabled);
+    }
+
+    public void SetSprintToggleEnabled(bool enabled)
+    {
+        if (sprintToggleEnabled == enabled)
+            return;
+
+        sprintToggleEnabled = enabled;
+        SettingsChanged?.Invoke();
+    }
+}

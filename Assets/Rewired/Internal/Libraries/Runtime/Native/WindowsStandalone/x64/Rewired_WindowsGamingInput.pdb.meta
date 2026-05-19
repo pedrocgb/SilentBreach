@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: ddb2900053d7665458e6d78ac03922dd
+timeCreated: 1694922463
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 21676
+  packageName: Rewired
+  packageVersion: 1.1.62.7
+  assetPath: Assets/Rewired/Internal/Libraries/Runtime/Native/WindowsStandalone/x64/Rewired_WindowsGamingInput.pdb
+  uploadId: 887366

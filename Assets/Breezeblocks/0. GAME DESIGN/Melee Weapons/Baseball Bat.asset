@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d65e8a75d4e4458a8693e52f8ab0191, type: 3}
+  m_Name: Baseball Bat
+  m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.WeaponSystem.MeleeWeaponData
+  itemDisplayName: Baseball Bat
+  itemIcon: {fileID: 1654522395145028745, guid: bb17164f42feeda43b3ffc39f0ab066b, type: 3}
+  itemDescription: 
+  heldVisualSprite: {fileID: -5516936181717576582, guid: c710ada61c2fd6d4aa38a2dba6ea0637, type: 3}
+  allowedSlots: 1
+  gripType: 1
+  equipTime: 0.5
+  holsterTime: 0.4
+  attackAnimationDuration: 0.7
+  attackActiveStartNormalized: 0.3
+  attackActiveEndNormalized: 0.7
+  damage: 20
+  armorPenetration: 5
+  staggerDuration: 0.15
+  attackReachDistance: 1.15
+  hitboxSize: {x: 1, y: 0.2}
+  hitboxOffset: {x: 0.5, y: 0}
+  attackNoise: 0.2
+  attackNoiseDuration: 0.15
+  attackNoiseType: 2
+  equipNoise: 0.2
+  equipNoiseDuration: 0.2
+  equipNoiseType: 1
+  holsterNoise: 0.2
+  holsterNoiseDuration: 0.2
+  holsterNoiseType: 1

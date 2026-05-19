@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!78 &1
+TagManager:
+  serializedVersion: 3
+  tags:
+  - Cover
+  layers:
+  - Default
+  - TransparentFX
+  - Ignore Raycast
+  - 
+  - Water
+  - UI
+  - 
+  - ObstructVision
+  - Actors
+  - Details
+  - Obstacles
+  - Projectiles
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  m_SortingLayers:
+  - name: Default
+    uniqueID: 0
+    locked: 0
+  - name: Scenario
+    uniqueID: 3967597495
+    locked: 0
+  - name: Objects
+    uniqueID: 3016006539
+    locked: 0
+  - name: Actors
+    uniqueID: 955498097
+    locked: 0
+  - name: Walls
+    uniqueID: 921286957
+    locked: 0
+  - name: Details
+    uniqueID: 3438706377
+    locked: 0
+  - name: Overall
+    uniqueID: 464600489
+    locked: 0
+  m_RenderingLayers:
+  - Default

@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa0e64ca3c7f48a6981e5c81b0f25812, type: 3}
+  m_Name: Poker Night
+  m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.HideoutSystem.HideoutJobDefinition
+  jobTitle: Poker Night
+  jobDescription: 
+  rewardText: $3000
+  objectivesText: 
+  termsOfFailureText: 
+  fixerName: 
+  jobImage: {fileID: 0}
+  questScenePath: Assets/Breezeblocks/Scenes/[2] Poker Scene.unity
+  shopTitle: The Fence
+  shopDescription: The Fence's offers for tonight's job
+  shopImage: {fileID: 0}
+  fenceOffers:
+  - item: {fileID: 11400000, guid: c5f5d63c62072834184c724b9f8ef127, type: 2}
+    firearmProjectile: {fileID: 0}
+    availabilityProbability: 1
+    maxQuantity: 1
+    price: 100

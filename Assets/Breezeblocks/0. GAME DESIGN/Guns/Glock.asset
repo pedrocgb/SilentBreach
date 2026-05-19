@@ -1,0 +1,86 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1f228266ec003e4382147ad1699c4ee, type: 3}
+  m_Name: Glock
+  m_EditorClassIdentifier: Assembly-CSharp::FirearmData
+  itemDisplayName: Glock
+  itemIcon: {fileID: -8635745744451227967, guid: bb17164f42feeda43b3ffc39f0ab066b, type: 3}
+  itemDescription: "Recognized for extreme reliability, simplicity, and durability,
+    they feature a signature short-recoil operating system and a \"Safe Action\"
+    system\u2014three independent, passive mechanical safeties that disengage when
+    the trigger is pulled."
+  heldVisualSprite: {fileID: 4319395737909131107, guid: dbcf16bc7a0ff9d40960f0ec2e6b4682, type: 3}
+  firearmClass: 0
+  allowedSlots: 7
+  gripType: 0
+  twoHandedFrontHandForwardOffset: 0.14
+  fireRate: 0.5
+  spread: 12
+  accuracy: 80
+  reloadTime: 3
+  reloadType: 0
+  ammoCapacity: 6
+  defaultReserveAmmo: 24
+  reloadNoiseDuration: 0.2
+  magazineReloadMidSfxNormalizedTime: 0.5
+  weight: 1
+  compatibleProjectiles:
+  - {fileID: 11400000, guid: 891f5d528892fad49833ba5d9fd4ba7e, type: 2}
+  fireMode: 1
+  burstCount: 0
+  pelletCount: 0
+  aimSpeed: 700
+  aimTime: 2
+  equipTime: 0.25
+  holsterTime: 0.25
+  screenshakePower: 0
+  hideMuzzleFlash: 0
+  muzzleFlashSize: 0.75
+  muzzleFlashDuration: 0.25
+  shotSfx:
+    clips:
+    - {fileID: 8300000, guid: 85afa990141e6494bbb8a32581c7d9cb, type: 3}
+    volume: 1
+    pitchRange: {x: 1, y: 1}
+  casingDelay: 0.05
+  casingSfx:
+    clips:
+    - {fileID: 8300000, guid: 6a8ce0d1210fb264f9e84ed3122dab94, type: 3}
+    volume: 0.35
+    pitchRange: {x: 1, y: 1}
+  reloadStartSfx:
+    clips:
+    - {fileID: 8300000, guid: df8f6103f7f0f5a4fa93313979655108, type: 3}
+    volume: 0.5
+    pitchRange: {x: 1, y: 1}
+  reloadEndSfx:
+    clips:
+    - {fileID: 8300000, guid: 6c34cc837e8f82c47b27ff65e7530495, type: 3}
+    volume: 0.5
+    pitchRange: {x: 1, y: 1}
+  reloadTriggerSfx:
+    clips:
+    - {fileID: 8300000, guid: fc14e3fcb628a244bb48b4524533122f, type: 3}
+    volume: 0.5
+    pitchRange: {x: 1, y: 1}
+  bulletReloadSfx:
+    clips: []
+    volume: 1
+    pitchRange: {x: 1, y: 1}
+  shootNoise: 1
+  shootNoiseType: 0
+  equipNoise: 0.25
+  equipNoiseType: 1
+  holsterNoise: 0.25
+  holsterNoiseType: 1
+  reloadNoise: 0.5
+  reloadNoiseType: 1

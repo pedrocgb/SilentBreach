@@ -1,0 +1,176 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfb037fa2fd9482fab94a9e06f6ba17f, type: 3}
+  m_Name: Target Enemy (Enemy AI)
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyStatsProfile
+  Health:
+    MaxHealth: 1
+    IsInvincible: 0
+  Stagger:
+    EnableStagger: 1
+    StaggeredMoveSpeed: 0.25
+    TurnSpeedReductionPercent: 80
+  Movement:
+    StartingState: 0
+    StartingPointFacing:
+      FacingMode: 1
+      CustomAngle: 0
+    WalkSpeed: 1
+    RunSpeed: 2.8
+    SprintSpeed: 4.5
+    Acceleration: 10
+    Deceleration: 14
+    StoppingDistance: 0.2
+    SlowdownDistance: 0.8
+    MinimumMoveSpeed: 0.05
+    UseCustomRotation: 1
+    RotationSpeed: 360
+    RotationAngleOffset: 90
+    FaceMovementDirection: 1
+    FaceTargetWhenDetected: 1
+    PreferPathSteeringDirection: 1
+    LockRotationWhenIdle: 1
+    PatrolMode: 0
+    DetachReferencedPointsToWorldOnAwake: 1
+    ReturnToStartAfterTemporaryStates: 0
+    ReturnToStartSpeedType: 0
+    EnterAlertStateWhenTargetLost: 0
+    AlertNoiseFocusDuration: 2
+    DefaultLookAroundDuration: 2.5
+    LookAroundTurnInterval: 0.5
+    LookAroundRotationSpeed: 360
+    RandomLookAngleRange: 180
+    UseItinerary: 1
+    LoopItinerary: 1
+    DetectionBehavior: 1
+    SearchLastKnownTargetPositionWhenTargetLost: 0
+    MissingFleePointFallbackBehavior: 2
+    CanFlee: 1
+    StayAtFleePointForever: 1
+    FleeStoppingDistance: 0.2
+    DisableHearingAfterFlee: 1
+    DisableVisionAfterFlee: 1
+    UseMovePosition: 1
+    UseVelocityMovement: 0
+    ApplyRecommendedRigidbodySettings: 1
+    ForceZeroGravity: 1
+    RecommendedInterpolation: 1
+    RecommendedCollisionDetection: 1
+  Vision:
+    VisionRange: 12
+    VisionAngle: 140
+    UseTransformUpAsForward: 1
+    LocalForwardDirection: {x: 0, y: 1}
+    ForwardAngleOffset: 0
+    VisionCheckInterval: 0.1
+    RequireLineOfSight: 1
+    ObstacleMask:
+      serializedVersion: 2
+      m_Bits: 128
+    VisibilityThreshold: 0.15
+    DetectionSpeed: 1.25
+    DetectionDecaySpeed: 0.5
+    ReactToFlashlight: 1
+    FlashlightSourceLostDuration: 2
+    FlashlightSourceUpdateDistance: 0.75
+    FlashlightVisibilitySampleCount: 5
+    FlashlightVisibilitySurfaceOffset: 0.05
+    UseDistanceDetectionMultiplier: 1
+    CloseRangeDistance: 1.5
+    NoBonusDistance: 6
+    CloseRangeDetectionMultiplier: 4
+    DebugDraw: 1
+    DebugLogging: 0
+  Hearing:
+    EnableHearing: 1
+    LoudHearingRange: 35
+    CommonHearingRange: 9
+    SilentHearingRange: 3
+    HearingThreshold: 0.2
+    MaximumAccumulatedDetection: 1
+    DetectionDecayDelay: 1
+    DetectionDecayPerSecond: 0.25
+    CloseDistanceMultiplier: 2
+    DistanceFalloffCurve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    UseObstructionCheck: 1
+    ObstructionLayerMask:
+      serializedVersion: 2
+      m_Bits: 128
+    WallObstructionMultiplier: 0.2
+    MaxObstructionChecks: 4
+    StackObstructionMultipliers: 1
+    DebugHearing: 1
+    DrawHearingRanges: 1
+  Combat:
+    StartArmed: 0
+    StartingFirearm: {fileID: 0}
+    StartingProjectile: {fileID: 0}
+    StartingLoadedAmmo: 0
+    StartingReserveAmmo: 0
+    CombatIntelligence: 0
+    CombatDelay: 0.75
+    LostSightLingerDuration: 6
+    LostSightShootingLingerDuration: 2
+    CombatDecisionInterval: 0.1
+    StationarySpeedThreshold: 0.05
+    EffectiveCombatRangeMultiplier: 0.9
+    FireAngleTolerance: 8
+    CoverDetectionRange: 8
+    CoverDetectionMask:
+      serializedVersion: 2
+      m_Bits: 1024
+    CoverTag: Cover
+    CoverReevaluationInterval: 0.35
+    CoverArrivalDistance: 0.35
+    CoverRepositionDotThreshold: 0.2
+    MaxCoverResults: 16
+    DefaultAimRotationSpeed: 540
+    DebugTraceDuration: 0.1
+    MarksmanAccurateDecisionInterval: 1
+    MarksmanAccurateModeChance: 0.5
+    RifleBurstShotsMinimum: 2
+    RifleBurstShotsMaximum: 4
+    ProjectilePrefab: {fileID: 28254537026718337, guid: 7a54f6b309326aa45a4c90553fa94571, type: 3}
+    ProjectilePoolPrewarm: 16
+    MuzzleFlashPrefab: {fileID: 1306930571015351694, guid: a1c2931693f7f3145a1c248137422b23, type: 3}
+    MuzzleFlashPoolPrewarm: 8
+    MuzzleFlashRotationOffset: 0
+    DebugCombat: 0
+    DrawCombatGizmos: 1
+  Melee:
+    StartArmed: 0
+    StartingWeapon: {fileID: 0}
+    AttackDecisionInterval: 0.05
+    DebugMelee: 0

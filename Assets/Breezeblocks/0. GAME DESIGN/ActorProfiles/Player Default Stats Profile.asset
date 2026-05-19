@@ -1,0 +1,80 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 829bae7ef0e1457a85f80ae2d830eb5f, type: 3}
+  m_Name: Player Default Stats Profile
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerStatsProfile
+  Health:
+    MaxHealth: 1
+    IsInvincible: 0
+  Stagger:
+    EnableStagger: 1
+    StaggeredMoveSpeed: 0.25
+    TurnSpeedReductionPercent: 80
+  Movement:
+    WalkSpeedLevels:
+    - 1
+    - 1.2
+    - 1.4
+    - 1.6
+    - 1.8
+    - 2
+    - 2.2
+    - 2.4
+    - 2.6
+    - 2.8
+    SelectedSpeedLevel: 5
+    Acceleration: 28
+    Deceleration: 34
+    SprintSpeedMultiplier: 1.5
+    NormalizeInput: 1
+    ForceZeroGravity: 1
+    FreezeRotationZ: 1
+  Noise:
+    IdleNoise: 0
+    WalkNoiseAtMinSpeed: 0.35
+    WalkNoiseAtMaxSpeed: 0.75
+    SprintNoiseAtMaxSpeed: 1
+    EmitMovementNoiseEvents: 1
+    MovementNoiseEventInterval: 0.2
+    MinimumMovementNoiseToEmit: 0.05
+    MovementNoiseIntensityMultiplier: 1
+    WalkMovementNoiseType: 1
+    SprintMovementNoiseType: 1
+  NoiseEmitter:
+    IntensityMultiplier: 1
+    DebugLogging: 0
+  Visibility:
+    VisibilitySampleInterval: 0.05
+    VisibilityIncreaseSpeed: 3
+    VisibilityDecreaseSpeed: 2
+    MinimumVisibility: 0
+    MaximumVisibility: 1
+    MuzzleFlashVisibilityDuration: 0.6
+    DebugDraw: 0
+  VisionLight:
+    MaxViewRadius: 20
+    MinViewRadius: 5
+    ViewAngle: 180
+    InnerRadiusFraction: 0.5
+    InnerAngleFraction: 0.3
+    LookAtMouse: 1
+    RotationSmoothing: 720
+    RotationOffset: -90
+    VisionLevel01: 1
+    ExternalDirection: {x: 1, y: 0}
+  Stamina:
+    MaxStamina: 100
+    SprintDrainPerSecond: 20
+    RegenerationPerSecond: 32
+    RegenerationDelayAfterSpend: 1
+    StaggerStaminaLossPercent: 12
+    MovementThreshold: 0.05

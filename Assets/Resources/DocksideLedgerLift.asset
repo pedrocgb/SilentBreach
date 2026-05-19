@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa0e64ca3c7f48a6981e5c81b0f25812, type: 3}
+  m_Name: DocksideLedgerLift
+  m_EditorClassIdentifier: 
+  jobTitle: Dockside Ledger Lift
+  jobDescription: Hit the dock office after midnight, strip the books, and leave before the guards can pin down the crew.
+  rewardText: 900 Cash and 2 Influence
+  objectivesText: Enter quietly, recover the ledgers, and break contact without a running gunfight.
+  termsOfFailureText: If the office burns, the evidence is lost. If the crew is wiped out, the contract is dead.
+  fixerName: Jon Mercer
+  jobImage: {fileID: 0}
+  questScenePath: Assets/Breezeblocks/Scenes/[2] Poker Scene.unity
+  shopTitle: The Fence
+  shopDescription: Extra heat means heavier kit and faster hands tonight.
+  shopImage: {fileID: 0}
+  fenceOffers:
+  - item: {fileID: 11400000, guid: 3d8f1d2672d507649b12b1008921e4b0, type: 2}
+    firearmProjectile: {fileID: 11400000, guid: 891f5d528892fad49833ba5d9fd4ba7e, type: 2}
+    availabilityProbability: 0.8
+    maxQuantity: 1
+    price: 620
+  - item: {fileID: 11400000, guid: c7e8e44f593459e458e60c5bb09f8f77, type: 2}
+    firearmProjectile: {fileID: 11400000, guid: 891f5d528892fad49833ba5d9fd4ba7e, type: 2}
+    availabilityProbability: 0.95
+    maxQuantity: 1
+    price: 430
+  - item: {fileID: 11400000, guid: ea95feac09de47846a21232d81534981, type: 2}
+    firearmProjectile: {fileID: 0}
+    availabilityProbability: 1
+    maxQuantity: 1
+    price: 380
+  - item: {fileID: 11400000, guid: ae90121673569524f9f2365dd21a1725, type: 2}
+    firearmProjectile: {fileID: 0}
+    availabilityProbability: 0.5
+    maxQuantity: 1
+    price: 80
+  - item: {fileID: 11400000, guid: 42b21e44e37445a4a942a7882c24c1ea, type: 2}
+    firearmProjectile: {fileID: 0}
+    availabilityProbability: 0.7
+    maxQuantity: 1
+    price: 110

@@ -100,6 +100,7 @@ public sealed class HideoutSceneController : MonoBehaviour
         public EquipmentItemData Item;
         public ProjectileData Projectile;
         public int Price;
+        public int InitialQuantity;
         public int RemainingQuantity;
     }
 
@@ -111,6 +112,7 @@ public sealed class HideoutSceneController : MonoBehaviour
         public int LoadedAmmo;
         public int ReserveAmmo;
         public int PurchasePrice;
+        public PreparedFenceOffer SourceOffer;
 
         public bool HasItem => Item != null;
     }
@@ -240,10 +242,15 @@ public sealed class HideoutSceneController : MonoBehaviour
 
         int refund = slotState.PurchasePrice;
         string itemName = slotState.Item.DisplayName;
+        PreparedFenceOffer restoredOffer = RestockPurchasedOffer(slotState);
         ClearSlot(slotState);
         HideoutRuntimeSession.AddCash(refund);
-        SelectEquipmentSlot(selectedEquipmentSlot);
-        RefreshFenceView();
+
+        if (restoredOffer != null)
+            SelectOffer(restoredOffer);
+        else
+            SelectEquipmentSlot(selectedEquipmentSlot);
+
         SetMessage($"Sold {itemName} for ${refund}.");
     }
 
@@ -488,6 +495,7 @@ public sealed class HideoutSceneController : MonoBehaviour
                 Item = definition.Item,
                 Projectile = definition.FirearmProjectile,
                 Price = definition.Price,
+                InitialQuantity = Mathf.Max(1, quantity),
                 RemainingQuantity = Mathf.Max(1, quantity)
             });
         }
@@ -500,6 +508,7 @@ public sealed class HideoutSceneController : MonoBehaviour
                 Item = fallbackDefinition.Item,
                 Projectile = fallbackDefinition.FirearmProjectile,
                 Price = fallbackDefinition.Price,
+                InitialQuantity = 1,
                 RemainingQuantity = 1
             });
         }
@@ -612,7 +621,14 @@ public sealed class HideoutSceneController : MonoBehaviour
             if (candidateSlot == null || candidateSlot.HasItem)
                 continue;
 
-            AssignSlot(candidateSlot, offer.Item, ResolveProjectileForItem(offer.Item, offer.Projectile), ResolveLoadedAmmo(offer.Item), ResolveReserveAmmo(offer.Item), offer.Price);
+            AssignSlot(
+                candidateSlot,
+                offer.Item,
+                ResolveProjectileForItem(offer.Item, offer.Projectile),
+                ResolveLoadedAmmo(offer.Item),
+                ResolveReserveAmmo(offer.Item),
+                offer.Price,
+                offer);
             slotType = candidateSlotType;
             failureMessage = string.Empty;
             return true;
@@ -635,6 +651,7 @@ public sealed class HideoutSceneController : MonoBehaviour
                 continue;
 
             refund += slotState.PurchasePrice;
+            RestockPurchasedOffer(slotState);
             ClearSlot(slotState);
         }
 
@@ -743,9 +760,8 @@ public sealed class HideoutSceneController : MonoBehaviour
                 $"Class: {firearmData.Class}\n" +
                 $"Slots: {FormatAllowedSlots(firearmData.AllowedSlots)}\n" +
                 $"Fire Modes: {firearmData.Modes.ToString().Replace(", ", " / ")}\n" +
-                $"Bullets: {loadedAmmo}/{firearmData.AmmoCapacity} loaded, {reserveAmmo} reserve\n" +
-                $"Reload: {(firearmData.ReloadStyle == ReloadType.BulletPerBullet ? "Per bullet" : "Magazine")} | {firearmData.ReloadTime:0.##}s\n" +
-                $"Weight: {firearmData.Weight:0.##}";
+                $"Bullets: {loadedAmmo}/{reserveAmmo}\n" +
+                $"Reload: {(firearmData.ReloadStyle == ReloadType.BulletPerBullet ? "Per bullet" : "Magazine")} | {firearmData.ReloadTime:0.##}s";
         }
 
         if (item is ArmorData armorData)
@@ -753,8 +769,8 @@ public sealed class HideoutSceneController : MonoBehaviour
             return
                 $"Armor Class: {armorData.ArmorClass}\n" +
                 $"Armor Value: {armorData.ArmorValue:0.##}\n" +
-                $"Weight: {armorData.Weight:0.##}\n" +
-                $"Rotation Penalty: {armorData.RotationPenalty:0.#}%";
+                $"Rotation Penalty: {armorData.RotationPenalty:0.#}%\n" +
+                $"Movement Noise: +{armorData.MovementNoiseModifierPercent:0.#}%";
         }
 
         if (item is MeleeWeaponData meleeWeaponData)
@@ -763,12 +779,22 @@ public sealed class HideoutSceneController : MonoBehaviour
                 $"Grip: {meleeWeaponData.GripType}\n" +
                 $"Slots: {FormatAllowedSlots(meleeWeaponData.AllowedSlots)}\n" +
                 $"Damage: {meleeWeaponData.Damage:0.#}\n" +
-                $"Attack: {meleeWeaponData.AttackAnimationDuration:0.##}s\n" +
+                $"Attack: {meleeWeaponData.AttackAnimationDuration:0.##}s total | {meleeWeaponData.AttackSwingDuration:0.##}s swing\n" +
                 $"Reach: {meleeWeaponData.AttackReachDistance:0.##}";
         }
 
         if (item is UtilityItemData utilityItemData)
         {
+            if (item is ThrowableUtilityData throwableData)
+            {
+                return
+                    $"Type: {utilityItemData.UtilityTypeName}\n" +
+                    $"Slots: {FormatAllowedSlots(utilityItemData.AllowedSlots)}\n" +
+                    $"Uses: {reserveAmmo}/{throwableData.MaxUses}\n" +
+                    $"Throw Distance: {throwableData.MinTravelDistance:0.##}-{throwableData.MaxTravelDistance:0.##}\n" +
+                    $"Equip: {utilityItemData.EquipTime:0.##}s | Holster: {utilityItemData.HolsterTime:0.##}s";
+            }
+
             return
                 $"Type: {utilityItemData.UtilityTypeName}\n" +
                 $"Slots: {FormatAllowedSlots(utilityItemData.AllowedSlots)}\n" +
@@ -902,7 +928,7 @@ public sealed class HideoutSceneController : MonoBehaviour
 
         if (!toSlot.HasItem)
         {
-            AssignSlot(toSlot, fromSlot.Item, fromSlot.Projectile, fromSlot.LoadedAmmo, fromSlot.ReserveAmmo, fromSlot.PurchasePrice);
+            AssignSlot(toSlot, fromSlot.Item, fromSlot.Projectile, fromSlot.LoadedAmmo, fromSlot.ReserveAmmo, fromSlot.PurchasePrice, fromSlot.SourceOffer);
             ClearSlot(fromSlot);
             return true;
         }
@@ -912,9 +938,10 @@ public sealed class HideoutSceneController : MonoBehaviour
         int swapLoadedAmmo = toSlot.LoadedAmmo;
         int swapReserveAmmo = toSlot.ReserveAmmo;
         int swapPrice = toSlot.PurchasePrice;
+        PreparedFenceOffer swapSourceOffer = toSlot.SourceOffer;
 
-        AssignSlot(toSlot, fromSlot.Item, fromSlot.Projectile, fromSlot.LoadedAmmo, fromSlot.ReserveAmmo, fromSlot.PurchasePrice);
-        AssignSlot(fromSlot, swapItem, swapProjectile, swapLoadedAmmo, swapReserveAmmo, swapPrice);
+        AssignSlot(toSlot, fromSlot.Item, fromSlot.Projectile, fromSlot.LoadedAmmo, fromSlot.ReserveAmmo, fromSlot.PurchasePrice, fromSlot.SourceOffer);
+        AssignSlot(fromSlot, swapItem, swapProjectile, swapLoadedAmmo, swapReserveAmmo, swapPrice, swapSourceOffer);
         return true;
     }
 
@@ -924,7 +951,7 @@ public sealed class HideoutSceneController : MonoBehaviour
         return slotState;
     }
 
-    private void AssignSlot(LoadoutSlotState slotState, EquipmentItemData item, ProjectileData projectile, int loadedAmmo, int reserveAmmo, int purchasePrice)
+    private void AssignSlot(LoadoutSlotState slotState, EquipmentItemData item, ProjectileData projectile, int loadedAmmo, int reserveAmmo, int purchasePrice, PreparedFenceOffer sourceOffer = null)
     {
         if (slotState == null)
             return;
@@ -934,11 +961,23 @@ public sealed class HideoutSceneController : MonoBehaviour
         slotState.LoadedAmmo = Mathf.Max(0, loadedAmmo);
         slotState.ReserveAmmo = Mathf.Max(0, reserveAmmo);
         slotState.PurchasePrice = Mathf.Max(0, purchasePrice);
+        slotState.SourceOffer = sourceOffer;
     }
 
     private void ClearSlot(LoadoutSlotState slotState)
     {
         AssignSlot(slotState, null, null, 0, 0, 0);
+    }
+
+    private static PreparedFenceOffer RestockPurchasedOffer(LoadoutSlotState slotState)
+    {
+        if (slotState?.SourceOffer == null)
+            return null;
+
+        PreparedFenceOffer sourceOffer = slotState.SourceOffer;
+        int maxQuantity = Mathf.Max(1, sourceOffer.InitialQuantity);
+        sourceOffer.RemainingQuantity = Mathf.Min(maxQuantity, sourceOffer.RemainingQuantity + 1);
+        return sourceOffer;
     }
 
     private List<EquipmentSlotType> ResolveCompatibleSlots(EquipmentItemData item)
@@ -981,7 +1020,12 @@ public sealed class HideoutSceneController : MonoBehaviour
 
     private static int ResolveReserveAmmo(EquipmentItemData item)
     {
-        return item is FirearmData firearmData ? firearmData.DefaultReserveAmmo : 0;
+        return item switch
+        {
+            FirearmData firearmData => firearmData.DefaultReserveAmmo,
+            ThrowableUtilityData throwableData => throwableData.MaxUses,
+            _ => 0
+        };
     }
 
     private void RefreshCurrencyTexts()

@@ -13,26 +13,26 @@ public class ArmorData : EquipmentItemData
     [FoldoutGroup("Armor"), MinValue(0f)]
     [SerializeField] private float armorValue = 100f;
 
-    [FoldoutGroup("Armor"), MinValue(0f)]
-    [SerializeField] private float weight = 1f;
-
     [FoldoutGroup("Armor"), Range(0f, 100f), SuffixLabel("%", true)]
     [SerializeField] private float rotationPenalty;
+
+    [FoldoutGroup("Armor"), Range(0f, 1000f), SuffixLabel("%", true)]
+    [SerializeField] private float movementNoiseModifierPercent;
 
     public override EquipmentItemKind ItemKind => EquipmentItemKind.Armor;
     public override EquipmentSlotMask AllowedSlots => EquipmentSlotMask.Armor;
     public int ArmorClass => armorClass;
     public float ArmorValue => armorValue;
-    public float Weight => weight;
     public float RotationPenalty => rotationPenalty;
+    public float MovementNoiseModifierPercent => movementNoiseModifierPercent;
 
     private void OnValidate()
     {
         ValidateCommonItemFields();
         armorClass = Mathf.Clamp(armorClass, 1, 5);
         armorValue = Mathf.Max(0f, armorValue);
-        weight = Mathf.Max(0f, weight);
         rotationPenalty = Mathf.Clamp(rotationPenalty, 0f, 100f);
+        movementNoiseModifierPercent = Mathf.Max(0f, movementNoiseModifierPercent);
     }
 }
 }

@@ -41,6 +41,7 @@ public class ArmorLoadout : MonoBehaviour
     public bool HasArmor => startingArmor != null && CurrentArmorValue > 0f;
 
     public float RotationPenaltyPercent => HasArmor ? startingArmor.RotationPenalty : 0f;
+    public float MovementNoiseMultiplier => HasArmor ? 1f + (startingArmor.MovementNoiseModifierPercent / 100f) : 1f;
 
     public event Action ArmorChanged;
 

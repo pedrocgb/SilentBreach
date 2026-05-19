@@ -20,11 +20,11 @@ MonoBehaviour:
     the trigger is pulled."
   heldVisualSprite: {fileID: 4319395737909131107, guid: dbcf16bc7a0ff9d40960f0ec2e6b4682, type: 3}
   firearmClass: 0
-  allowedSlots: 7
+  allowedSlots: 3
   gripType: 0
   twoHandedFrontHandForwardOffset: 0.14
-  fireRate: 0.5
-  spread: 12
+  fireRate: 2
+  spread: 22
   accuracy: 80
   reloadTime: 3
   reloadType: 0
@@ -32,7 +32,6 @@ MonoBehaviour:
   defaultReserveAmmo: 24
   reloadNoiseDuration: 0.2
   magazineReloadMidSfxNormalizedTime: 0.5
-  weight: 1
   compatibleProjectiles:
   - {fileID: 11400000, guid: 891f5d528892fad49833ba5d9fd4ba7e, type: 2}
   fireMode: 1
@@ -43,6 +42,7 @@ MonoBehaviour:
   equipTime: 0.25
   holsterTime: 0.25
   screenshakePower: 0
+  screenshakeDuration: 0.08
   hideMuzzleFlash: 0
   muzzleFlashSize: 0.75
   muzzleFlashDuration: 0.25

@@ -1,3 +1,4 @@
+using Breezeblocks.WeaponSystem;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -16,6 +17,9 @@ public class PlayerNoise : MonoBehaviour
 
     [FoldoutGroup("References"), Tooltip("Optional helper used to broadcast noise events to AI hearing.")]
     [SerializeField] private PlayerNoiseEmitter noiseEmitter;
+
+    [FoldoutGroup("References"), Tooltip("Optional armor loadout used to scale movement noise.")]
+    [SerializeField] private ArmorLoadout armorLoadout;
 
     private float idleNoise;
 
@@ -74,6 +78,9 @@ public class PlayerNoise : MonoBehaviour
 
         if (noiseEmitter == null)
             noiseEmitter = GetComponent<PlayerNoiseEmitter>();
+
+        if (armorLoadout == null)
+            armorLoadout = GetComponent<ArmorLoadout>();
     }
 
     private void Awake()
@@ -83,6 +90,9 @@ public class PlayerNoise : MonoBehaviour
 
         if (noiseEmitter == null)
             noiseEmitter = GetComponent<PlayerNoiseEmitter>();
+
+        if (armorLoadout == null)
+            armorLoadout = GetComponent<ArmorLoadout>();
     }
 
     private void OnValidate()
@@ -160,15 +170,16 @@ public class PlayerNoise : MonoBehaviour
             return idleNoise;
 
         float currentSpeed = playerMotor.CurrentPlanarSpeed;
+        float movementNoiseMultiplier = armorLoadout != null ? Mathf.Max(0f, armorLoadout.MovementNoiseMultiplier) : 1f;
 
         if (playerMotor.IsSprinting)
         {
             float sprintT = SafeInverseLerp(playerMotor.MaxWalkSpeed, playerMotor.MaxSprintSpeed, currentSpeed);
-            return Mathf.Lerp(walkNoiseAtMaxSpeed, sprintNoiseAtMaxSpeed, sprintT);
+            return Mathf.Lerp(walkNoiseAtMaxSpeed, sprintNoiseAtMaxSpeed, sprintT) * movementNoiseMultiplier;
         }
 
         float walkT = SafeInverseLerp(playerMotor.MinWalkSpeed, playerMotor.MaxWalkSpeed, playerMotor.CurrentTargetSpeed);
-        return Mathf.Lerp(walkNoiseAtMinSpeed, walkNoiseAtMaxSpeed, walkT) * playerMotor.CurrentMotionRatio;
+        return Mathf.Lerp(walkNoiseAtMinSpeed, walkNoiseAtMaxSpeed, walkT) * playerMotor.CurrentMotionRatio * movementNoiseMultiplier;
     }
 
     private static float SafeInverseLerp(float a, float b, float value)

@@ -93,9 +93,6 @@ public class FirearmData : EquipmentItemData
     [Tooltip("Normalized moment during a magazine reload when the reload-end and trigger SFX should play.")]
     [SerializeField] private float magazineReloadMidSfxNormalizedTime = 0.5f;
 
-    [FoldoutGroup("Firearm/Loadout"), MinValue(0f)]
-    [SerializeField] private float weight = 1f;
-
     [FoldoutGroup("Firearm/Compatibility")]
     [ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
     [SerializeField] private List<ProjectileData> compatibleProjectiles = new();
@@ -123,6 +120,9 @@ public class FirearmData : EquipmentItemData
 
     [FoldoutGroup("Firearm/Feedback"), MinValue(0f)]
     [SerializeField] private float screenshakePower;
+
+    [FoldoutGroup("Firearm/Feedback"), MinValue(0f), SuffixLabel("s", true)]
+    [SerializeField] private float screenshakeDuration = 0.08f;
 
     [FoldoutGroup("Firearm/Feedback")]
     [SerializeField] private bool hideMuzzleFlash;
@@ -195,7 +195,6 @@ public class FirearmData : EquipmentItemData
     public int DefaultReserveAmmo => defaultReserveAmmo;
     public float ReloadNoiseDuration => reloadNoiseDuration;
     public float MagazineReloadMidSfxNormalizedTime => magazineReloadMidSfxNormalizedTime;
-    public float Weight => weight;
     public IReadOnlyList<ProjectileData> CompatibleProjectiles => compatibleProjectiles;
     public FireMode Modes => fireMode;
     public int BurstCount => burstCount;
@@ -205,6 +204,7 @@ public class FirearmData : EquipmentItemData
     public float EquipTime => equipTime;
     public float HolsterTime => holsterTime;
     public float ScreenshakePower => screenshakePower;
+    public float ScreenshakeDuration => screenshakeDuration;
     public bool HideMuzzleFlash => hideMuzzleFlash;
     public float MuzzleFlashSize => muzzleFlashSize;
     public float MuzzleFlashDuration => muzzleFlashDuration;
@@ -257,12 +257,12 @@ public class FirearmData : EquipmentItemData
         defaultReserveAmmo = Mathf.Max(0, defaultReserveAmmo);
         reloadNoiseDuration = Mathf.Max(0f, reloadNoiseDuration);
         magazineReloadMidSfxNormalizedTime = Mathf.Clamp01(magazineReloadMidSfxNormalizedTime);
-        weight = Mathf.Max(0f, weight);
         aimSpeed = Mathf.Max(0f, aimSpeed);
         aimTime = Mathf.Max(0f, aimTime);
         equipTime = Mathf.Max(0f, equipTime);
         holsterTime = Mathf.Max(0f, holsterTime);
         screenshakePower = Mathf.Max(0f, screenshakePower);
+        screenshakeDuration = Mathf.Max(0f, screenshakeDuration);
         muzzleFlashSize = Mathf.Max(0f, muzzleFlashSize);
         muzzleFlashDuration = Mathf.Max(0f, muzzleFlashDuration);
         casingDelay = Mathf.Max(0f, casingDelay);

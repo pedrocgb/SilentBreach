@@ -297,6 +297,21 @@ public class PlayerEquipmentController : MonoBehaviour
         return true;
     }
 
+    public bool TryGetRuntimeThrowableState(EquipmentSlotType slotType, out int remainingUses, out int maxUses)
+    {
+        RuntimeHandSlotState slotState = GetRuntimeSlot(slotType);
+        if (slotState == null || slotState.Item is not ThrowableUtilityData throwableData)
+        {
+            remainingUses = 0;
+            maxUses = 0;
+            return false;
+        }
+
+        maxUses = ResolveInitialThrowableUses(throwableData, -1);
+        remainingUses = Mathf.Clamp(slotState.ReserveAmmo, 0, maxUses);
+        return true;
+    }
+
     public bool TryMoveItemBetweenSlots(EquipmentSlotType fromSlotType, EquipmentSlotType toSlotType)
     {
         if (!fromSlotType.IsHandSlot() || !toSlotType.IsHandSlot())
@@ -362,6 +377,34 @@ public class PlayerEquipmentController : MonoBehaviour
         AppendRuntimeSlotLoadout(loadout, secondaryRuntime);
         AppendRuntimeSlotLoadout(loadout, beltRuntime);
         return loadout;
+    }
+
+    public bool ConsumeCurrentHeldUtility()
+    {
+        if (!CurrentHeldSlot.IsHandSlot() || CurrentHeldItem is not UtilityItemData utilityItem)
+            return false;
+
+        RuntimeHandSlotState slotState = GetRuntimeSlot(CurrentHeldSlot);
+        if (slotState == null || slotState.Item != utilityItem)
+            return false;
+
+        if (utilityItem is ThrowableUtilityData throwableData)
+        {
+            int remainingUses = Mathf.Clamp(slotState.ReserveAmmo - 1, 0, throwableData.MaxUses);
+            slotState.ReserveAmmo = remainingUses;
+            if (remainingUses > 0)
+            {
+                NotifyEquipmentChanged();
+                return true;
+            }
+        }
+
+        playerUtilityController?.ClearEquippedUtilityFromConsumption(utilityItem);
+        ClearSlotState(slotState);
+        CurrentHeldSlot = EquipmentSlotType.None;
+        CurrentHeldItem = null;
+        NotifyEquipmentChanged();
+        return true;
     }
 
     private void EquipStartingSlot()
@@ -569,6 +612,10 @@ public class PlayerEquipmentController : MonoBehaviour
             loadedAmmo = ResolveInitialLoadedAmmo(firearmData, definition.startingLoadedAmmo);
             reserveAmmo = ResolveInitialReserveAmmo(firearmData, definition.startingReserveAmmo);
         }
+        else if (item is ThrowableUtilityData throwableData)
+        {
+            reserveAmmo = ResolveInitialThrowableUses(throwableData, -1);
+        }
 
         return new RuntimeHandSlotState
         {
@@ -700,6 +747,10 @@ public class PlayerEquipmentController : MonoBehaviour
             loadedAmmo = ResolveInitialLoadedAmmo(firearmData, slotLoadout.LoadedAmmo);
             reserveAmmo = ResolveInitialReserveAmmo(firearmData, slotLoadout.ReserveAmmo);
         }
+        else if (item is ThrowableUtilityData throwableData)
+        {
+            reserveAmmo = ResolveInitialThrowableUses(throwableData, slotLoadout.ReserveAmmo);
+        }
 
         AssignSlotState(slotState, item, projectile, loadedAmmo, reserveAmmo);
     }
@@ -716,6 +767,13 @@ public class PlayerEquipmentController : MonoBehaviour
         int defaultReserveAmmo = firearmData != null ? firearmData.DefaultReserveAmmo : 0;
         int resolvedReserveAmmo = requestedReserveAmmo < 0 ? defaultReserveAmmo : requestedReserveAmmo;
         return Mathf.Max(0, resolvedReserveAmmo);
+    }
+
+    private static int ResolveInitialThrowableUses(ThrowableUtilityData throwableData, int requestedUses)
+    {
+        int maxUses = throwableData != null ? throwableData.MaxUses : 0;
+        int resolvedUses = requestedUses < 0 ? maxUses : requestedUses;
+        return Mathf.Clamp(resolvedUses, 0, maxUses);
     }
 
     private void ValidateSlotAssignment(HandEquipmentSlotDefinition definition, EquipmentSlotType slotType)

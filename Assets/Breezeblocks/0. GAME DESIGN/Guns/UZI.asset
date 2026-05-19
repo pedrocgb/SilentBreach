@@ -21,15 +21,14 @@ MonoBehaviour:
   gripType: 1
   twoHandedFrontHandForwardOffset: 0.18
   fireRate: 12
-  spread: 12
+  spread: 36
   accuracy: 60
-  reloadTime: 1.5
+  reloadTime: 4
   reloadType: 0
   ammoCapacity: 30
   defaultReserveAmmo: 120
   reloadNoiseDuration: 0.2
   magazineReloadMidSfxNormalizedTime: 0.5
-  weight: 2.5
   compatibleProjectiles:
   - {fileID: 11400000, guid: 891f5d528892fad49833ba5d9fd4ba7e, type: 2}
   fireMode: 2
@@ -40,6 +39,7 @@ MonoBehaviour:
   equipTime: 1
   holsterTime: 1
   screenshakePower: 0
+  screenshakeDuration: 0.08
   hideMuzzleFlash: 0
   muzzleFlashSize: 0.75
   muzzleFlashDuration: 0.2

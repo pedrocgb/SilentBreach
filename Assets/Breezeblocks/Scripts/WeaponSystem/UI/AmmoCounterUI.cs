@@ -17,6 +17,12 @@ public class AmmoCounterUI : MonoBehaviour
     [FoldoutGroup("References"), Tooltip("Optional explicit weapon controller reference. If empty, auto-finds one.")]
     [SerializeField] private PlayerWeaponController weaponController;
 
+    [FoldoutGroup("References"), Tooltip("Optional explicit equipment controller reference. If empty, auto-finds one.")]
+    [SerializeField] private PlayerEquipmentController equipmentController;
+
+    [FoldoutGroup("References"), Tooltip("Optional explicit utility controller reference. If empty, auto-finds one.")]
+    [SerializeField] private PlayerUtilityController utilityController;
+
     [FoldoutGroup("References"), Tooltip("Optional existing TMP text. If empty, one is created at runtime as a child.")]
     [SerializeField] private TMP_Text ammoText;
 
@@ -55,6 +61,8 @@ public class AmmoCounterUI : MonoBehaviour
 
     private string _currentDisplayText;
     private PlayerWeaponController _subscribedWeaponController;
+    private PlayerEquipmentController _subscribedEquipmentController;
+    private PlayerUtilityController _subscribedUtilityController;
 
     private void Awake()
     {
@@ -63,7 +71,7 @@ public class AmmoCounterUI : MonoBehaviour
 
         ResolveReferences();
         EnsureTextReference();
-        SubscribeToWeaponController();
+        SubscribeToControllers();
         RefreshDisplay();
     }
 
@@ -74,13 +82,13 @@ public class AmmoCounterUI : MonoBehaviour
 
         ResolveReferences();
         EnsureTextReference();
-        SubscribeToWeaponController();
+        SubscribeToControllers();
         RefreshDisplay();
     }
 
     private void OnDisable()
     {
-        UnsubscribeFromWeaponController();
+        UnsubscribeFromControllers();
     }
 
     private void OnValidate()
@@ -95,10 +103,10 @@ public class AmmoCounterUI : MonoBehaviour
         if (!enabled)
             return;
 
-        if (weaponController == null)
+        if (weaponController == null || equipmentController == null || utilityController == null)
         {
             ResolveReferences();
-            SubscribeToWeaponController();
+            SubscribeToControllers();
         }
 
         RefreshDisplay();
@@ -108,6 +116,12 @@ public class AmmoCounterUI : MonoBehaviour
     {
         if (weaponController == null)
             weaponController = FindFirstObjectByType<PlayerWeaponController>();
+
+        if (equipmentController == null)
+            equipmentController = FindFirstObjectByType<PlayerEquipmentController>();
+
+        if (utilityController == null)
+            utilityController = FindFirstObjectByType<PlayerUtilityController>();
 
         if (ammoText == null)
             ammoText = ResolveBestTextReference();
@@ -160,12 +174,20 @@ public class AmmoCounterUI : MonoBehaviour
         return null;
     }
 
+    private void SubscribeToControllers()
+    {
+        SubscribeToWeaponController();
+        SubscribeToEquipmentController();
+        SubscribeToUtilityController();
+    }
+
     private void SubscribeToWeaponController()
     {
         if (_subscribedWeaponController == weaponController)
             return;
 
-        UnsubscribeFromWeaponController();
+        if (_subscribedWeaponController != null)
+            _subscribedWeaponController.WeaponStateChanged -= HandleWeaponStateChanged;
 
         if (weaponController == null)
             return;
@@ -174,16 +196,68 @@ public class AmmoCounterUI : MonoBehaviour
         _subscribedWeaponController = weaponController;
     }
 
-    private void UnsubscribeFromWeaponController()
+    private void SubscribeToEquipmentController()
     {
-        if (_subscribedWeaponController == null)
+        if (_subscribedEquipmentController == equipmentController)
             return;
 
-        _subscribedWeaponController.WeaponStateChanged -= HandleWeaponStateChanged;
-        _subscribedWeaponController = null;
+        if (_subscribedEquipmentController != null)
+            _subscribedEquipmentController.EquipmentChanged -= HandleEquipmentStateChanged;
+
+        if (equipmentController == null)
+            return;
+
+        equipmentController.EquipmentChanged += HandleEquipmentStateChanged;
+        _subscribedEquipmentController = equipmentController;
+    }
+
+    private void SubscribeToUtilityController()
+    {
+        if (_subscribedUtilityController == utilityController)
+            return;
+
+        if (_subscribedUtilityController != null)
+            _subscribedUtilityController.UtilityStateChanged -= HandleUtilityStateChanged;
+
+        if (utilityController == null)
+            return;
+
+        utilityController.UtilityStateChanged += HandleUtilityStateChanged;
+        _subscribedUtilityController = utilityController;
+    }
+
+    private void UnsubscribeFromControllers()
+    {
+        if (_subscribedWeaponController != null)
+        {
+            _subscribedWeaponController.WeaponStateChanged -= HandleWeaponStateChanged;
+            _subscribedWeaponController = null;
+        }
+
+        if (_subscribedEquipmentController != null)
+        {
+            _subscribedEquipmentController.EquipmentChanged -= HandleEquipmentStateChanged;
+            _subscribedEquipmentController = null;
+        }
+
+        if (_subscribedUtilityController != null)
+        {
+            _subscribedUtilityController.UtilityStateChanged -= HandleUtilityStateChanged;
+            _subscribedUtilityController = null;
+        }
     }
 
     private void HandleWeaponStateChanged()
+    {
+        RefreshDisplay();
+    }
+
+    private void HandleEquipmentStateChanged()
+    {
+        RefreshDisplay();
+    }
+
+    private void HandleUtilityStateChanged()
     {
         RefreshDisplay();
     }
@@ -246,14 +320,30 @@ public class AmmoCounterUI : MonoBehaviour
 
     private string ResolveDisplayText()
     {
-        if (weaponController == null || weaponController.EquippedFirearm == null || weaponController.CurrentProjectile == null)
-            return string.IsNullOrWhiteSpace(noWeaponText) ? DefaultNoWeaponText : noWeaponText;
+        if (weaponController != null && weaponController.EquippedFirearm != null && weaponController.CurrentProjectile != null)
+        {
+            if (weaponController.IsReloading)
+                return string.IsNullOrWhiteSpace(reloadingText) ? DefaultReloadingText : reloadingText;
 
-        if (weaponController.IsReloading)
-            return string.IsNullOrWhiteSpace(reloadingText) ? DefaultReloadingText : reloadingText;
+            string resolvedAmmoFormat = string.IsNullOrWhiteSpace(ammoFormat) ? DefaultAmmoFormat : ammoFormat;
+            return string.Format(resolvedAmmoFormat, weaponController.CurrentLoadedAmmo, weaponController.CurrentReserveAmmo);
+        }
 
-        string resolvedAmmoFormat = string.IsNullOrWhiteSpace(ammoFormat) ? DefaultAmmoFormat : ammoFormat;
-        return string.Format(resolvedAmmoFormat, weaponController.CurrentLoadedAmmo, weaponController.CurrentReserveAmmo);
+        if (utilityController != null && utilityController.EquippedThrowable != null)
+        {
+            string resolvedAmmoFormat = string.IsNullOrWhiteSpace(ammoFormat) ? DefaultAmmoFormat : ammoFormat;
+            if (equipmentController != null &&
+                equipmentController.CurrentHeldSlot.IsHandSlot() &&
+                equipmentController.TryGetRuntimeThrowableState(equipmentController.CurrentHeldSlot, out int remainingUses, out int maxUses))
+            {
+                return string.Format(resolvedAmmoFormat, remainingUses, maxUses);
+            }
+
+            int fallbackUses = utilityController.EquippedThrowable.MaxUses;
+            return string.Format(resolvedAmmoFormat, fallbackUses, fallbackUses);
+        }
+
+        return string.IsNullOrWhiteSpace(noWeaponText) ? DefaultNoWeaponText : noWeaponText;
     }
 }
 }

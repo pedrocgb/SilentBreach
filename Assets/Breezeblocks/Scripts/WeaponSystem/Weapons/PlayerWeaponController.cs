@@ -611,6 +611,7 @@ public class PlayerWeaponController : MonoBehaviour
         EmitNoiseSpike(EquippedFirearm.ShootNoise, GlobalSettings.Instance != null ? GlobalSettings.Instance.ShotNoiseDuration : 0.1f, EquippedFirearm.ShootNoiseType);
         SpawnMuzzleFlash();
         ApplyShotVisibility();
+        ApplyScreenshake();
         PlayShotSequenceSfx();
         NotifyWeaponStateChanged();
         return true;
@@ -654,6 +655,14 @@ public class PlayerWeaponController : MonoBehaviour
             return;
 
         playerVisibility.ApplyMuzzleFlashVisibility();
+    }
+
+    private void ApplyScreenshake()
+    {
+        if (EquippedFirearm == null || aimCamera == null)
+            return;
+
+        aimCamera.PlayScreenshake(EquippedFirearm.ScreenshakePower, EquippedFirearm.ScreenshakeDuration);
     }
 
     private Vector2 ApplySpread(Vector2 baseDirection)

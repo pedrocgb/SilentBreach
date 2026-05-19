@@ -217,6 +217,9 @@ public class EnemyCombatantAI : MonoBehaviour
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public int PlannedBurstShotsRemaining => plannedBurstShotsRemaining;
 
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public bool IsFlashbanged => isFlashbanged;
+
     private Transform currentTarget;
     private FirearmData equippedFirearm;
     private ProjectileData currentProjectile;
@@ -250,6 +253,8 @@ public class EnemyCombatantAI : MonoBehaviour
     private bool marksmanWantsAccurateShots;
     private bool weaponEquippedForAwareness;
     private Collider2D[] coverResults;
+    private bool isFlashbanged;
+    private float flashbangAimlessRotationSpeed;
 
     private void Reset()
     {
@@ -293,6 +298,13 @@ public class EnemyCombatantAI : MonoBehaviour
     private void Update()
     {
         UpdateReloadState();
+
+        if (isFlashbanged)
+        {
+            UpdateFlashbangedBehavior();
+            return;
+        }
+
         SyncVisionState();
 
         if (equippedFirearm == null || currentProjectile == null || !isDrafted)
@@ -418,6 +430,21 @@ public class EnemyCombatantAI : MonoBehaviour
         }
 
         EndDraftedCombat(clearCoverState: true);
+    }
+
+    public void SetFlashbanged(bool flashbanged, float aimlessRotationSpeed)
+    {
+        isFlashbanged = flashbanged;
+        flashbangAimlessRotationSpeed = Mathf.Max(0f, aimlessRotationSpeed);
+
+        if (!flashbanged)
+            return;
+
+        isReloading = false;
+        magazineReloadSequencePlayed = false;
+        plannedBurstShotsRemaining = 0;
+        isAccurate = false;
+        accurateAimTimer = 0f;
     }
 
     private void HandleMovementStateChanged(EnemyState previousState, EnemyState newState)
@@ -605,6 +632,26 @@ public class EnemyCombatantAI : MonoBehaviour
 
         if (hasClearVisualOnTarget)
             lastSeenTargetPosition = ResolveCurrentAimPoint();
+    }
+
+    private void UpdateFlashbangedBehavior()
+    {
+        isAiming = equippedFirearm != null;
+        isAccurate = false;
+        accurateAimTimer = 0f;
+        plannedBurstShotsRemaining = 0;
+
+        if (equippedFirearm == null || currentProjectile == null)
+            return;
+
+        currentAimDirection = RotateDirection(currentAimDirection, flashbangAimlessRotationSpeed * Time.deltaTime);
+        if (currentAimDirection.sqrMagnitude <= MinimumDirectionSqr)
+            currentAimDirection = transform.up;
+
+        if (currentLoadedAmmo <= 0 || Time.time < nextAllowedFireTime)
+            return;
+
+        FireCurrentMode();
     }
 
     private void UpdateCombatBehavior()
@@ -1187,6 +1234,16 @@ public class EnemyCombatantAI : MonoBehaviour
 
         accurateAimTimer += Time.deltaTime;
         isAccurate = accurateAimTimer >= requiredAimTime;
+    }
+
+    private static Vector2 RotateDirection(Vector2 direction, float angleDelta)
+    {
+        if (direction.sqrMagnitude <= MinimumDirectionSqr)
+            direction = Vector2.up;
+
+        float currentAngle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+        float radians = (currentAngle + angleDelta) * Mathf.Deg2Rad;
+        return new Vector2(Mathf.Cos(radians), Mathf.Sin(radians)).normalized;
     }
 
     private void ConsumeAccurateStanceAfterShot()

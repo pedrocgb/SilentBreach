@@ -25,7 +25,7 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         public TMP_Text slotsText;
         public string fireModeFormat = "Fire Mode: {0}";
         public TMP_Text fireModesText;
-        public string ammoFormat = "Ammo: {0}, Reserve: {1}";
+        public string ammoFormat = "Ammo: {0}/{1}";
         public TMP_Text ammoText;
         public string reloadFormat = "Reload: {0}";
         public TMP_Text reloadText;
@@ -57,10 +57,10 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         public TMP_Text armorClassText;
         public string armorValueFormat = "Armor Value: {0}";
         public TMP_Text armorValueText;
-        public string weightFormat = "Weight: {0}";
-        public TMP_Text weightText;
         public string rotationPenaltyFormat = "Rotation Penalty: {0}";
         public TMP_Text rotationPenaltyText;
+        public string movementNoiseFormat = "Movement Noise: {0}";
+        public TMP_Text movementNoiseText;
     }
 
     [FoldoutGroup("References")]
@@ -305,11 +305,11 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
                 break;
 
             case FlashlightUtilityData flashlightUtilityData:
-                PopulateUtilityContext(flashlightUtilityData);
+                PopulateUtilityContext(flashlightUtilityData, slotType);
                 break;
 
             case UtilityItemData utilityItemData:
-                PopulateUtilityContext(utilityItemData);
+                PopulateUtilityContext(utilityItemData, slotType);
                 break;
 
             case ArmorData armorData:
@@ -343,7 +343,7 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         SetText(firearmContext.reloadText, string.Format(firearmContext.reloadFormat, reloadSummary));
     }
 
-    private void PopulateUtilityContext(UtilityItemData utilityItemData)
+    private void PopulateUtilityContext(UtilityItemData utilityItemData, EquipmentSlotType slotType)
     {
         if (utilityContext.root != null)
             utilityContext.root.SetActive(true);
@@ -353,7 +353,16 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         SetText(utilityContext.descriptionText, utilityItemData.Description);
         SetText(utilityContext.utilityTypeText, string.Format(utilityContext.typeFormat, utilityItemData is FlashlightUtilityData ? "Flashlight" : utilityItemData.UtilityTypeName));
         SetText(utilityContext.slotsText, string.Format(utilityContext.slotsFormat, FormatAllowedSlots(utilityItemData.AllowedSlots)));
-        SetText(utilityContext.handlingText, string.Format(utilityContext.handlingFormat, $"Equip {utilityItemData.EquipTime:0.##}s | Holster {utilityItemData.HolsterTime:0.##}s"));
+
+        string handlingSummary = $"Equip {utilityItemData.EquipTime:0.##}s | Holster {utilityItemData.HolsterTime:0.##}s";
+        if (utilityItemData is ThrowableUtilityData throwableData &&
+            equipmentController != null &&
+            equipmentController.TryGetRuntimeThrowableState(slotType, out int remainingUses, out int maxUses))
+        {
+            handlingSummary = $"Uses {remainingUses}/{maxUses} | Throw {throwableData.MinTravelDistance:0.##}-{throwableData.MaxTravelDistance:0.##} | {handlingSummary}";
+        }
+
+        SetText(utilityContext.handlingText, string.Format(utilityContext.handlingFormat, handlingSummary));
     }
 
     private void PopulateMeleeContext(MeleeWeaponData meleeWeaponData)
@@ -370,7 +379,7 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
             utilityContext.handlingText,
             string.Format(
                 utilityContext.handlingFormat,
-                $"Damage {meleeWeaponData.Damage:0.#} | Attack {meleeWeaponData.AttackAnimationDuration:0.##}s"));
+                $"Damage {meleeWeaponData.Damage:0.#} | Attack {meleeWeaponData.AttackAnimationDuration:0.##}s total | Swing {meleeWeaponData.AttackSwingDuration:0.##}s"));
     }
 
     private void PopulateArmorContext(ArmorData armorData)
@@ -383,8 +392,8 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         SetText(armorContext.descriptionText, armorData.Description);
         SetText(armorContext.armorClassText, string.Format(armorContext.armorClassFormat, armorData.ArmorClass));
         SetText(armorContext.armorValueText, string.Format(armorContext.armorValueFormat, armorData.ArmorValue.ToString("0.##")));
-        SetText(armorContext.weightText, string.Format(armorContext.weightFormat, armorData.Weight.ToString("0.##")));
         SetText(armorContext.rotationPenaltyText, string.Format(armorContext.rotationPenaltyFormat, $"{armorData.RotationPenalty:0.#}%"));
+        SetText(armorContext.movementNoiseText, string.Format(armorContext.movementNoiseFormat, $"+{armorData.MovementNoiseModifierPercent:0.#}%"));
     }
 
     private void HideAllContexts()

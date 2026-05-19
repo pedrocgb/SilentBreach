@@ -32,6 +32,9 @@ public class MeleeWeaponData : EquipmentItemData
     [FoldoutGroup("Melee/Handling"), MinValue(0.01f), SuffixLabel("s", true)]
     [SerializeField] private float attackAnimationDuration = 0.75f;
 
+    [FoldoutGroup("Melee/Handling"), MinValue(0.01f), SuffixLabel("s", true)]
+    [SerializeField] private float attackSwingDuration = 0.18f;
+
     [FoldoutGroup("Melee/Handling"), Range(0f, 1f)]
     [SerializeField] private float attackActiveStartNormalized = 0.15f;
 
@@ -91,6 +94,7 @@ public class MeleeWeaponData : EquipmentItemData
     public float EquipTime => equipTime;
     public float HolsterTime => holsterTime;
     public float AttackAnimationDuration => attackAnimationDuration;
+    public float AttackSwingDuration => Mathf.Clamp(attackSwingDuration, 0.01f, attackAnimationDuration);
     public float AttackActiveStartNormalized => attackActiveStartNormalized;
     public float AttackActiveEndNormalized => attackActiveEndNormalized;
     public float Damage => damage;
@@ -119,6 +123,7 @@ public class MeleeWeaponData : EquipmentItemData
         equipTime = Mathf.Max(0f, equipTime);
         holsterTime = Mathf.Max(0f, holsterTime);
         attackAnimationDuration = Mathf.Max(0.01f, attackAnimationDuration);
+        attackSwingDuration = Mathf.Clamp(attackSwingDuration, 0.01f, attackAnimationDuration);
         attackActiveStartNormalized = Mathf.Clamp01(attackActiveStartNormalized);
         attackActiveEndNormalized = Mathf.Clamp(attackActiveEndNormalized, attackActiveStartNormalized, 1f);
         damage = Mathf.Max(0f, damage);

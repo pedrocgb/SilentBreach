@@ -183,6 +183,7 @@ public class PlayerMeleeController : MonoBehaviour
 
         bool damageWindowActive = false;
         float duration = Mathf.Max(0.01f, meleeWeapon.AttackAnimationDuration);
+        float swingDuration = Mathf.Clamp(meleeWeapon.AttackSwingDuration, 0.01f, duration);
         float elapsed = 0f;
 
         while (elapsed < duration)
@@ -192,10 +193,12 @@ public class PlayerMeleeController : MonoBehaviour
 
             float normalizedTime = Mathf.Clamp01(elapsed / duration);
             AttackProgress01 = normalizedTime;
+            float swingProgress = Mathf.Clamp01(elapsed / swingDuration);
 
             bool shouldDealDamage =
-                normalizedTime >= meleeWeapon.AttackActiveStartNormalized &&
-                normalizedTime <= meleeWeapon.AttackActiveEndNormalized;
+                elapsed <= swingDuration &&
+                swingProgress >= meleeWeapon.AttackActiveStartNormalized &&
+                swingProgress <= meleeWeapon.AttackActiveEndNormalized;
 
             if (shouldDealDamage != damageWindowActive && meleeDamageSource != null)
             {

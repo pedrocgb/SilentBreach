@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8fbcfa2a133348a4094c2d6474ef6e10, type: 3}
   m_Name: Kevlar
   m_EditorClassIdentifier: Assembly-CSharp::ArmorData
-  itemDisplayName: Safariland SX Ballistic Panels
+  itemDisplayName: Kevlar
   itemIcon: {fileID: -4400048097396835436, guid: bb17164f42feeda43b3ffc39f0ab066b, type: 3}
   itemDescription: "The thinnest, lightest, and one of the strongest ballistic panels
     available. Born of breakthrough technologies and exclusive materials, SX\u2122
@@ -20,5 +20,5 @@ MonoBehaviour:
     in a hybrid design."
   armorClass: 1
   armorValue: 25
-  weight: 1
   rotationPenalty: 6
+  movementNoiseModifierPercent: 5

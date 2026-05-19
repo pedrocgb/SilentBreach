@@ -212,29 +212,15 @@ public class HitscanProjectile : MonoBehaviour
 
     private static Color ResolveImpact(Collider2D hitCollider, ProjectileData projectileData)
     {
+        if (projectileData == null || hitCollider == null)
+            return Color.yellow;
+
         ArmorLoadout armor = hitCollider.GetComponentInParent<ArmorLoadout>();
-        ActorHealth health = hitCollider.GetComponentInParent<ActorHealth>();
-        ActorStaggerController staggerController = hitCollider.GetComponentInParent<ActorStaggerController>();
+        bool impactApplied = CombatImpactUtility.TryApplyProjectileImpact(hitCollider, projectileData);
+        if (!impactApplied)
+            return Color.yellow;
 
-        if (armor != null)
-        {
-            ArmorImpactResult armorImpact = armor.ResolveProjectileImpact(projectileData);
-            if (!armorImpact.Penetrated && armorImpact.DamageToArmor > 0f && projectileData != null)
-                staggerController?.ApplyStagger(projectileData.StaggerDuration);
-
-            if (armorImpact.DamageToHealth > 0f && health != null)
-                health.ApplyDamage(armorImpact.DamageToHealth);
-
-            return armorImpact.Penetrated ? Color.green : Color.red;
-        }
-
-        if (health != null)
-        {
-            health.ApplyDamage(projectileData.Damage);
-            return Color.green;
-        }
-
-        return Color.yellow;
+        return armor != null && armor.HasArmor ? Color.red : Color.green;
     }
 
     private IEnumerator ReturnNextFrame()

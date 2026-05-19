@@ -12,6 +12,12 @@ public class DynamicCrosshairUI : MonoBehaviour
     [SerializeField] private PlayerWeaponController weaponController;
 
     [FoldoutGroup("References")]
+    [SerializeField] private PlayerEquipmentController equipmentController;
+
+    [FoldoutGroup("References")]
+    [SerializeField] private PlayerUtilityController utilityController;
+
+    [FoldoutGroup("References")]
     [SerializeField] private Canvas targetCanvas;
 
     [FoldoutGroup("References")]
@@ -69,6 +75,12 @@ public class DynamicCrosshairUI : MonoBehaviour
     private void Reset()
     {
         weaponController = FindFirstObjectByType<PlayerWeaponController>();
+        if (equipmentController == null)
+            equipmentController = FindFirstObjectByType<PlayerEquipmentController>();
+
+        if (utilityController == null)
+            utilityController = FindFirstObjectByType<PlayerUtilityController>();
+
         if (targetCanvas == null)
             targetCanvas = GetComponentInParent<Canvas>();
 
@@ -80,6 +92,12 @@ public class DynamicCrosshairUI : MonoBehaviour
     {
         if (weaponController == null)
             weaponController = FindFirstObjectByType<PlayerWeaponController>();
+
+        if (equipmentController == null)
+            equipmentController = FindFirstObjectByType<PlayerEquipmentController>();
+
+        if (utilityController == null)
+            utilityController = FindFirstObjectByType<PlayerUtilityController>();
 
         if (targetCanvas == null)
             targetCanvas = GetComponentInParent<Canvas>();
@@ -164,6 +182,17 @@ public class DynamicCrosshairUI : MonoBehaviour
 
     private float ResolveTargetSpreadPixels()
     {
+        if (equipmentController != null && equipmentController.CurrentHeldItem is MeleeWeaponData)
+            return closedSpreadPixels;
+
+        if (utilityController != null && utilityController.EquippedThrowable != null)
+        {
+            if (!utilityController.IsChargingThrowable)
+                return hipFireSpreadPixels;
+
+            return Mathf.Lerp(hipFireSpreadPixels, 0f, utilityController.ThrowableChargeProgress01);
+        }
+
         if (weaponController == null || weaponController.EquippedFirearm == null)
             return hipFireSpreadPixels;
 

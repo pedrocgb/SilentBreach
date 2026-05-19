@@ -116,6 +116,7 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
     private float transitionStartedAt = float.NegativeInfinity;
     private float transitionDuration;
     private float swingPhase;
+    private float throwableChargeVisualProgress;
     private bool clearDisplayedItemOnTransitionComplete;
     private bool subscribedToPlayerEquipment;
 
@@ -302,6 +303,9 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
     private void HandlePlayerEquipmentChanged()
     {
         EquipmentItemData equippedItem = ResolveImmediateHeldItem();
+        if (equippedItem is not ThrowableUtilityData)
+            throwableChargeVisualProgress = 0f;
+
         if (equippedItem != null)
         {
             displayedItem = equippedItem;
@@ -314,10 +318,13 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
                 clearDisplayedItemOnTransitionComplete = false;
             }
         }
-        else if (transitionStartedAt <= float.NegativeInfinity && transitionTargetBlend <= 0f)
+        else if (transitionStartedAt <= float.NegativeInfinity)
         {
             holdBlend = 0f;
+            transitionStartBlend = 0f;
+            transitionTargetBlend = 0f;
             displayedItem = null;
+            clearDisplayedItemOnTransitionComplete = false;
             ApplyHeldItemSprite();
         }
     }
@@ -351,6 +358,7 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
         transitionStartBlend = holdBlend;
         transitionTargetBlend = holdBlend;
         transitionStartedAt = float.NegativeInfinity;
+        throwableChargeVisualProgress = 0f;
         clearDisplayedItemOnTransitionComplete = false;
         currentFacingDirection = ResolveFacingDirection();
         ApplyHeldItemSprite();
@@ -392,7 +400,8 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
     private void UpdateSwingPhase()
     {
         float movementSpeed = ResolveMovementSpeed(out _, out _);
-        if (movementSpeed <= minimumMoveSpeedForSwing || holdBlend >= 0.999f)
+        bool keepSwingWhileHoldingThrowable = displayedItem is ThrowableUtilityData;
+        if (movementSpeed <= minimumMoveSpeedForSwing || (holdBlend >= 0.999f && !keepSwingWhileHoldingThrowable))
             return;
 
         swingPhase += Time.deltaTime * movementSpeed * swingCyclesPerSpeedUnit * Mathf.PI * 2f;
@@ -436,6 +445,12 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
             return;
         }
 
+        if (displayedItem is ThrowableUtilityData throwableData)
+        {
+            ApplyThrowablePose(unarmedLeft, unarmedRight, localForward, localSide, poseBlend, throwableData);
+            return;
+        }
+
         Vector3 holdCenter = (Vector3)(localForward * holdDistance);
         Vector3 holdOffset = (Vector3)(localSide * holdHandSeparation);
         Vector3 heldLeft = holdCenter + holdOffset;
@@ -472,6 +487,77 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
         ApplyHeldItemVisual(heldItemCenter, localForward, poseBlend);
     }
 
+    private void ApplyThrowablePose(
+        Vector3 unarmedLeft,
+        Vector3 unarmedRight,
+        Vector2 localForward,
+        Vector2 localSide,
+        float poseBlend,
+        ThrowableUtilityData throwableData)
+    {
+        const float ThrowSwingPeakProgress = 0.35f;
+        const float HeldItemReleaseProgress = 0.2f;
+
+        float throwProgress = ResolveThrowableThrowProgress(throwableData);
+        float clampedThrowProgress = Mathf.Clamp01(throwProgress);
+        float chargeProgress = ResolveThrowableChargeVisualProgress(throwableData, clampedThrowProgress);
+        float throwSwingWeight = clampedThrowProgress > 0f
+            ? Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(clampedThrowProgress / ThrowSwingPeakProgress))
+            : 0f;
+        float throwRecoveryWeight = clampedThrowProgress > ThrowSwingPeakProgress
+            ? Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((clampedThrowProgress - ThrowSwingPeakProgress) / (1f - ThrowSwingPeakProgress)))
+            : 0f;
+
+        Vector2 idleDirection = (-localSide * 0.98f) + (localForward * 0.08f);
+        if (idleDirection.sqrMagnitude <= MinDirectionSqr)
+            idleDirection = -localSide;
+
+        idleDirection.Normalize();
+        Vector2 chargeArcDirection = (localForward * 0.94f) + (-localSide * 0.38f);
+        if (chargeArcDirection.sqrMagnitude <= MinDirectionSqr)
+            chargeArcDirection = localForward;
+
+        chargeArcDirection.Normalize();
+        Vector2 preThrowDirection = Vector2.Lerp(idleDirection, chargeArcDirection, Mathf.SmoothStep(0f, 1f, chargeProgress));
+        if (preThrowDirection.sqrMagnitude <= MinDirectionSqr)
+            preThrowDirection = idleDirection;
+
+        preThrowDirection.Normalize();
+        Vector2 throwFrontDirection = (-localForward * 0.98f) + (-localSide * 0.18f);
+        if (throwFrontDirection.sqrMagnitude <= MinDirectionSqr)
+            throwFrontDirection = -localForward;
+
+        throwFrontDirection.Normalize();
+        Vector2 throwForwardDirection = Vector2.Lerp(preThrowDirection, throwFrontDirection, throwSwingWeight);
+        if (throwForwardDirection.sqrMagnitude <= MinDirectionSqr)
+            throwForwardDirection = throwFrontDirection;
+
+        throwForwardDirection.Normalize();
+        Vector2 throwDirection = Vector2.Lerp(throwForwardDirection, idleDirection, throwRecoveryWeight);
+        if (throwDirection.sqrMagnitude <= MinDirectionSqr)
+            throwDirection = idleDirection;
+
+        throwDirection.Normalize();
+
+        float idleRadius = Mathf.Max(0.01f, sideOffset * 0.92f);
+        float chargeRadius = Mathf.Max(idleRadius, holdDistance + (sideOffset * 0.18f));
+        float chargedRadius = Mathf.Lerp(idleRadius, chargeRadius, chargeProgress);
+        float throwForwardRadius = holdDistance + (sideOffset * 0.32f);
+        float currentRadius = Mathf.Lerp(chargedRadius, throwForwardRadius, throwSwingWeight);
+        currentRadius = Mathf.Lerp(currentRadius, idleRadius, throwRecoveryWeight);
+
+        Vector3 rightHandTarget = (Vector3)(throwDirection * currentRadius);
+        leftHand.localPosition = unarmedLeft;
+        rightHand.localPosition = Vector3.Lerp(unarmedRight, rightHandTarget, poseBlend);
+        ApplyHeldItemVisual(rightHandTarget, throwDirection, poseBlend);
+
+        if (heldItemRenderer != null && clampedThrowProgress >= HeldItemReleaseProgress)
+        {
+            SetRendererAlpha(heldItemRenderer, 0f);
+            heldItemRenderer.enabled = false;
+        }
+    }
+
     private void ApplyMeleePose(
         Vector3 unarmedLeft,
         Vector3 unarmedRight,
@@ -480,8 +566,7 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
         float poseBlend,
         MeleeWeaponData meleeWeaponData)
     {
-        float attackProgress01 = ResolveMeleeAttackProgress(meleeWeaponData);
-        float attackWeight = attackProgress01 > 0f ? Mathf.Sin(Mathf.Clamp01(attackProgress01) * Mathf.PI) : 0f;
+        float attackWeight = ResolveMeleeAttackWeight(meleeWeaponData);
 
         if (meleeWeaponData.GripType == MeleeGripType.TwoHanded)
         {
@@ -576,6 +661,23 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
 
     private Vector2 ResolveFacingDirection()
     {
+        if (displayedItem is ThrowableUtilityData ||
+            (playerEquipmentController != null && playerEquipmentController.CurrentHeldItem is ThrowableUtilityData))
+        {
+            if (bodyAnchor != null)
+            {
+                Vector2 bodyForward = bodyAnchor.up;
+                if (bodyForward.sqrMagnitude > MinDirectionSqr)
+                    return bodyForward.normalized;
+            }
+
+            Vector2 transformForward = transform.up;
+            if (transformForward.sqrMagnitude > MinDirectionSqr)
+                return transformForward.normalized;
+
+            return Vector2.up;
+        }
+
         if (playerWeaponController != null &&
             playerWeaponController.EquippedFirearm != null &&
             playerWeaponController.CurrentAimDirection.sqrMagnitude > MinDirectionSqr)
@@ -605,9 +707,9 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
                 return bodyForward.normalized;
         }
 
-        Vector2 transformForward = transform.up;
-        if (transformForward.sqrMagnitude > MinDirectionSqr)
-            return transformForward.normalized;
+        Vector2 transformForward2 = transform.up;
+        if (transformForward2.sqrMagnitude > MinDirectionSqr)
+            return transformForward2.normalized;
 
         if (playerMotor != null && playerMotor.LastMoveDirection.sqrMagnitude > MinDirectionSqr)
             return playerMotor.LastMoveDirection.normalized;
@@ -697,6 +799,78 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
         }
 
         return 0f;
+    }
+
+    private float ResolveMeleeAttackWeight(MeleeWeaponData meleeWeaponData)
+    {
+        if (meleeWeaponData == null)
+            return 0f;
+
+        float attackProgress01 = ResolveMeleeAttackProgress(meleeWeaponData);
+        if (attackProgress01 <= 0f)
+            return 0f;
+
+        float totalDuration = Mathf.Max(0.01f, meleeWeaponData.AttackAnimationDuration);
+        float swingDuration = Mathf.Clamp(meleeWeaponData.AttackSwingDuration, 0.01f, totalDuration);
+        float elapsed = Mathf.Clamp01(attackProgress01) * totalDuration;
+
+        if (elapsed <= swingDuration)
+            return Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / swingDuration));
+
+        float recoveryDuration = Mathf.Max(0.0001f, totalDuration - swingDuration);
+        float recoveryProgress = Mathf.Clamp01((elapsed - swingDuration) / recoveryDuration);
+        return Mathf.SmoothStep(1f, 0f, recoveryProgress);
+    }
+
+    private float ResolveThrowableChargeProgress(ThrowableUtilityData throwableData)
+    {
+        if (throwableData == null ||
+            playerUtilityController == null ||
+            playerUtilityController.EquippedThrowable != throwableData ||
+            !playerUtilityController.IsChargingThrowable)
+        {
+            return 0f;
+        }
+
+        return Mathf.Clamp01(playerUtilityController.ThrowableChargeProgress01);
+    }
+
+    private float ResolveThrowableChargeVisualProgress(ThrowableUtilityData throwableData, float throwProgress)
+    {
+        if (throwableData == null ||
+            playerUtilityController == null ||
+            playerUtilityController.EquippedThrowable != throwableData)
+        {
+            throwableChargeVisualProgress = 0f;
+            return 0f;
+        }
+
+        if (throwProgress > 0f || (playerUtilityController.IsBusy && !playerUtilityController.IsChargingThrowable))
+            return Mathf.Clamp01(throwableChargeVisualProgress);
+
+        float targetChargeProgress = ResolveThrowableChargeProgress(throwableData);
+        float blendSpeed = targetChargeProgress >= throwableChargeVisualProgress ? 14f : 10f;
+        throwableChargeVisualProgress = Mathf.Lerp(
+            throwableChargeVisualProgress,
+            targetChargeProgress,
+            1f - Mathf.Exp(-blendSpeed * Time.deltaTime));
+
+        if (Mathf.Abs(targetChargeProgress - throwableChargeVisualProgress) <= 0.001f)
+            throwableChargeVisualProgress = targetChargeProgress;
+
+        return Mathf.Clamp01(throwableChargeVisualProgress);
+    }
+
+    private float ResolveThrowableThrowProgress(ThrowableUtilityData throwableData)
+    {
+        if (throwableData == null ||
+            playerUtilityController == null ||
+            playerUtilityController.EquippedThrowable != throwableData)
+        {
+            return 0f;
+        }
+
+        return Mathf.Clamp01(playerUtilityController.ThrowableThrowProgress01);
     }
 
     private Transform FindPreferredBodyAnchor()

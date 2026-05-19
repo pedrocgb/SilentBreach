@@ -84,6 +84,7 @@ public class AIHearing : MonoBehaviour
     private RaycastHit2D[] obstructionHits;
     private ContactFilter2D obstructionContactFilter;
     private float lastAccumulationTime = float.NegativeInfinity;
+    private float externalSensitivityMultiplier = 1f;
 
     private void Reset()
     {
@@ -256,6 +257,11 @@ public class AIHearing : MonoBehaviour
         RefreshObstructionFilter();
     }
 
+    public void SetExternalSensitivityMultiplier(float multiplier)
+    {
+        externalSensitivityMultiplier = Mathf.Clamp01(multiplier);
+    }
+
     private float CalculateHeardValue(NoiseEvent noiseEvent, float distance, float hearingRange, Vector2 origin)
     {
         float normalizedDistance = hearingRange <= Mathf.Epsilon ? 1f : Mathf.Clamp01(distance / hearingRange);
@@ -263,7 +269,7 @@ public class AIHearing : MonoBehaviour
         float distanceFactor = Mathf.Max(0f, distanceFalloffCurve.Evaluate(closeness));
         float closeBonus = Mathf.Lerp(1f, closeDistanceMultiplier, closeness);
         float obstructionMultiplier = EvaluateObstructionMultiplier(noiseEvent.Position, origin);
-        return noiseEvent.Intensity * distanceFactor * closeBonus * obstructionMultiplier;
+        return noiseEvent.Intensity * distanceFactor * closeBonus * obstructionMultiplier * externalSensitivityMultiplier;
     }
 
     private float EvaluateObstructionMultiplier(Vector2 start, Vector2 end)
@@ -296,9 +302,9 @@ public class AIHearing : MonoBehaviour
     {
         return noiseType switch
         {
-            NoiseType.Loud => loudHearingRange,
-            NoiseType.Common => commonHearingRange,
-            NoiseType.Silent => silentHearingRange,
+            NoiseType.Loud => loudHearingRange * externalSensitivityMultiplier,
+            NoiseType.Common => commonHearingRange * externalSensitivityMultiplier,
+            NoiseType.Silent => silentHearingRange * externalSensitivityMultiplier,
             _ => 0f
         };
     }

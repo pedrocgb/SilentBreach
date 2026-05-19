@@ -162,6 +162,7 @@ public class EnemyVisionAI : MonoBehaviour
     private bool hasIssuedFlashlightInvestigation;
     private Vector2 lastIssuedFlashlightInvestigationPosition;
     private EnemyState lastIssuedFlashlightInvestigationState = EnemyState.Suspicious;
+    private float externalPerceptionMultiplier = 1f;
 
     private void Reset()
     {
@@ -252,6 +253,11 @@ public class EnemyVisionAI : MonoBehaviour
         ClampSettings();
     }
 
+    public void SetExternalPerceptionMultiplier(float multiplier)
+    {
+        externalPerceptionMultiplier = Mathf.Clamp01(multiplier);
+    }
+
     private void PerformVisionCheck()
     {
         canCurrentlyDetectTarget = false;
@@ -273,11 +279,15 @@ public class EnemyVisionAI : MonoBehaviour
         hasActiveFlashlightStimulus = reactToFlashlight &&
                                       hasTrackedFlashlightSource &&
                                       (canCurrentlySeeFlashlight || Time.time < flashlightStimulusHoldUntil);
+        float effectiveVisionRange = ResolveEffectiveVisionRange();
+        if (effectiveVisionRange <= 0f)
+            return;
+
         Vector2 targetPosition = TargetSamplePosition;
         Vector2 toTarget = targetPosition - origin;
         float distance = toTarget.magnitude;
         currentTargetDistance = distance;
-        if (distance > visionRange)
+        if (distance > effectiveVisionRange)
             return;
 
         targetInRange = true;
@@ -294,7 +304,7 @@ public class EnemyVisionAI : MonoBehaviour
                 return;
         }
 
-        currentTargetVisibility = targetVisibility != null ? targetVisibility.CurrentVisibility : 1f;
+        currentTargetVisibility = (targetVisibility != null ? targetVisibility.CurrentVisibility : 1f) * externalPerceptionMultiplier;
         meetsVisibilityThreshold = currentTargetVisibility > visibilityThreshold;
         if (!meetsVisibilityThreshold)
             return;
@@ -608,12 +618,23 @@ public class EnemyVisionAI : MonoBehaviour
 
     private bool IsInsideVisionCone(Vector2 toTarget)
     {
-        if (visionAngle >= 360f)
+        float effectiveVisionAngle = ResolveEffectiveVisionAngle();
+        if (effectiveVisionAngle >= 360f)
             return true;
 
         Vector2 forward = ForwardDirection;
         float angleToTarget = Vector2.Angle(forward, toTarget.normalized);
-        return angleToTarget <= visionAngle * 0.5f;
+        return angleToTarget <= effectiveVisionAngle * 0.5f;
+    }
+
+    private float ResolveEffectiveVisionRange()
+    {
+        return visionRange * externalPerceptionMultiplier;
+    }
+
+    private float ResolveEffectiveVisionAngle()
+    {
+        return visionAngle * externalPerceptionMultiplier;
     }
 
     private static bool IsInsideAngle(Vector2 forward, Vector2 toTarget, float angle)

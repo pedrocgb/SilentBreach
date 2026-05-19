@@ -38,11 +38,15 @@ public class EnemyMeleeCombatantAI : MonoBehaviour
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsBusy => attackRoutine != null || Time.time < busyUntilTime;
 
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public bool IsFlashbanged => isFlashbanged;
+
     private bool weaponEquippedForAwareness;
     private float nextAttackDecisionTime;
     private float busyUntilTime = float.NegativeInfinity;
     private Coroutine attackRoutine;
     private MeleeDamageSource meleeDamageSource;
+    private bool isFlashbanged;
 
     private void Reset()
     {
@@ -89,6 +93,7 @@ public class EnemyMeleeCombatantAI : MonoBehaviour
         if (enemyMovementController == null ||
             EquippedMeleeWeapon == null ||
             enemyMovementController.CurrentState != EnemyState.Detected ||
+            isFlashbanged ||
             IsBusy ||
             Time.time < nextAttackDecisionTime)
         {
@@ -204,6 +209,13 @@ public class EnemyMeleeCombatantAI : MonoBehaviour
             Debug.Log($"{name} holstered {weaponBeingHolstered.name}.", this);
     }
 
+    public void SetFlashbanged(bool flashbanged)
+    {
+        isFlashbanged = flashbanged;
+        if (flashbanged)
+            CancelActiveAttack();
+    }
+
     private IEnumerator AttackRoutine()
     {
         MeleeWeaponData meleeWeapon = EquippedMeleeWeapon;
@@ -221,6 +233,7 @@ public class EnemyMeleeCombatantAI : MonoBehaviour
         bool damageWindowActive = false;
         float elapsed = 0f;
         float duration = Mathf.Max(0.01f, meleeWeapon.AttackAnimationDuration);
+        float swingDuration = Mathf.Clamp(meleeWeapon.AttackSwingDuration, 0.01f, duration);
 
         while (elapsed < duration)
         {
@@ -232,10 +245,12 @@ public class EnemyMeleeCombatantAI : MonoBehaviour
 
             float normalizedTime = Mathf.Clamp01(elapsed / duration);
             AttackProgress01 = normalizedTime;
+            float swingProgress = Mathf.Clamp01(elapsed / swingDuration);
 
             bool shouldDealDamage =
-                normalizedTime >= meleeWeapon.AttackActiveStartNormalized &&
-                normalizedTime <= meleeWeapon.AttackActiveEndNormalized;
+                elapsed <= swingDuration &&
+                swingProgress >= meleeWeapon.AttackActiveStartNormalized &&
+                swingProgress <= meleeWeapon.AttackActiveEndNormalized;
 
             if (shouldDealDamage != damageWindowActive && meleeDamageSource != null)
             {

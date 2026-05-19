@@ -149,8 +149,8 @@ public class PlayerEquipmentSlotViewUI : MonoBehaviour, IPointerEnterHandler, IP
                 iconSprite = fallbackFilledIcon != null ? fallbackFilledIcon : runtimeFallbackFilledIcon;
 
             iconImage.sprite = iconSprite;
-            iconImage.enabled = item == null ? false : iconSprite != null;
-            iconImage.color = item != null ? filledColor : emptyColor;
+            iconImage.enabled = true;
+            iconImage.color = item != null ? filledColor : new Color(emptyColor.r, emptyColor.g, emptyColor.b, 0f);
         }
 
         if (selectedHighlight != null)

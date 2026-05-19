@@ -24,6 +24,9 @@ public class PlayerAimCamera2D : MonoBehaviour
     [FoldoutGroup("References"), Tooltip("Optional explicit Position Composer reference. If empty, auto-finds one.")]
     [SerializeField] private CinemachinePositionComposer positionComposer;
 
+    [FoldoutGroup("References"), Tooltip("Optional explicit Cinemachine noise component used for screenshake. If empty, auto-finds one on the active Cinemachine camera.")]
+    [SerializeField] private CinemachineBasicMultiChannelPerlin noiseComponent;
+
     [FoldoutGroup("References"), Tooltip("Camera used to read mouse position. Defaults to Camera.main.")]
     [SerializeField] private Camera targetCamera;
 
@@ -52,6 +55,10 @@ public class PlayerAimCamera2D : MonoBehaviour
     [Tooltip("How far the pointer can drift from the player before the camera starts following it while aiming. This is a fraction of the max aim pan distance.")]
     [SerializeField] private float pointerFollowDeadZoneRatio = 0.2f;
 
+    [FoldoutGroup("Screenshake"), MinValue(0f)]
+    [Tooltip("Fallback frequency used when the Cinemachine noise component is not available.")]
+    [SerializeField] private float fallbackShakeFrequency = 35f;
+
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsAiming { get; private set; }
 
@@ -61,10 +68,20 @@ public class PlayerAimCamera2D : MonoBehaviour
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool UsesCinemachineComposer => positionComposer != null;
 
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly, SuffixLabel("s", true)]
+    public float ScreenshakeTimeRemaining => Mathf.Max(0f, shakeEndTime - Time.unscaledTime);
+
     private Vector3 _fallbackVelocity;
     private Vector3 _composerVelocity;
     private Vector3 _baseComposerOffset;
     private bool _hasBaseComposerOffset;
+    private float _baseNoiseAmplitudeGain;
+    private float _baseNoiseFrequencyGain = 1f;
+    private bool _hasBaseNoiseState;
+    private float shakeStartTime = float.NegativeInfinity;
+    private float shakeEndTime = float.NegativeInfinity;
+    private float shakeAmplitude;
+    private float shakeDuration;
 
     private void Awake()
     {
@@ -81,6 +98,7 @@ public class PlayerAimCamera2D : MonoBehaviour
     private void LateUpdate()
     {
         CacheReferences();
+        UpdateScreenshakeState();
 
         if (TryUpdateCinemachineAimOffset())
             return;
@@ -102,6 +120,20 @@ public class PlayerAimCamera2D : MonoBehaviour
         MaxAimPanDistance = Mathf.Max(0f, maxAimPanDistance);
     }
 
+    public void PlayScreenshake(float power, float duration)
+    {
+        power = Mathf.Max(0f, power);
+        duration = Mathf.Max(0f, duration);
+        if (power <= 0f || duration <= 0f)
+            return;
+
+        float remainingTime = Mathf.Max(0f, shakeEndTime - Time.unscaledTime);
+        shakeAmplitude = Mathf.Max(shakeAmplitude * EvaluateRemainingShakeFactor(remainingTime), power);
+        shakeDuration = Mathf.Max(duration, remainingTime);
+        shakeStartTime = Time.unscaledTime;
+        shakeEndTime = shakeStartTime + shakeDuration;
+    }
+
     private void CacheReferences()
     {
         if (targetCamera == null)
@@ -121,8 +153,17 @@ public class PlayerAimCamera2D : MonoBehaviour
                 positionComposer = cinemachineCamera.GetComponent<CinemachinePositionComposer>();
         }
 
+        if (noiseComponent == null)
+        {
+            noiseComponent = GetComponent<CinemachineBasicMultiChannelPerlin>();
+            if (noiseComponent == null && cinemachineCamera != null)
+                noiseComponent = cinemachineCamera.GetComponent<CinemachineBasicMultiChannelPerlin>();
+        }
+
         if (cinemachineCamera != null && followTarget != null)
             cinemachineCamera.Follow = followTarget;
+
+        CacheBaseNoiseState();
     }
 
     private void CacheBaseComposerOffset()
@@ -141,7 +182,7 @@ public class PlayerAimCamera2D : MonoBehaviour
 
         CacheBaseComposerOffset();
 
-        Vector3 desiredWorldOffset = CalculateAimPanOffset();
+        Vector3 desiredWorldOffset = CalculateAimPanOffset() + CalculateScreenshakeOffset();
         Vector3 desiredLocalOffset = followTarget != null
             ? followTarget.InverseTransformDirection(desiredWorldOffset)
             : desiredWorldOffset;
@@ -161,7 +202,7 @@ public class PlayerAimCamera2D : MonoBehaviour
         if (followTarget == null)
             return;
 
-        Vector3 desiredPosition = followTarget.position + followOffset + CalculateAimPanOffset();
+        Vector3 desiredPosition = followTarget.position + followOffset + CalculateAimPanOffset() + CalculateScreenshakeOffset();
         transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref _fallbackVelocity, ResolveActiveSmoothTime());
     }
 
@@ -238,6 +279,66 @@ public class PlayerAimCamera2D : MonoBehaviour
             return Mathf.InverseLerp(upperThreshold, 1f, viewportValue);
 
         return 0f;
+    }
+
+    private void CacheBaseNoiseState()
+    {
+        if (_hasBaseNoiseState || noiseComponent == null)
+            return;
+
+        _baseNoiseAmplitudeGain = noiseComponent.AmplitudeGain;
+        _baseNoiseFrequencyGain = noiseComponent.FrequencyGain;
+        _hasBaseNoiseState = true;
+    }
+
+    private void UpdateScreenshakeState()
+    {
+        float remainingTime = Mathf.Max(0f, shakeEndTime - Time.unscaledTime);
+        float shakeFactor = EvaluateRemainingShakeFactor(remainingTime);
+        if (noiseComponent != null && _hasBaseNoiseState)
+        {
+            noiseComponent.AmplitudeGain = _baseNoiseAmplitudeGain + (shakeAmplitude * shakeFactor);
+            noiseComponent.FrequencyGain = _baseNoiseFrequencyGain;
+        }
+
+        if (remainingTime > 0f)
+            return;
+
+        shakeAmplitude = 0f;
+        shakeDuration = 0f;
+        shakeStartTime = float.NegativeInfinity;
+        shakeEndTime = float.NegativeInfinity;
+
+        if (noiseComponent != null && _hasBaseNoiseState)
+        {
+            noiseComponent.AmplitudeGain = _baseNoiseAmplitudeGain;
+            noiseComponent.FrequencyGain = _baseNoiseFrequencyGain;
+        }
+    }
+
+    private Vector3 CalculateScreenshakeOffset()
+    {
+        if (noiseComponent != null && noiseComponent.IsValid)
+            return Vector3.zero;
+
+        float remainingTime = Mathf.Max(0f, shakeEndTime - Time.unscaledTime);
+        if (remainingTime <= 0f || shakeAmplitude <= 0f)
+            return Vector3.zero;
+
+        float shakeFactor = EvaluateRemainingShakeFactor(remainingTime);
+        float frequency = Mathf.Max(0f, fallbackShakeFrequency);
+        float sampleTime = Time.unscaledTime * frequency;
+        float x = Mathf.PerlinNoise(sampleTime, 0.17f) * 2f - 1f;
+        float y = Mathf.PerlinNoise(0.83f, sampleTime) * 2f - 1f;
+        return new Vector3(x, y, 0f) * (shakeAmplitude * shakeFactor);
+    }
+
+    private float EvaluateRemainingShakeFactor(float remainingTime)
+    {
+        if (remainingTime <= 0f || shakeDuration <= 0f)
+            return 0f;
+
+        return Mathf.Clamp01(remainingTime / shakeDuration);
     }
 
     private bool UsesEdgePanMode => aimPanMode == AimCameraPanMode.EdgePan;

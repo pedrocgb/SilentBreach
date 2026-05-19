@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b177e4d16380a4d58b9762248054e45, type: 3}
+  m_Name: Bottle
+  m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.WeaponSystem.ThrowableUtilityData
+  itemDisplayName: Bottle
+  itemIcon: {fileID: 6573573449438773957, guid: 04e3034c8f5ede97990ade37b5e08423, type: 3}
+  itemDescription: An empty beer bottle, the shattering sound is great to lure people.
+  heldVisualSprite: {fileID: 5059017354114133550, guid: c64ffc7784d1b116a9498ef7a6770ad0, type: 3}
+  allowedSlots: 4
+  equipTime: 0.2
+  holsterTime: 0.2
+  aimPanDistance: 6
+  aimRotationSpeed: 720
+  equipNoise: 0.15
+  equipNoiseDuration: 0.2
+  equipNoiseType: 2
+  holsterNoise: 0.15
+  holsterNoiseDuration: 0.2
+  holsterNoiseType: 2
+  behavior: 0
+  throwableWorldPrefab: {fileID: 3270342327812866401, guid: 8a34081c86010147ea0b7967dac821d4, type: 3}
+  throwablePoolPrewarm: 4
+  chargeThreshold: 0.8
+  minThrowForce: 1.5
+  maxThrowForce: 9
+  throwSpinSpeed: 1080
+  throwAnimationDuration: 0.16
+  impactNoise: 0.65
+  impactNoiseType: 1
+  impactNoiseCooldown: 0.05
+  directHitDamage: 20
+  directHitPenetration: 0
+  directHitStaggerDuration: 0.1
+  detonationMode: 1
+  detonationDelay: 3
+  detonationNoise: 1
+  detonationNoiseType: 0
+  effectRadius: 3
+  effectObstacleMask:
+    serializedVersion: 2
+    m_Bits: 0
+  explosionDamage: 50
+  flashbangDuration: 8
+  flashbangRecoveryThreshold: 4
+  flashbangAimlessRotationSpeed: 240
+  playerRingingLoopClip: {fileID: 0}

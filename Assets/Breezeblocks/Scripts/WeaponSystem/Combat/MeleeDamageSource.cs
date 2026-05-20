@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Breezeblocks.Missions;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -118,7 +119,7 @@ public class MeleeDamageSource : MonoBehaviour
             ArmorImpactResult impact = armorLoadout.ResolveDirectImpact(equippedWeapon.Damage, equippedWeapon.ArmorPenetration);
             if (impact.DamageToHealth > 0f && health != null)
             {
-                health.ApplyDamage(impact.DamageToHealth);
+                health.ApplyDamage(impact.DamageToHealth, new ActorDamageContext(ownerRoot, equippedWeapon.IsLethal));
                 registeredImpact = true;
             }
 
@@ -127,7 +128,7 @@ public class MeleeDamageSource : MonoBehaviour
         }
         else if (health != null)
         {
-            health.ApplyDamage(equippedWeapon.Damage);
+            health.ApplyDamage(equippedWeapon.Damage, new ActorDamageContext(ownerRoot, equippedWeapon.IsLethal));
             registeredImpact = equippedWeapon.Damage > 0f;
         }
 

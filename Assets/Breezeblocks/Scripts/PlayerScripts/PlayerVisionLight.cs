@@ -53,6 +53,7 @@ public class PlayerVisionLight : MonoBehaviour
     private Light2D _light2D;
     private Camera _cam;
     private bool _externallyDrivenThisFrame;
+    private bool _inputBlocked;
 
     private float _lastOuterRadius = -1f;
     private float _lastInnerRadius = -1f;
@@ -108,6 +109,12 @@ public class PlayerVisionLight : MonoBehaviour
             return;
         }
 
+        if (_inputBlocked)
+        {
+            ApplyShapeIfChanged(force: false);
+            return;
+        }
+
         UpdateRotation(Time.deltaTime);
         ApplyShapeIfChanged(force: false);
     }
@@ -134,6 +141,9 @@ public class PlayerVisionLight : MonoBehaviour
 
     public Vector2 DriveMouseLook(float smoothing, float deltaTime)
     {
+        if (_inputBlocked)
+            return FacingDirection;
+
         lookAtMouse = true;
         RotationSmoothing = smoothing;
         UpdateRotation(deltaTime);
@@ -151,6 +161,20 @@ public class PlayerVisionLight : MonoBehaviour
         externalDirection = dir.normalized;
         UpdateRotation(deltaTime);
         _externallyDrivenThisFrame = true;
+    }
+
+    public void SetInputBlocked(bool blocked)
+    {
+        _inputBlocked = blocked;
+
+        if (!blocked)
+            return;
+
+        lookAtMouse = false;
+        if (FacingDirection.sqrMagnitude > MinDirectionSqr)
+            externalDirection = FacingDirection;
+
+        _externallyDrivenThisFrame = false;
     }
 
     public void ApplySettings(PlayerVisionLightSettings settings)

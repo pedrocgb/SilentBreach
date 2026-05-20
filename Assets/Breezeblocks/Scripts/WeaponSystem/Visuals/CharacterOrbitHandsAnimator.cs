@@ -90,6 +90,9 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
     [FoldoutGroup("Motion"), MinValue(0f)]
     [SerializeField] private float minimumMoveSpeedForSwing = 0.05f;
 
+    [FoldoutGroup("Motion"), MinValue(0f)]
+    [SerializeField] private float locomotionDirectionSmoothing = 18f;
+
     [FoldoutGroup("Setup")]
     [SerializeField] private bool autoCreateMissingVisualRig = true;
 
@@ -117,6 +120,7 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
     private float transitionDuration;
     private float swingPhase;
     private float throwableChargeVisualProgress;
+    private Vector2 smoothedMovementDirection = Vector2.right;
     private bool clearDisplayedItemOnTransitionComplete;
     private bool subscribedToPlayerEquipment;
 
@@ -171,6 +175,7 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
         autoCreatedHandScale = Mathf.Max(0f, autoCreatedHandScale);
         swingCyclesPerSpeedUnit = Mathf.Max(0f, swingCyclesPerSpeedUnit);
         minimumMoveSpeedForSwing = Mathf.Max(0f, minimumMoveSpeedForSwing);
+        locomotionDirectionSmoothing = Mathf.Max(0f, locomotionDirectionSmoothing);
 
         ResolveReferences();
         EnsureRig();
@@ -361,6 +366,7 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
         throwableChargeVisualProgress = 0f;
         clearDisplayedItemOnTransitionComplete = false;
         currentFacingDirection = ResolveFacingDirection();
+        smoothedMovementDirection = currentFacingDirection.sqrMagnitude > MinDirectionSqr ? currentFacingDirection.normalized : Vector2.right;
         ApplyHeldItemSprite();
         ApplyPose();
     }
@@ -425,12 +431,23 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
         localForward.Normalize();
         Vector2 localSide = new(-localForward.y, localForward.x);
         float moveSpeed = ResolveMovementSpeed(out float normalizedSpeed, out Vector2 movementDirection);
+        Vector2 worldSwingDirection = ResolveStableMovementDirection(movementDirection, currentFacingDirection);
+        Vector2 localSwingDirection = localForward;
+        if (worldSwingDirection.sqrMagnitude > MinDirectionSqr)
+        {
+            localSwingDirection = bodyAnchor.InverseTransformDirection(worldSwingDirection);
+            if (localSwingDirection.sqrMagnitude <= MinDirectionSqr)
+                localSwingDirection = localForward;
+            else
+                localSwingDirection.Normalize();
+        }
+
         float swingAmount = moveSpeed > minimumMoveSpeedForSwing
             ? Mathf.Sin(swingPhase) * Mathf.Clamp01(normalizedSpeed)
             : 0f;
 
-        Vector3 unarmedLeft = (Vector3)(localSide * sideOffset) + (Vector3)(localForward * locomotionSwingAmplitude * swingAmount);
-        Vector3 unarmedRight = (Vector3)(-localSide * sideOffset) + (Vector3)(localForward * -locomotionSwingAmplitude * swingAmount);
+        Vector3 unarmedLeft = (Vector3)(localSide * sideOffset) + (Vector3)(localSwingDirection * locomotionSwingAmplitude * swingAmount);
+        Vector3 unarmedRight = (Vector3)(-localSide * sideOffset) + (Vector3)(localSwingDirection * -locomotionSwingAmplitude * swingAmount);
         float poseBlend = Mathf.Clamp01(holdBlend);
 
         if (displayedItem is MeleeWeaponData meleeWeaponData)
@@ -738,12 +755,36 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
         {
             float speed = enemyMovementController.CurrentMovementSpeed;
             float speedCap = enemyMovementController.CurrentSpeedCap;
-            movementDirection = enemyMovementController.CurrentFacingDirection;
+            Vector2 movementVector = enemyMovementController.CurrentMovementVector;
+            movementDirection = movementVector.sqrMagnitude > MinDirectionSqr
+                ? movementVector.normalized
+                : enemyMovementController.CurrentFacingDirection;
             normalizedSpeed = speedCap > 0f ? Mathf.Clamp01(speed / speedCap) : Mathf.Clamp01(speed);
             return speed;
         }
 
         return 0f;
+    }
+
+    private Vector2 ResolveStableMovementDirection(Vector2 movementDirection, Vector2 fallbackDirection)
+    {
+        Vector2 targetDirection = movementDirection.sqrMagnitude > MinDirectionSqr
+            ? movementDirection.normalized
+            : fallbackDirection.sqrMagnitude > MinDirectionSqr ? fallbackDirection.normalized : Vector2.right;
+
+        if (smoothedMovementDirection.sqrMagnitude <= MinDirectionSqr || locomotionDirectionSmoothing <= 0f)
+        {
+            smoothedMovementDirection = targetDirection;
+            return smoothedMovementDirection;
+        }
+
+        float blend = 1f - Mathf.Exp(-locomotionDirectionSmoothing * Time.deltaTime);
+        Vector2 blendedDirection = Vector2.Lerp(smoothedMovementDirection, targetDirection, blend);
+        if (blendedDirection.sqrMagnitude <= MinDirectionSqr)
+            blendedDirection = targetDirection;
+
+        smoothedMovementDirection = blendedDirection.normalized;
+        return smoothedMovementDirection;
     }
 
     private float ResolveEquipDuration(EquipmentItemData item)

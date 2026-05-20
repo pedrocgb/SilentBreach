@@ -7,6 +7,10 @@ using UnityEngine;
 [AddComponentMenu("Breezeblocks/Stealth/Enemy Flashbang Status")]
 public class EnemyFlashbangStatus : MonoBehaviour
 {
+    private const float AimlessLookAngleRange = 180f;
+    private const float MinimumAimlessTurnInterval = 0.12f;
+    private const float MaximumAimlessTurnInterval = 0.35f;
+
     [FoldoutGroup("References")]
     [SerializeField] private AIHearing aiHearing;
 
@@ -34,6 +38,8 @@ public class EnemyFlashbangStatus : MonoBehaviour
     private float flashbangEndTime = float.NegativeInfinity;
     private float flashbangRecoveryStartTime = float.NegativeInfinity;
     private float aimlessRotationSpeed;
+    private float nextAimlessLookTurnTime = float.NegativeInfinity;
+    private Vector2 currentAimlessLookDirection = Vector2.up;
     private bool cachedCanMove;
     private bool cachedCanMoveValid;
 
@@ -100,12 +106,7 @@ public class EnemyFlashbangStatus : MonoBehaviour
         }
 
         if (enemyMovementController != null)
-        {
-            Vector2 facingDirection = new(
-                Mathf.Cos(Time.time * aimlessRotationSpeed * Mathf.Deg2Rad),
-                Mathf.Sin(Time.time * aimlessRotationSpeed * Mathf.Deg2Rad));
-            enemyMovementController.SetFacingPoint((Vector2)transform.position + facingDirection);
-        }
+            UpdateAimlessLookAround();
     }
 
     public void ApplyFlashbang(float duration, float recoveryThreshold, float blindedAimlessRotationSpeed)
@@ -118,6 +119,11 @@ public class EnemyFlashbangStatus : MonoBehaviour
         flashbangEndTime = Mathf.Max(flashbangEndTime, Time.time + duration);
         flashbangRecoveryStartTime = Mathf.Max(flashbangRecoveryStartTime, Time.time + recoveryThreshold);
         aimlessRotationSpeed = Mathf.Max(0f, blindedAimlessRotationSpeed);
+        nextAimlessLookTurnTime = float.NegativeInfinity;
+        currentAimlessLookDirection = enemyMovementController != null &&
+                                      enemyMovementController.CurrentFacingDirection.sqrMagnitude > 0.0001f
+            ? enemyMovementController.CurrentFacingDirection.normalized
+            : (Vector2)transform.up;
 
         aiHearing?.SetExternalSensitivityMultiplier(0f);
         enemyVisionAI?.SetExternalPerceptionMultiplier(0f);
@@ -160,13 +166,56 @@ public class EnemyFlashbangStatus : MonoBehaviour
         return Mathf.InverseLerp(flashbangRecoveryStartTime, flashbangEndTime, Time.time);
     }
 
+    private void UpdateAimlessLookAround()
+    {
+        if (enemyMovementController == null)
+            return;
+
+        enemyMovementController.SetExternalTurnSpeedOverride(true, aimlessRotationSpeed);
+
+        if (Time.time >= nextAimlessLookTurnTime)
+        {
+            Vector2 basis = currentAimlessLookDirection.sqrMagnitude > 0.0001f
+                ? currentAimlessLookDirection.normalized
+                : enemyMovementController.CurrentFacingDirection.sqrMagnitude > 0.0001f
+                    ? enemyMovementController.CurrentFacingDirection.normalized
+                    : (Vector2)transform.up;
+
+            float angleOffset = Random.Range(-AimlessLookAngleRange * 0.5f, AimlessLookAngleRange * 0.5f);
+            currentAimlessLookDirection = Rotate(basis, angleOffset);
+            nextAimlessLookTurnTime = Time.time + ResolveAimlessLookTurnInterval();
+        }
+
+        enemyMovementController.SetExternalFacingDirection(currentAimlessLookDirection);
+    }
+
+    private float ResolveAimlessLookTurnInterval()
+    {
+        if (aimlessRotationSpeed <= 0f)
+            return 0.2f;
+
+        float intervalFromSpeed = 90f / aimlessRotationSpeed;
+        return Mathf.Clamp(intervalFromSpeed, MinimumAimlessTurnInterval, MaximumAimlessTurnInterval);
+    }
+
+    private static Vector2 Rotate(Vector2 direction, float angleDegrees)
+    {
+        float radians = angleDegrees * Mathf.Deg2Rad;
+        float sin = Mathf.Sin(radians);
+        float cos = Mathf.Cos(radians);
+        return new Vector2(
+            (direction.x * cos) - (direction.y * sin),
+            (direction.x * sin) + (direction.y * cos)).normalized;
+    }
+
     private void ClearFlashbangState()
     {
         bool hadActiveState =
             flashbangEndTime > float.NegativeInfinity ||
             flashbangRecoveryStartTime > float.NegativeInfinity ||
             cachedCanMoveValid ||
-            aimlessRotationSpeed > 0f;
+            aimlessRotationSpeed > 0f ||
+            nextAimlessLookTurnTime > float.NegativeInfinity;
         if (!hadActiveState)
             return;
 
@@ -177,6 +226,11 @@ public class EnemyFlashbangStatus : MonoBehaviour
         flashbangEndTime = float.NegativeInfinity;
         flashbangRecoveryStartTime = float.NegativeInfinity;
         aimlessRotationSpeed = 0f;
+        nextAimlessLookTurnTime = float.NegativeInfinity;
+        currentAimlessLookDirection = Vector2.up;
+
+        enemyMovementController?.SetExternalTurnSpeedOverride(false, 0f);
+        enemyMovementController?.ClearExternalFacingOverride();
 
         aiHearing?.SetExternalSensitivityMultiplier(1f);
         enemyVisionAI?.SetExternalPerceptionMultiplier(1f);

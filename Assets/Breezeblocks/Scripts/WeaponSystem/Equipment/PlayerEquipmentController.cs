@@ -104,6 +104,9 @@ public class PlayerEquipmentController : MonoBehaviour
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsEquipmentPanelVisible => equipmentPanelUI != null && equipmentPanelUI.IsVisible;
 
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public bool IsInputBlocked => inputBlocked;
+
     public ArmorData EquippedArmorItem => startingArmor;
 
     public event Action EquipmentChanged;
@@ -117,6 +120,7 @@ public class PlayerEquipmentController : MonoBehaviour
     private RuntimeHandSlotState secondaryRuntime;
     private RuntimeHandSlotState beltRuntime;
     private float cachedTimeScaleBeforePanel = 1f;
+    private bool inputBlocked;
 
     private void Reset()
     {
@@ -188,6 +192,9 @@ public class PlayerEquipmentController : MonoBehaviour
     private void Update()
     {
         if (rewiredPlayer == null && !ResolveRewiredPlayer())
+            return;
+
+        if (inputBlocked)
             return;
 
         if (rewiredPlayer.GetButtonDown(toggleEquipmentPanelAction))
@@ -278,8 +285,21 @@ public class PlayerEquipmentController : MonoBehaviour
         if (equipmentPanelUI == null)
             return;
 
-        equipmentPanelUI.SetVisible(visible);
-        ApplyPanelPresentation(visible);
+        bool resolvedVisible = visible && !inputBlocked;
+        equipmentPanelUI.SetVisible(resolvedVisible);
+        ApplyPanelPresentation(resolvedVisible);
+    }
+
+    public void SetInputBlocked(bool blocked)
+    {
+        inputBlocked = blocked;
+        if (!blocked)
+            return;
+
+        if (equipmentPanelUI != null && equipmentPanelUI.IsVisible)
+            equipmentPanelUI.SetVisible(false);
+
+        ApplyPanelPresentation(false);
     }
 
     public bool TryGetRuntimeFirearmState(EquipmentSlotType slotType, out int loadedAmmo, out int reserveAmmo)

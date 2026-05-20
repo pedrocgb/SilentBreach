@@ -75,6 +75,9 @@ public class PlayerTopDownMotor2D : MonoBehaviour
     public bool IsSprinting { get; private set; }
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public bool IsInputBlocked => inputBlocked;
+
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool HasMovementInput => MoveInput.sqrMagnitude > MinInputSqr;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly, PropertyRange(1, SpeedLevelsCount)]
@@ -110,6 +113,7 @@ public class PlayerTopDownMotor2D : MonoBehaviour
     private float externalSpeedOverride;
     private bool speedSelectionLockedExternally;
     private bool sprintBlockedExternally;
+    private bool inputBlocked;
 
     private void Reset()
     {
@@ -153,6 +157,16 @@ public class PlayerTopDownMotor2D : MonoBehaviour
     {
         if (_player == null && !ResolveRewiredPlayer())
             return;
+
+        if (inputBlocked)
+        {
+            MoveInput = Vector2.zero;
+            IsSprinting = false;
+            CurrentTargetSpeed = 0f;
+            _targetVelocity = Vector2.zero;
+            RefreshUi();
+            return;
+        }
 
         HandleSpeedLevelInput();
 
@@ -211,6 +225,24 @@ public class PlayerTopDownMotor2D : MonoBehaviour
 
         if (enabled)
             _sprintToggleState = false;
+
+        RefreshUi();
+    }
+
+    public void SetInputBlocked(bool blocked)
+    {
+        inputBlocked = blocked;
+        if (!blocked)
+            return;
+
+        _sprintToggleState = false;
+        MoveInput = Vector2.zero;
+        IsSprinting = false;
+        CurrentTargetSpeed = 0f;
+        _targetVelocity = Vector2.zero;
+
+        if (movementBody != null)
+            movementBody.linearVelocity = Vector2.zero;
 
         RefreshUi();
     }

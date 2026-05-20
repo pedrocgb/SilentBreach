@@ -22,10 +22,15 @@ public class GlobalSettings : MonoBehaviour
     [Tooltip("How long a holster noise spike lasts.")]
     [SerializeField] private float holsterNoiseDuration = 0.6f;
 
+    [FoldoutGroup("Combat"), MinValue(0f), SuffixLabel("s", true)]
+    [Tooltip("How long incapacitated actors stay down before waking up again.")]
+    [SerializeField] private float incapacitatedWakeUpDelay = 60f;
+
     public bool SprintToggleEnabled => sprintToggleEnabled;
     public float ShotNoiseDuration => shotNoiseDuration;
     public float EquipNoiseDuration => equipNoiseDuration;
     public float HolsterNoiseDuration => holsterNoiseDuration;
+    public float IncapacitatedWakeUpDelay => incapacitatedWakeUpDelay;
 
     public event Action SettingsChanged;
 
@@ -52,6 +57,7 @@ public class GlobalSettings : MonoBehaviour
         shotNoiseDuration = Mathf.Max(0f, shotNoiseDuration);
         equipNoiseDuration = Mathf.Max(0f, equipNoiseDuration);
         holsterNoiseDuration = Mathf.Max(0f, holsterNoiseDuration);
+        incapacitatedWakeUpDelay = Mathf.Max(0f, incapacitatedWakeUpDelay);
     }
 
     [Button(ButtonSizes.Small)]

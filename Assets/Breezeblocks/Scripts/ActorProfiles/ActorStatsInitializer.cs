@@ -1,4 +1,5 @@
 using Breezeblocks.WeaponSystem;
+using Breezeblocks.Missions;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -61,6 +62,9 @@ public class ActorStatsInitializer : MonoBehaviour
 
     private void ApplyEnemyProfile()
     {
+        MissionActorIdentity.EnsureOn(gameObject);
+        ActorIncapacitationController.EnsureOn(gameObject);
+
         if (TryGetComponent(out ActorHealth health))
             health.ApplySettings(enemyProfile.Health);
 

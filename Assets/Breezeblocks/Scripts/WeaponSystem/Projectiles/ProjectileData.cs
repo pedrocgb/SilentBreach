@@ -13,6 +13,9 @@ public class ProjectileData : ScriptableObject
     [FoldoutGroup("Projectile"), MinValue(0)]
     [SerializeField] private int damage = 10;
 
+    [FoldoutGroup("Projectile")]
+    [SerializeField] private bool isLethal = true;
+
     [FoldoutGroup("Projectile"), MinValue(0f)]
     [SerializeField] private float range = 10f;
 
@@ -21,6 +24,7 @@ public class ProjectileData : ScriptableObject
 
     public int Penetration => penetration;
     public int Damage => damage;
+    public bool IsLethal => isLethal;
     public float Range => range;
     public float StaggerDuration => staggerDuration;
 

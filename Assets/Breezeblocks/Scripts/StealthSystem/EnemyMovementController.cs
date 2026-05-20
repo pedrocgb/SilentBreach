@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Breezeblocks.Missions;
 using Breezeblocks.WeaponSystem;
 using Pathfinding;
 using Sirenix.OdinInspector;
@@ -371,6 +372,9 @@ public class EnemyMovementController : MonoBehaviour
     public Vector2 CurrentFacingDirection => ResolveCurrentFacingDirection();
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public Vector2 CurrentMovementVector => ResolveMovementVector();
+
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public Vector2 StartingPosition => Application.isPlaying ? startingPosition : CurrentPosition;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
@@ -427,6 +431,7 @@ public class EnemyMovementController : MonoBehaviour
     private Vector2 lastKnownTargetPosition;
     private Vector2 currentLookDirection = Vector2.up;
     private Vector2 manualFacingDirection = Vector2.up;
+    private Vector2 externalFacingDirection = Vector2.up;
     private float patrolWaitUntil;
     private float lookAroundEndTime;
     private float nextLookAroundTurnTime;
@@ -443,11 +448,14 @@ public class EnemyMovementController : MonoBehaviour
     private bool warnedAstarWithoutRigidbody;
     private bool startupCompleted;
     private bool hasManualFacingOverride;
+    private bool hasExternalFacingOverride;
     private bool hasDetectedMovementOverride;
     private bool itineraryPatrolCompletionPending;
     private bool itineraryFinished;
     private Vector2 lastStableFacingDirection = Vector2.up;
     private EnemySpeedType detectedMovementOverrideSpeedType = EnemySpeedType.Sprint;
+    private float externalTurnSpeedOverride = -1f;
+    private bool hasExternalTurnSpeedOverride;
     private bool staggerOverrideActive;
     private float staggeredMoveSpeedOverride;
     private float staggerTurnSpeedMultiplier = 1f;
@@ -1062,6 +1070,26 @@ public class EnemyMovementController : MonoBehaviour
         hasManualFacingOverride = true;
     }
 
+    public void SetExternalFacingDirection(Vector2 worldDirection)
+    {
+        if (worldDirection.sqrMagnitude <= MinimumDirectionSqr)
+            return;
+
+        externalFacingDirection = worldDirection.normalized;
+        hasExternalFacingOverride = true;
+    }
+
+    public void ClearExternalFacingOverride()
+    {
+        hasExternalFacingOverride = false;
+    }
+
+    public void SetExternalTurnSpeedOverride(bool active, float turnSpeed)
+    {
+        hasExternalTurnSpeedOverride = active && turnSpeed > 0f;
+        externalTurnSpeedOverride = hasExternalTurnSpeedOverride ? Mathf.Max(0f, turnSpeed) : -1f;
+    }
+
     public void ClearFacingOverride()
     {
         ClearManualFacingOverride();
@@ -1386,7 +1414,9 @@ public class EnemyMovementController : MonoBehaviour
 
         lastStableFacingDirection = desiredDirection.normalized;
 
-        float activeRotationSpeed = currentState == EnemyState.LookAround ? lookAroundRotationSpeed : rotationSpeed;
+        float activeRotationSpeed = hasExternalTurnSpeedOverride
+            ? externalTurnSpeedOverride
+            : currentState == EnemyState.LookAround ? lookAroundRotationSpeed : rotationSpeed;
         activeRotationSpeed *= staggerTurnSpeedMultiplier;
         float targetAngle = Mathf.Atan2(desiredDirection.y, desiredDirection.x) * Mathf.Rad2Deg + rotationAngleOffset;
         float nextAngle = Mathf.MoveTowardsAngle(CurrentRotation, targetAngle, activeRotationSpeed * deltaTime);
@@ -1984,6 +2014,9 @@ public class EnemyMovementController : MonoBehaviour
                 return toTarget.normalized;
         }
 
+        if (hasExternalFacingOverride && externalFacingDirection.sqrMagnitude > MinimumDirectionSqr)
+            return externalFacingDirection.normalized;
+
         if (hasManualFacingOverride && manualFacingDirection.sqrMagnitude > MinimumDirectionSqr)
             return manualFacingDirection.normalized;
 
@@ -2088,6 +2121,7 @@ public class EnemyMovementController : MonoBehaviour
         if (debugMovement)
             Debug.Log($"{name} state changed from {previousState} to {currentState}.", this);
 
+        MissionRuntimeEvents.RaiseEnemyStateChanged(this, oldState, newState);
         StateChanged?.Invoke(oldState, newState);
     }
 

@@ -44,6 +44,9 @@ public class MeleeWeaponData : EquipmentItemData
     [FoldoutGroup("Melee/Damage"), MinValue(0f)]
     [SerializeField] private float damage = 20f;
 
+    [FoldoutGroup("Melee/Damage")]
+    [SerializeField] private bool isLethal = true;
+
     [FoldoutGroup("Melee/Damage"), MinValue(0)]
     [SerializeField] private int armorPenetration;
 
@@ -98,6 +101,7 @@ public class MeleeWeaponData : EquipmentItemData
     public float AttackActiveStartNormalized => attackActiveStartNormalized;
     public float AttackActiveEndNormalized => attackActiveEndNormalized;
     public float Damage => damage;
+    public bool IsLethal => isLethal;
     public int ArmorPenetration => armorPenetration;
     public float StaggerDuration => staggerDuration;
     public float AttackReachDistance => attackReachDistance;

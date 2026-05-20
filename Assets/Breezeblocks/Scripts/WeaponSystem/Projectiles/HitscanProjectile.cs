@@ -160,7 +160,7 @@ public class HitscanProjectile : MonoBehaviour
         if (foundHit)
         {
             endPoint = chosenHit.point;
-            debugColor = ResolveImpact(chosenHit.collider, projectileData);
+            debugColor = ResolveImpact(chosenHit.collider, projectileData, shooter);
 
             if (ShouldSpawnBulletHit(chosenHit.collider))
                 SpawnBulletHitEffect(endPoint, direction);
@@ -210,13 +210,13 @@ public class HitscanProjectile : MonoBehaviour
         return hitCollider.transform.root == shooterRoot;
     }
 
-    private static Color ResolveImpact(Collider2D hitCollider, ProjectileData projectileData)
+    private static Color ResolveImpact(Collider2D hitCollider, ProjectileData projectileData, GameObject shooter)
     {
         if (projectileData == null || hitCollider == null)
             return Color.yellow;
 
         ArmorLoadout armor = hitCollider.GetComponentInParent<ArmorLoadout>();
-        bool impactApplied = CombatImpactUtility.TryApplyProjectileImpact(hitCollider, projectileData);
+        bool impactApplied = CombatImpactUtility.TryApplyProjectileImpact(hitCollider, projectileData, shooter);
         if (!impactApplied)
             return Color.yellow;
 

@@ -19,25 +19,34 @@ MonoBehaviour:
   allowedSlots: 4
   equipTime: 0.2
   holsterTime: 0.2
-  aimPanDistance: 6
+  aimPanDistance: 16
   aimRotationSpeed: 720
   equipNoise: 0
-  equipNoiseDuration: 0.2
+  equipNoiseDuration: 0
   equipNoiseType: 2
   holsterNoise: 0
-  holsterNoiseDuration: 0.2
+  holsterNoiseDuration: 0
   holsterNoiseType: 2
-  behavior: 0
-  throwableWorldPrefab: {fileID: 0}
+  behavior: 3
+  throwableWorldPrefab: {fileID: 3270342327812866401, guid: f10c49c3a586c9d489d1aa4ec8aaac54, type: 3}
   throwablePoolPrewarm: 4
+  maxUses: 1
   chargeThreshold: 0.8
-  minThrowForce: 5
-  maxThrowForce: 13
-  throwSpinSpeed: 1080
+  minThrowForce: 1.5
+  maxThrowForce: 8
+  minTravelDistance: 0.5
+  maxTravelDistance: 6
+  throwSpinSpeed: 700
   throwAnimationDuration: 0.16
   impactNoise: 0.65
   impactNoiseType: 1
   impactNoiseCooldown: 0.05
+  impactSfx:
+    clips: []
+    volume: 1
+    pitchRange: {x: 1, y: 1}
+  resolveEffectPrefab: {fileID: 0}
+  resolveEffectPoolPrewarm: 2
   directHitDamage: 20
   directHitPenetration: 0
   directHitStaggerDuration: 0.1
@@ -48,7 +57,7 @@ MonoBehaviour:
   effectRadius: 3
   effectObstacleMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 128
   explosionDamage: 50
   flashbangDuration: 8
   flashbangRecoveryThreshold: 4

@@ -644,7 +644,10 @@ public class EnemyCombatantAI : MonoBehaviour
         if (equippedFirearm == null || currentProjectile == null)
             return;
 
-        currentAimDirection = RotateDirection(currentAimDirection, flashbangAimlessRotationSpeed * Time.deltaTime);
+        currentAimDirection = enemyMovementController != null &&
+                              enemyMovementController.CurrentFacingDirection.sqrMagnitude > MinimumDirectionSqr
+            ? enemyMovementController.CurrentFacingDirection.normalized
+            : (Vector2)transform.up;
         if (currentAimDirection.sqrMagnitude <= MinimumDirectionSqr)
             currentAimDirection = transform.up;
 

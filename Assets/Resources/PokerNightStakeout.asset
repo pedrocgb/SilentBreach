@@ -12,16 +12,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa0e64ca3c7f48a6981e5c81b0f25812, type: 3}
   m_Name: PokerNightStakeout
   m_EditorClassIdentifier: 
-  jobTitle: Poker Night Stakeout
-  jobDescription: Slip into the poker room, recover the ledger, and leave before the table realizes it has been robbed.
-  rewardText: 650 Cash and 1 Influence
-  objectivesText: Reach the table room, secure the ledger, and escape through the service route.
-  termsOfFailureText: Death, a full lockdown, or the ledger being destroyed ends the contract.
+  jobTitle: Noite do Poker
+  jobDescription: "Entre sorrateiramente na sala de p\xF4quer, recupere o livro de
+    contabilidade e saia antes que a mesa perceba que foi roubada. "
+  rewardText: "R$ 5000 e 1 ponto de influ\xEAncia"
+  objectivesText: '- Encontre e pegue o livro de contabilidade;
+
+    - Fuja sem ser
+    percebido.'
+  termsOfFailureText: "- N\xE3o mate ningu\xE9m\n- Complete antes que a jogatina
+    acabe (5 minutos)"
+  gameplayObjectives:
+  - objectiveType: 1
+    referenceId: poker_ledger
+    displayText: Livro de Contabilidade.
+    requiredCount: 1
+  gameplayFailures:
+  - failureType: 3
+    displayText: "N\xE3o matar ningu\xE9m."
+    timeLimitSeconds: 300
+  - failureType: 5
+    displayText: Complete antes que a jogatina acabe.
+    timeLimitSeconds: 300
   fixerName: Mara Velvet Quinn
   jobImage: {fileID: 0}
   questScenePath: Assets/Breezeblocks/Scenes/[2] Poker Scene.unity
-  shopTitle: The Fence
-  shopDescription: Quiet backroom connections for the poker contract.
+  shopTitle: Receptador
+  shopDescription: 
   shopImage: {fileID: 0}
   fenceOffers:
   - item: {fileID: 11400000, guid: c7e8e44f593459e458e60c5bb09f8f77, type: 2}
@@ -29,23 +46,13 @@ MonoBehaviour:
     availabilityProbability: 1
     maxQuantity: 1
     price: 450
-  - item: {fileID: 11400000, guid: ea95feac09de47846a21232d81534981, type: 2}
+  - item: {fileID: 11400000, guid: c5f5d63c62072834184c724b9f8ef127, type: 2}
     firearmProjectile: {fileID: 0}
-    availabilityProbability: 0.85
-    maxQuantity: 1
-    price: 325
-  - item: {fileID: 11400000, guid: ae90121673569524f9f2365dd21a1725, type: 2}
-    firearmProjectile: {fileID: 0}
-    availabilityProbability: 0.75
+    availabilityProbability: 1
     maxQuantity: 1
     price: 90
-  - item: {fileID: 11400000, guid: 42b21e44e37445a4a942a7882c24c1ea, type: 2}
+  - item: {fileID: 11400000, guid: ae90121673569524f9f2365dd21a1725, type: 2}
     firearmProjectile: {fileID: 0}
-    availabilityProbability: 0.6
-    maxQuantity: 1
-    price: 120
-  - item: {fileID: 11400000, guid: 3d8f1d2672d507649b12b1008921e4b0, type: 2}
-    firearmProjectile: {fileID: 11400000, guid: 891f5d528892fad49833ba5d9fd4ba7e, type: 2}
-    availabilityProbability: 0.45
+    availabilityProbability: 1
     maxQuantity: 1
     price: 640

@@ -19,7 +19,7 @@ MonoBehaviour:
   allowedSlots: 7
   equipTime: 0.2
   holsterTime: 0.2
-  aimPanDistance: 1
+  aimPanDistance: 16
   aimRotationSpeed: 720
   equipNoise: 0.05
   equipNoiseDuration: 0.15

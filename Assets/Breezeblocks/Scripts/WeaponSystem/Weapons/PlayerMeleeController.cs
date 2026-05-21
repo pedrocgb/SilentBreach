@@ -15,13 +15,22 @@ public class PlayerMeleeController : MonoBehaviour
     [SerializeField] private int rewiredPlayerId;
 
     [FoldoutGroup("Rewired")]
+    [SerializeField] private string aimAction = "Aim";
+
+    [FoldoutGroup("Rewired")]
     [SerializeField] private string fireAction = "Fire";
 
     [FoldoutGroup("References")]
     [SerializeField] private PlayerVisionLight playerVisionLight;
 
     [FoldoutGroup("References")]
+    [SerializeField] private PlayerAimCamera2D aimCamera;
+
+    [FoldoutGroup("References")]
     [SerializeField] private PlayerNoise playerNoise;
+
+    [FoldoutGroup("References")]
+    [SerializeField] private ActorStaggerController actorStaggerController;
 
     [FoldoutGroup("References")]
     [SerializeField] private CharacterOrbitHandsAnimator orbitHandsAnimator;
@@ -31,6 +40,9 @@ public class PlayerMeleeController : MonoBehaviour
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsBusy => busyRoutine != null;
+
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public bool IsAiming { get; private set; }
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsAttacking { get; private set; }
@@ -61,6 +73,7 @@ public class PlayerMeleeController : MonoBehaviour
     private Coroutine busyRoutine;
     private MeleeDamageSource meleeDamageSource;
     private bool inputBlocked;
+    private float defaultLookRotationSpeed = -1f;
 
     private void Reset()
     {
@@ -75,6 +88,12 @@ public class PlayerMeleeController : MonoBehaviour
         ResolveRewiredPlayer();
     }
 
+    private void OnEnable()
+    {
+        ResolveRewiredPlayer();
+        UpdateAimCameraState();
+    }
+
     private void OnDisable()
     {
         if (busyRoutine != null)
@@ -83,21 +102,36 @@ public class PlayerMeleeController : MonoBehaviour
             busyRoutine = null;
         }
 
+        IsAiming = false;
         IsAttacking = false;
         AttackProgress01 = 0f;
         meleeDamageSource?.SetDamageActive(false);
+        UpdateAimCameraState();
     }
 
     private void Update()
     {
-        if (inputBlocked || EquippedMeleeWeapon == null || IsBusy)
+        if (inputBlocked || EquippedMeleeWeapon == null)
+        {
+            SetAimState(false);
             return;
+        }
 
         if (rewiredPlayer == null && !ResolveRewiredPlayer())
             return;
 
+        bool aimHeld = !IsBusy && rewiredPlayer.GetButton(aimAction);
+        SetAimState(aimHeld);
+        UpdateLookDirection(EquippedMeleeWeapon);
+
+        if (IsBusy)
+            return;
+
         if (rewiredPlayer.GetButtonDown(fireAction))
+        {
+            SetAimState(false);
             busyRoutine = StartCoroutine(AttackRoutine());
+        }
     }
 
     public void EquipWeapon(MeleeWeaponData meleeWeapon)
@@ -105,6 +139,7 @@ public class PlayerMeleeController : MonoBehaviour
         if (meleeWeapon == null || IsBusy)
             return;
 
+        SetAimState(false);
         busyRoutine = StartCoroutine(EquipWeaponRoutine(meleeWeapon));
     }
 
@@ -113,12 +148,15 @@ public class PlayerMeleeController : MonoBehaviour
         if (EquippedMeleeWeapon == null || IsBusy)
             return;
 
+        SetAimState(false);
         busyRoutine = StartCoroutine(HolsterWeaponRoutine());
     }
 
     public void SetInputBlocked(bool blocked)
     {
         inputBlocked = blocked;
+        if (blocked)
+            SetAimState(false);
     }
 
     private IEnumerator EquipWeaponRoutine(MeleeWeaponData meleeWeapon)
@@ -133,7 +171,8 @@ public class PlayerMeleeController : MonoBehaviour
         AttackProgress01 = 0f;
         IsAttacking = false;
         RefreshDamageSource();
-        EmitNoiseSpike(meleeWeapon.EquipNoise, meleeWeapon.EquipNoiseDuration, meleeWeapon.EquipNoiseType);
+        EmitNoiseSpike(meleeWeapon.EquipNoise, meleeWeapon.EquipNoiseDuration, meleeWeapon.EquipNoiseType, meleeWeapon.EquipExtremeNoise);
+        UpdateAimCameraState();
         NotifyMeleeStateChanged();
         busyRoutine = null;
     }
@@ -158,9 +197,10 @@ public class PlayerMeleeController : MonoBehaviour
         if (weaponBeingHolstered.HolsterTime > 0f)
             yield return new WaitForSeconds(weaponBeingHolstered.HolsterTime);
 
-        EmitNoiseSpike(weaponBeingHolstered.HolsterNoise, weaponBeingHolstered.HolsterNoiseDuration, weaponBeingHolstered.HolsterNoiseType);
+        EmitNoiseSpike(weaponBeingHolstered.HolsterNoise, weaponBeingHolstered.HolsterNoiseDuration, weaponBeingHolstered.HolsterNoiseType, weaponBeingHolstered.HolsterExtremeNoise);
         EquippedMeleeWeapon = null;
         RefreshDamageSource();
+        UpdateAimCameraState();
         NotifyMeleeStateChanged();
     }
 
@@ -175,8 +215,9 @@ public class PlayerMeleeController : MonoBehaviour
 
         RefreshDamageSource();
         meleeDamageSource?.BeginSwing();
+        meleeDamageSource?.PlaySwingSfx();
 
-        EmitNoiseSpike(meleeWeapon.AttackNoise, meleeWeapon.AttackNoiseDuration, meleeWeapon.AttackNoiseType);
+        EmitNoiseSpike(meleeWeapon.AttackNoise, meleeWeapon.AttackNoiseDuration, meleeWeapon.AttackNoiseType, meleeWeapon.AttackExtremeNoise);
         IsAttacking = true;
         AttackProgress01 = 0f;
         NotifyMeleeStateChanged();
@@ -188,9 +229,6 @@ public class PlayerMeleeController : MonoBehaviour
 
         while (elapsed < duration)
         {
-            if (playerVisionLight != null)
-                playerVisionLight.DriveMouseLook(playerVisionLight.RotationSmoothing, Time.deltaTime);
-
             float normalizedTime = Mathf.Clamp01(elapsed / duration);
             AttackProgress01 = normalizedTime;
             float swingProgress = Mathf.Clamp01(elapsed / swingDuration);
@@ -227,11 +265,23 @@ public class PlayerMeleeController : MonoBehaviour
         if (playerVisionLight == null)
             playerVisionLight = GetComponentInChildren<PlayerVisionLight>(true);
 
+        if (aimCamera == null && Camera.main != null)
+            aimCamera = Camera.main.GetComponent<PlayerAimCamera2D>();
+
+        if (aimCamera == null)
+            aimCamera = FindFirstObjectByType<PlayerAimCamera2D>();
+
         if (playerNoise == null)
             playerNoise = GetComponent<PlayerNoise>();
 
+        if (actorStaggerController == null)
+            actorStaggerController = GetComponent<ActorStaggerController>();
+
         if (orbitHandsAnimator == null)
             orbitHandsAnimator = CharacterOrbitHandsAnimator.EnsureOn(gameObject);
+
+        if (defaultLookRotationSpeed < 0f && playerVisionLight != null)
+            defaultLookRotationSpeed = playerVisionLight.RotationSmoothing;
     }
 
     private void EnsureDamageSource()
@@ -252,13 +302,49 @@ public class PlayerMeleeController : MonoBehaviour
 
     private void EmitNoiseSpike(float amount, float duration, NoiseType noiseType)
     {
+        EmitNoiseSpike(amount, duration, noiseType, false);
+    }
+
+    private void EmitNoiseSpike(float amount, float duration, NoiseType noiseType, bool isExtremeNoise)
+    {
         if (playerNoise != null)
-            playerNoise.AddNoiseSpike(amount, duration, noiseType);
+            playerNoise.AddNoiseSpike(amount, duration, noiseType, isExtremeNoise);
     }
 
     private void NotifyMeleeStateChanged()
     {
         MeleeStateChanged?.Invoke();
+    }
+
+    private void SetAimState(bool aiming)
+    {
+        if (IsAiming == aiming)
+            return;
+
+        IsAiming = aiming;
+        UpdateAimCameraState();
+        NotifyMeleeStateChanged();
+    }
+
+    private void UpdateLookDirection(MeleeWeaponData meleeWeapon)
+    {
+        if (playerVisionLight == null || meleeWeapon == null)
+            return;
+
+        float lookSpeed = IsAiming ? meleeWeapon.AimRotationSpeed : Mathf.Max(0f, defaultLookRotationSpeed);
+        if (actorStaggerController != null)
+            lookSpeed *= actorStaggerController.TurnSpeedMultiplier;
+
+        playerVisionLight.DriveMouseLook(lookSpeed, Time.deltaTime);
+    }
+
+    private void UpdateAimCameraState()
+    {
+        if (aimCamera == null)
+            return;
+
+        aimCamera.SetFollowTarget(transform);
+        aimCamera.SetAimState(IsAiming, EquippedMeleeWeapon != null ? EquippedMeleeWeapon.AimPanDistance : 0f);
     }
 
     private bool ResolveRewiredPlayer()

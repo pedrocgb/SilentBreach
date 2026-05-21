@@ -26,6 +26,8 @@ public class AIHearing : MonoBehaviour
 
     private float silentHearingRange = 3f;
 
+    private bool ignoreSilentSounds;
+
     private float hearingThreshold = 0.2f;
 
     private float maximumAccumulatedDetection = 1f;
@@ -50,8 +52,6 @@ public class AIHearing : MonoBehaviour
 
     private bool debugHearing;
 
-    private bool drawHearingRanges = true;
-
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool HearingIgnoredBecauseOfVisualDetection => hearingIgnoredBecauseOfVisualDetection;
 
@@ -72,6 +72,11 @@ public class AIHearing : MonoBehaviour
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public int LastObstructionHitCount => lastObstructionHitCount;
+
+    public Vector2 GizmoHearingOrigin => HearingOriginPosition;
+    public float ConfiguredLoudHearingRange => loudHearingRange;
+    public float ConfiguredCommonHearingRange => commonHearingRange;
+    public float ConfiguredSilentHearingRange => silentHearingRange;
 
     [SerializeField, HideInInspector] private bool hearingIgnoredBecauseOfVisualDetection;
     [SerializeField, HideInInspector] private NoiseType lastHeardNoiseType;
@@ -158,6 +163,9 @@ public class AIHearing : MonoBehaviour
 
     public void ReceiveNoise(NoiseEvent noiseEvent)
     {
+        if (noiseEvent.Source != null && noiseEvent.Source.transform.root == transform.root)
+            return;
+
         hearingIgnoredBecauseOfVisualDetection = enemyCombatantAI != null
             ? enemyCombatantAI.ShouldIgnoreNoiseEvents
             : enemyMovementController != null && !enemyMovementController.CanReactToNoise();
@@ -170,6 +178,9 @@ public class AIHearing : MonoBehaviour
             currentAccumulatedDetection = 0f;
             return;
         }
+
+        if (ignoreSilentSounds && noiseEvent.NoiseType == NoiseType.Silent)
+            return;
 
         float hearingRange = ResolveHearingRange(noiseEvent.NoiseType);
         if (hearingRange <= 0f)
@@ -194,6 +205,21 @@ public class AIHearing : MonoBehaviour
             0f,
             maximumAccumulatedDetection);
 
+        if (noiseEvent.IsExtremeNoise)
+        {
+            currentAccumulatedDetection = Mathf.Max(currentAccumulatedDetection, hearingThreshold);
+            enemyMovementController.ReactToExtremeNoise(noiseEvent.Position);
+
+            if (debugHearing)
+            {
+                Debug.Log(
+                    $"{name} heard EXTREME {noiseEvent.NoiseType} noise with value {heardValue:0.00} at {noiseEvent.Position}.",
+                    this);
+            }
+
+            return;
+        }
+
         if (currentAccumulatedDetection < hearingThreshold)
         {
             if (debugHearing)
@@ -207,19 +233,7 @@ public class AIHearing : MonoBehaviour
         }
 
         enemyCombatantAI?.HandleInvestigativeNoiseHeard(noiseEvent);
-        if (enemyMovementController.CurrentState == EnemyState.Alert)
-        {
-            enemyMovementController.FocusAlertOnPoint(noiseEvent.Position);
-        }
-        else if (enemyMovementController.CurrentState == EnemyState.Searching ||
-                 enemyMovementController.CurrentState == EnemyState.Suspicious)
-        {
-            enemyMovementController.UpdateInvestigativeDestination(noiseEvent.Position);
-        }
-        else
-        {
-            enemyMovementController.SetSuspicious(noiseEvent.Position);
-        }
+        enemyMovementController.HandleHeardNoise(noiseEvent.Position);
 
         if (debugHearing)
         {
@@ -238,6 +252,7 @@ public class AIHearing : MonoBehaviour
         loudHearingRange = Mathf.Max(0f, settings.LoudHearingRange);
         commonHearingRange = Mathf.Max(0f, settings.CommonHearingRange);
         silentHearingRange = Mathf.Max(0f, settings.SilentHearingRange);
+        ignoreSilentSounds = settings.IgnoreSilentSounds;
         hearingThreshold = Mathf.Max(0f, settings.HearingThreshold);
         maximumAccumulatedDetection = Mathf.Max(1f, hearingThreshold, settings.MaximumAccumulatedDetection);
         detectionDecayDelay = Mathf.Max(0f, settings.DetectionDecayDelay);
@@ -250,7 +265,6 @@ public class AIHearing : MonoBehaviour
         maxObstructionChecks = Mathf.Max(MinimumObstructionChecks, settings.MaxObstructionChecks);
         stackObstructionMultipliers = settings.StackObstructionMultipliers;
         debugHearing = settings.DebugHearing;
-        drawHearingRanges = settings.DrawHearingRanges;
         currentAccumulatedDetection = Mathf.Clamp(currentAccumulatedDetection, 0f, maximumAccumulatedDetection);
 
         EnsureObstructionBuffer();
@@ -323,32 +337,5 @@ public class AIHearing : MonoBehaviour
         obstructionContactFilter.layerMask = obstructionLayerMask;
         obstructionContactFilter.useTriggers = false;
     }
-
     private Vector2 HearingOriginPosition => hearingOrigin != null ? (Vector2)hearingOrigin.position : (Vector2)transform.position;
-
-    private void OnDrawGizmosSelected()
-    {
-        if (!drawHearingRanges)
-            return;
-
-        Vector3 origin = HearingOriginPosition;
-        Gizmos.color = new Color(1f, 0.25f, 0.25f, 0.6f);
-        Gizmos.DrawWireSphere(origin, loudHearingRange);
-
-        Gizmos.color = new Color(1f, 0.8f, 0.2f, 0.6f);
-        Gizmos.DrawWireSphere(origin, commonHearingRange);
-
-        Gizmos.color = new Color(0.45f, 0.85f, 1f, 0.6f);
-        Gizmos.DrawWireSphere(origin, silentHearingRange);
-
-        if (!Application.isPlaying || lastHeardNoiseValue <= 0f)
-            return;
-
-        Gizmos.color = lastNoiseWasObstructed
-            ? new Color(1f, 0.35f, 0.35f, 0.95f)
-            : new Color(0.2f, 1f, 0.55f, 0.95f);
-
-        Gizmos.DrawLine(origin, lastHeardNoisePosition);
-        Gizmos.DrawSphere(lastHeardNoisePosition, 0.14f);
-    }
 }

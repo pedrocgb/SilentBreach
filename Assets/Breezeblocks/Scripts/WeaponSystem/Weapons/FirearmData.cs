@@ -162,11 +162,17 @@ public class FirearmData : EquipmentItemData
     [FoldoutGroup("Firearm/Noise")]
     [SerializeField] private NoiseType shootNoiseType = NoiseType.Loud;
 
+    [FoldoutGroup("Firearm/Noise")]
+    [SerializeField] private bool shootExtremeNoise = true;
+
     [FoldoutGroup("Firearm/Noise"), MinValue(0f)]
     [SerializeField] private float equipNoise = 0.25f;
 
     [FoldoutGroup("Firearm/Noise")]
     [SerializeField] private NoiseType equipNoiseType = NoiseType.Common;
+
+    [FoldoutGroup("Firearm/Noise")]
+    [SerializeField] private bool equipExtremeNoise;
 
     [FoldoutGroup("Firearm/Noise"), MinValue(0f)]
     [SerializeField] private float holsterNoise = 0.25f;
@@ -174,11 +180,17 @@ public class FirearmData : EquipmentItemData
     [FoldoutGroup("Firearm/Noise")]
     [SerializeField] private NoiseType holsterNoiseType = NoiseType.Common;
 
+    [FoldoutGroup("Firearm/Noise")]
+    [SerializeField] private bool holsterExtremeNoise;
+
     [FoldoutGroup("Firearm/Noise"), MinValue(0f)]
     [SerializeField] private float reloadNoise = 0.5f;
 
     [FoldoutGroup("Firearm/Noise")]
     [SerializeField] private NoiseType reloadNoiseType = NoiseType.Common;
+
+    [FoldoutGroup("Firearm/Noise")]
+    [SerializeField] private bool reloadExtremeNoise;
 
     public override EquipmentItemKind ItemKind => EquipmentItemKind.Firearm;
     public override EquipmentSlotMask AllowedSlots => allowedSlots & EquipmentSlotMask.HandSlots;
@@ -217,12 +229,16 @@ public class FirearmData : EquipmentItemData
     public AudioClipSet BulletReloadSfx => bulletReloadSfx;
     public float ShootNoise => shootNoise;
     public NoiseType ShootNoiseType => shootNoiseType;
+    public bool ShootExtremeNoise => shootExtremeNoise;
     public float EquipNoise => equipNoise;
     public NoiseType EquipNoiseType => equipNoiseType;
+    public bool EquipExtremeNoise => equipExtremeNoise;
     public float HolsterNoise => holsterNoise;
     public NoiseType HolsterNoiseType => holsterNoiseType;
+    public bool HolsterExtremeNoise => holsterExtremeNoise;
     public float ReloadNoise => reloadNoise;
     public NoiseType ReloadNoiseType => reloadNoiseType;
+    public bool ReloadExtremeNoise => reloadExtremeNoise;
 
     public bool SupportsFireMode(FireMode mode)
     {

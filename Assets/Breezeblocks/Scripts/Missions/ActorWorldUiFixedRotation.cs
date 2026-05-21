@@ -46,7 +46,14 @@ public class ActorWorldUiFixedRotation : MonoBehaviour
 
     private void ApplyLockedRotation()
     {
-        transform.rotation = lockedWorldRotation;
+        Transform parent = transform.parent;
+        if (parent == null)
+        {
+            transform.rotation = lockedWorldRotation;
+            return;
+        }
+
+        transform.localRotation = Quaternion.Inverse(parent.rotation) * lockedWorldRotation;
     }
 }
 

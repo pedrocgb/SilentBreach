@@ -140,7 +140,6 @@ public class ActorHealth : MonoBehaviour
         isIncapacitated = false;
         Died?.Invoke(context);
         MissionRuntimeEvents.RaiseActorKilled(this, context.InstigatorRoot);
-        gameObject.SetActive(false);
     }
 }
 }

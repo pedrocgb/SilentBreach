@@ -10,6 +10,9 @@ public class ActorStatsInitializer : MonoBehaviour
     [SerializeField] private PlayerStatsProfile playerProfile;
     [SerializeField] private EnemyStatsProfile enemyProfile;
 
+    public PlayerStatsProfile PlayerProfile => playerProfile;
+    public EnemyStatsProfile EnemyProfile => enemyProfile;
+
     private void Awake()
     {
         ApplyProfiles();
@@ -64,6 +67,7 @@ public class ActorStatsInitializer : MonoBehaviour
     {
         MissionActorIdentity.EnsureOn(gameObject);
         ActorIncapacitationController.EnsureOn(gameObject);
+        EnemyAiSensesDebugGizmos.EnsureOn(gameObject);
 
         if (TryGetComponent(out ActorHealth health))
             health.ApplySettings(enemyProfile.Health);

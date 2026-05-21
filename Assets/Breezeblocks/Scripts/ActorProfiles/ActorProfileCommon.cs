@@ -258,14 +258,23 @@ public class EnemyMovementSettings
     [FoldoutGroup("Search or Suspicious")]
     public bool ReturnToStartAfterTemporaryStates = true;
 
+    [FoldoutGroup("Search or Suspicious")]
+    public bool Investigate = true;
+
     [FoldoutGroup("Search or Suspicious"), ShowIf(nameof(ReturnToStartAfterTemporaryStates))]
     public EnemySpeedType ReturnToStartSpeedType = EnemySpeedType.Walk;
 
     [FoldoutGroup("Alert")]
     public bool EnterAlertStateWhenTargetLost = true;
 
+    [FoldoutGroup("Alert")]
+    public bool ChaseTarget = true;
+
     [FoldoutGroup("Alert"), MinValue(0f), SuffixLabel("s", true)]
     public float AlertNoiseFocusDuration = 2f;
+
+    [FoldoutGroup("Alert"), MinValue(0f), SuffixLabel("s", true)]
+    public float AlertTargetLostDuration = 3f;
 
     [FoldoutGroup("Look Around"), MinValue(0f), SuffixLabel("s", true)]
     public float DefaultLookAroundDuration = 2.5f;
@@ -370,6 +379,12 @@ public class EnemyVisionSettings
     [FoldoutGroup("Detection"), MinValue(0f)]
     public float DetectionDecaySpeed = 0.75f;
 
+    [FoldoutGroup("Detection"), MinValue(0f)]
+    public float FullDetectionRadius;
+
+    [FoldoutGroup("Detection"), ShowIf(nameof(ShowFullDetectionSpeedMultiplier)), MinValue(0f)]
+    public float FullDetectionSpeedMultiplier = 5f;
+
     [FoldoutGroup("Detection")]
     public bool ReactToFlashlight = true;
 
@@ -398,12 +413,10 @@ public class EnemyVisionSettings
     public float CloseRangeDetectionMultiplier = 4f;
 
     [FoldoutGroup("Debug")]
-    public bool DebugDraw = true;
-
-    [FoldoutGroup("Debug")]
     public bool DebugLogging;
 
     private bool ShouldShowLocalForwardDirection => !UseTransformUpAsForward;
+    private bool ShowFullDetectionSpeedMultiplier => FullDetectionRadius > 0f;
 }
 
 [Serializable]
@@ -422,6 +435,9 @@ public class EnemyHearingSettings
 
     [FoldoutGroup("Hearing"), MinValue(0f)]
     public float SilentHearingRange = 3f;
+
+    [FoldoutGroup("Hearing")]
+    public bool IgnoreSilentSounds;
 
     [FoldoutGroup("Hearing"), MinValue(0f)]
     public float HearingThreshold = 0.2f;
@@ -459,8 +475,6 @@ public class EnemyHearingSettings
     [FoldoutGroup("Debug")]
     public bool DebugHearing;
 
-    [FoldoutGroup("Debug")]
-    public bool DrawHearingRanges = true;
 }
 
 [Serializable]
@@ -565,9 +579,6 @@ public class EnemyCombatSettings
 
     [FoldoutGroup("Debug")]
     public bool DebugCombat;
-
-    [FoldoutGroup("Debug")]
-    public bool DrawCombatGizmos = true;
 }
 
 [Serializable]

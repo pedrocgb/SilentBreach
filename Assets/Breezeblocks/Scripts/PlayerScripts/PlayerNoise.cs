@@ -125,6 +125,11 @@ public class PlayerNoise : MonoBehaviour
 
     public void AddNoiseSpike(float amount, float duration, NoiseType noiseType)
     {
+        AddNoiseSpike(amount, duration, noiseType, false);
+    }
+
+    public void AddNoiseSpike(float amount, float duration, NoiseType noiseType, bool isExtremeNoise)
+    {
         if (amount <= 0f || duration <= 0f)
             return;
 
@@ -134,15 +139,20 @@ public class PlayerNoise : MonoBehaviour
             EndTime = Time.time + duration
         });
 
-        EmitInstantNoise(amount, noiseType);
+        EmitInstantNoise(amount, noiseType, isExtremeNoise);
     }
 
     public void EmitInstantNoise(float amount, NoiseType noiseType)
     {
+        EmitInstantNoise(amount, noiseType, false);
+    }
+
+    public void EmitInstantNoise(float amount, NoiseType noiseType, bool isExtremeNoise)
+    {
         if (amount <= 0f || noiseEmitter == null)
             return;
 
-        noiseEmitter.EmitNoise(amount, noiseType);
+        noiseEmitter.EmitNoise(amount, noiseType, isExtremeNoise);
     }
 
     public void ApplySettings(PlayerNoiseSettings settings)

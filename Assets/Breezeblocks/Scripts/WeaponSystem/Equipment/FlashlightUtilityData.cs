@@ -22,12 +22,16 @@ public class FlashlightUtilityData : UtilityItemData
     [FoldoutGroup("Flashlight"), LabelText("Toggle Noise Duration"), MinValue(0f), SuffixLabel("s", true)]
     [SerializeField] private float toggleNoiseDuration = 0.1f;
 
+    [FoldoutGroup("Flashlight"), LabelText("Toggle Extreme Noise")]
+    [SerializeField] private bool toggleExtremeNoise;
+
     public override string UtilityTypeName => "Flashlight";
     public bool StartEnabledWhenEquipped => startEnabledWhenEquipped;
     public AudioClipSet ToggleSfx => toggleSfx;
     public NoiseType ToggleSfxType => toggleSfxType;
     public float ToggleNoise => toggleNoise;
     public float ToggleNoiseDuration => toggleNoiseDuration;
+    public bool ToggleExtremeNoise => toggleExtremeNoise;
 
     protected override void OnValidate()
     {

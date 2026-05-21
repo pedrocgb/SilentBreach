@@ -2,12 +2,13 @@ using UnityEngine;
 
 public readonly struct NoiseEvent
 {
-    public NoiseEvent(Vector2 position, float intensity, NoiseType noiseType, GameObject source, float timeCreated = -1f)
+    public NoiseEvent(Vector2 position, float intensity, NoiseType noiseType, GameObject source, bool isExtremeNoise = false, float timeCreated = -1f)
     {
         Position = position;
         Intensity = intensity;
         NoiseType = noiseType;
         Source = source;
+        IsExtremeNoise = isExtremeNoise;
         TimeCreated = timeCreated >= 0f ? timeCreated : Time.time;
     }
 
@@ -15,5 +16,6 @@ public readonly struct NoiseEvent
     public float Intensity { get; }
     public NoiseType NoiseType { get; }
     public GameObject Source { get; }
+    public bool IsExtremeNoise { get; }
     public float TimeCreated { get; }
 }

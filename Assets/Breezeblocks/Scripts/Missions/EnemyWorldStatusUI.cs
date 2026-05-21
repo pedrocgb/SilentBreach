@@ -1,3 +1,4 @@
+using Breezeblocks.WeaponSystem;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.UI;
@@ -17,6 +18,9 @@ public class EnemyWorldStatusUI : MonoBehaviour
 
     [FoldoutGroup("References")]
     [SerializeField] private ActorIncapacitationController incapacitationController;
+
+    [FoldoutGroup("References")]
+    [SerializeField] private ActorHealth actorHealth;
 
     [FoldoutGroup("Visibility UI")]
     [SerializeField] private GameObject visibilityRoot;
@@ -80,17 +84,32 @@ public class EnemyWorldStatusUI : MonoBehaviour
 
         if (incapacitationController == null)
             incapacitationController = GetComponentInParent<ActorIncapacitationController>();
+
+        if (actorHealth == null)
+            actorHealth = GetComponentInParent<ActorHealth>();
     }
 
     private void Refresh()
     {
+        bool isDead = actorHealth != null && actorHealth.IsDead;
+        if (isDead)
+        {
+            gameObject.SetActive(false);
+            return;
+        }
+
         bool isIncapacitated = incapacitationController != null && incapacitationController.IsIncapacitated;
-        bool isAlert = !isIncapacitated && enemyMovementController != null && enemyMovementController.CurrentState == EnemyState.Alert;
+        EnemyState currentState = enemyMovementController != null ? enemyMovementController.CurrentState : EnemyState.Disabled;
+        bool isAlert = !isIncapacitated &&
+                       (currentState == EnemyState.Detected ||
+                        currentState == EnemyState.Alert ||
+                        currentState == EnemyState.Fleeing ||
+                        (enemyVisionAI != null && enemyVisionAI.CurrentDetectionValue >= 0.999f));
         bool isSuspicious = !isIncapacitated &&
                             !isAlert &&
                             enemyMovementController != null &&
-                            (enemyMovementController.CurrentState == EnemyState.Suspicious ||
-                             enemyMovementController.CurrentState == EnemyState.Searching);
+                            (currentState == EnemyState.Suspicious ||
+                             currentState == EnemyState.Searching);
 
         float detectionValue = enemyVisionAI != null ? Mathf.Clamp01(enemyVisionAI.CurrentDetectionValue) : 0f;
         bool showVisibility = !isIncapacitated && !isAlert && !isSuspicious && detectionValue > 0f;

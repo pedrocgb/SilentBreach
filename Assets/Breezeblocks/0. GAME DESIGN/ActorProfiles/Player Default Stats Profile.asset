@@ -21,16 +21,16 @@ MonoBehaviour:
     TurnSpeedReductionPercent: 80
   Movement:
     WalkSpeedLevels:
+    - 0.8
+    - 0.9
     - 1
+    - 1.1
     - 1.2
+    - 1.3
     - 1.4
+    - 1.5
     - 1.6
-    - 1.8
-    - 2
-    - 2.2
-    - 2.4
-    - 2.6
-    - 2.8
+    - 1.7
     SelectedSpeedLevel: 5
     Acceleration: 28
     Deceleration: 34
@@ -40,9 +40,9 @@ MonoBehaviour:
     FreezeRotationZ: 1
   Noise:
     IdleNoise: 0
-    WalkNoiseAtMinSpeed: 0.35
-    WalkNoiseAtMaxSpeed: 0.75
-    SprintNoiseAtMaxSpeed: 1
+    WalkNoiseAtMinSpeed: 0.01
+    WalkNoiseAtMaxSpeed: 0.15
+    SprintNoiseAtMaxSpeed: 0.25
     EmitMovementNoiseEvents: 1
     MovementNoiseEventInterval: 0.2
     MinimumMovementNoiseToEmit: 0.05

@@ -5,9 +5,6 @@ using Breezeblocks.WeaponSystem;
 using Pathfinding;
 using Sirenix.OdinInspector;
 using UnityEngine;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 
 public enum EnemyState
 {
@@ -185,11 +182,8 @@ public class EnemyMovementController : MonoBehaviour
     private const float MinimumDistance = 0.01f;
     private const float MinimumInterval = 0.02f;
     private const float MinimumDirectionSqr = 0.0001f;
+    private const float DestinationRefreshSqrDistance = 0.0025f;
     private const float AstarAccelerationOverride = 9999f;
-
-    [FoldoutGroup("References")]
-    [Tooltip("Optional point used for facing and target distance checks. If empty, this transform is used.")]
-    [SerializeField] private Transform movementOrigin;
 
     [FoldoutGroup("References")]
     [Tooltip("Optional override. If empty, uses Rigidbody2D on this GameObject.")]
@@ -245,18 +239,21 @@ public class EnemyMovementController : MonoBehaviour
     [ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
     [SerializeField] private List<PatrolPoint> patrolPoints = new();
 
-    [FoldoutGroup("Patrol")]
-    [SerializeField] private bool drawPatrolGizmos = true;
-
     private bool detachReferencedPointsToWorldOnAwake = true;
 
     private bool returnToStartAfterTemporaryStates = true;
+
+    private bool investigate = true;
 
     private EnemySpeedType returnToStartSpeedType = EnemySpeedType.Walk;
 
     private bool enterAlertStateWhenTargetLost = true;
 
+    private bool alertChaseTarget = true;
+
     private float alertNoiseFocusDuration = 2f;
+
+    private float alertTargetLostDuration = 3f;
 
     private float defaultLookAroundDuration = 2.5f;
 
@@ -319,18 +316,6 @@ public class EnemyMovementController : MonoBehaviour
 
     [FoldoutGroup("Debug")]
     [SerializeField] private bool debugMovement;
-
-    [FoldoutGroup("Debug")]
-    [SerializeField] private bool drawCurrentDestination = true;
-
-    [FoldoutGroup("Debug")]
-    [SerializeField] private bool drawStartPosition = true;
-
-    [FoldoutGroup("Debug")]
-    [SerializeField] private bool drawFleePoint = true;
-
-    [FoldoutGroup("Debug")]
-    [SerializeField] private bool drawStateLabel = true;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public EnemyState CurrentState => currentState;
@@ -409,6 +394,17 @@ public class EnemyMovementController : MonoBehaviour
         ? Mathf.Max(0f, alertNoiseFocusUntil - Time.time)
         : 0f;
 
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly, SuffixLabel("s", true)]
+    public float AlertStimulusTimeRemaining => currentState == EnemyState.Alert
+        ? Mathf.Max(0f, alertStimulusUntil - Time.time)
+        : 0f;
+
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public bool AlertChaseTargetEnabled => alertChaseTarget;
+
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public bool HasAlertTrackedTarget => currentState == EnemyState.Alert && detectedTarget != null;
+
     [FoldoutGroup("A* Pathfinding"), InfoBox("When AIPath is assigned, it remains the low-level path steering and Rigidbody2D mover. This controller owns the high-level state, destination, speed caps, and custom rotation.")]
     [ShowInInspector, ReadOnly]
     private bool UsingAstarDriver => aiPath != null;
@@ -461,10 +457,12 @@ public class EnemyMovementController : MonoBehaviour
     private float staggerTurnSpeedMultiplier = 1f;
     private bool hasExternalInvestigation;
     private EnemyState externalInvestigationState = EnemyState.Suspicious;
+    private float stationarySuspicionUntil = float.NegativeInfinity;
     private bool alertHasNoiseFocus;
     private float alertNoiseFocusUntil = float.NegativeInfinity;
     private float alertDefaultFacingAngle;
     private Vector2 alertNoiseFocusPoint;
+    private float alertStimulusUntil = float.NegativeInfinity;
 
     private void Reset()
     {
@@ -618,11 +616,14 @@ public class EnemyMovementController : MonoBehaviour
         if (!CanEnterInvestigativeState())
             return;
 
-        ResetExternalInvestigationState();
-        lastKnownTargetPosition = position;
-        fleeCompleted = false;
-        patrolWaiting = false;
-        itineraryPatrolCompletionPending = false;
+        PrepareInvestigativeState(position);
+
+        if (!investigate)
+        {
+            BeginSuspiciousFocusState(position);
+            return;
+        }
+
         BeginDirectedState(EnemyState.Suspicious, position);
     }
 
@@ -631,10 +632,7 @@ public class EnemyMovementController : MonoBehaviour
         if (!CanEnterInvestigativeState())
             return;
 
-        ResetExternalInvestigationState();
-        fleeCompleted = false;
-        patrolWaiting = false;
-        itineraryPatrolCompletionPending = false;
+        PrepareInvestigativeState(position);
         BeginDirectedState(EnemyState.Searching, position);
     }
 
@@ -647,10 +645,13 @@ public class EnemyMovementController : MonoBehaviour
 
         hasExternalInvestigation = true;
         externalInvestigationState = state;
-        lastKnownTargetPosition = position;
-        fleeCompleted = false;
-        patrolWaiting = false;
-        itineraryPatrolCompletionPending = false;
+        PrepareInvestigativeState(position, resetExternalInvestigation: false);
+
+        if (state == EnemyState.Suspicious && !investigate)
+        {
+            BeginSuspiciousFocusState(position);
+            return;
+        }
 
         if (currentState != state)
         {
@@ -658,9 +659,7 @@ public class EnemyMovementController : MonoBehaviour
             return;
         }
 
-        currentDestination = position;
-        hasDestination = true;
-        SetDirectDestination(position, true);
+        SetInvestigativeDestination(position, true);
     }
 
     public void UpdateSearchDestination(Vector2 position)
@@ -674,9 +673,7 @@ public class EnemyMovementController : MonoBehaviour
             return;
         }
 
-        currentDestination = position;
-        hasDestination = true;
-        SetDirectDestination(position, true);
+        SetInvestigativeDestination(position, true);
     }
 
     public void UpdateInvestigativeDestination(Vector2 position)
@@ -690,16 +687,62 @@ public class EnemyMovementController : MonoBehaviour
         if (!CanEnterInvestigativeState())
             return;
 
+        if (currentState == EnemyState.Suspicious && !investigate)
+        {
+            RefreshStationarySuspicion(position);
+            return;
+        }
+
         if (currentState != EnemyState.Suspicious && currentState != EnemyState.Searching)
         {
             SearchAt(position);
             return;
         }
 
-        lastKnownTargetPosition = position;
-        currentDestination = position;
-        hasDestination = true;
-        SetDirectDestination(position, true);
+        SetInvestigativeDestination(position, true);
+    }
+
+    public void RefreshSuspicion(Vector2 position)
+    {
+        if (currentState == EnemyState.Alert)
+        {
+            FocusAlertOnPoint(position);
+            return;
+        }
+
+        if (!CanEnterInvestigativeState())
+            return;
+
+        if (currentState == EnemyState.Suspicious && !investigate)
+        {
+            RefreshStationarySuspicion(position);
+            return;
+        }
+
+        if (currentState == EnemyState.Suspicious || currentState == EnemyState.Searching)
+        {
+            SetInvestigativeDestination(position, false);
+            return;
+        }
+
+        SetSuspicious(position);
+    }
+
+    public void HandleHeardNoise(Vector2 position)
+    {
+        if (currentState == EnemyState.Alert)
+        {
+            FocusAlertOnPoint(position);
+            return;
+        }
+
+        if (currentState == EnemyState.Searching || currentState == EnemyState.Suspicious)
+        {
+            UpdateInvestigativeDestination(position);
+            return;
+        }
+
+        SetSuspicious(position);
     }
 
     public void CancelSearch()
@@ -737,6 +780,20 @@ public class EnemyMovementController : MonoBehaviour
     {
         if (target == null || currentState == EnemyState.Disabled)
             return;
+
+        if (currentState == EnemyState.Alert)
+        {
+            if (ResolveDetectionBehavior() == EnemyDetectionBehavior.FleeToPoint)
+            {
+                detectedTarget = target;
+                lastKnownTargetPosition = target.position;
+                Flee();
+                return;
+            }
+
+            UpdateAlertVisualTarget(target, target.position);
+            return;
+        }
 
         ResetExternalInvestigationState();
         detectedTarget = target;
@@ -782,6 +839,12 @@ public class EnemyMovementController : MonoBehaviour
 
     public void LoseTarget()
     {
+        if (currentState == EnemyState.Alert)
+        {
+            ClearAlertVisualTarget();
+            return;
+        }
+
         ResetExternalInvestigationState();
         detectedTarget = null;
 
@@ -866,6 +929,12 @@ public class EnemyMovementController : MonoBehaviour
         if (currentState == EnemyState.Disabled)
             return;
 
+        if (currentState == EnemyState.Alert)
+        {
+            CacheAlertDefaultFacingAngle();
+            return;
+        }
+
         if (!force && !enterAlertStateWhenTargetLost)
         {
             if (returnToStartAfterTemporaryStates)
@@ -876,6 +945,9 @@ public class EnemyMovementController : MonoBehaviour
             return;
         }
 
+        bool transitioningFromDetected = currentState == EnemyState.Detected;
+        Vector2 rememberedTargetPosition = lastKnownTargetPosition;
+
         ResetExternalInvestigationState();
         detectedTarget = null;
         patrolWaiting = false;
@@ -884,15 +956,18 @@ public class EnemyMovementController : MonoBehaviour
         currentReturnContext = EnemyReturnContext.None;
         hasDetectedMovementOverride = false;
         fleeCompleted = false;
-        alertHasNoiseFocus = false;
-        alertNoiseFocusUntil = float.NegativeInfinity;
-        alertNoiseFocusPoint = Vector2.zero;
+        ClearAlertFocus();
         CacheAlertDefaultFacingAngle();
 
         Vector2 holdPosition = alertHoldPoint != null ? (Vector2)alertHoldPoint.position : CurrentPosition;
         bool shouldMoveToHoldPosition = alertHoldPoint != null && !IsWithinStoppingDistance(holdPosition);
 
         ChangeState(EnemyState.Alert);
+        if (transitioningFromDetected)
+            RememberAlertStimulus(rememberedTargetPosition);
+        else
+            alertStimulusUntil = float.NegativeInfinity;
+
         if (shouldMoveToHoldPosition)
         {
             ClearManualFacingOverride();
@@ -915,19 +990,70 @@ public class EnemyMovementController : MonoBehaviour
         if (toPoint.sqrMagnitude <= MinimumDirectionSqr)
             return;
 
-        lastKnownTargetPosition = worldPoint;
+        RememberAlertStimulus(worldPoint);
         alertHasNoiseFocus = true;
         alertNoiseFocusPoint = worldPoint;
         alertNoiseFocusUntil = Time.time + alertNoiseFocusDuration;
 
-        if (IsAtAlertHoldPoint())
+        if (!alertChaseTarget)
+        {
+            if (IsAtAlertHoldPoint())
+            {
+                StopMovementImmediately();
+                SetFacingPoint(worldPoint);
+            }
+
+            return;
+        }
+
+        if (detectedTarget != null)
+            return;
+
+        if (IsWithinStoppingDistance(worldPoint))
         {
             StopMovementImmediately();
             SetFacingPoint(worldPoint);
             return;
         }
 
-        SetDirectDestination(worldPoint, true);
+        SetDestinationIfChanged(worldPoint, true);
+    }
+
+    public void ReactToExtremeNoise(Vector2 worldPoint)
+    {
+        if (currentState == EnemyState.Disabled)
+            return;
+
+        if (ResolveDetectionBehavior() == EnemyDetectionBehavior.FleeToPoint)
+        {
+            Flee();
+            return;
+        }
+
+        EnterAlertState(force: true);
+        FocusAlertOnPoint(worldPoint);
+    }
+
+    public void UpdateAlertVisualTarget(Transform target, Vector2 targetPosition)
+    {
+        if (currentState != EnemyState.Alert || target == null)
+            return;
+
+        ResetExternalInvestigationState();
+        detectedTarget = target;
+        RememberAlertStimulus(targetPosition);
+        ClearManualFacingOverride();
+        ClearAlertFocus();
+    }
+
+    public void ClearAlertVisualTarget()
+    {
+        if (currentState != EnemyState.Alert)
+            return;
+
+        detectedTarget = null;
+        hasDetectedMovementOverride = false;
+        RememberAlertStimulus(lastKnownTargetPosition);
     }
 
     public void ResumeStartingState()
@@ -952,7 +1078,9 @@ public class EnemyMovementController : MonoBehaviour
 
     public bool IsPlayerFullyDetectedState()
     {
-        return currentState == EnemyState.Detected || currentState == EnemyState.Fleeing;
+        return currentState == EnemyState.Detected ||
+               currentState == EnemyState.Fleeing ||
+               (currentState == EnemyState.Alert && detectedTarget != null);
     }
 
     public bool IsTemporaryState()
@@ -965,7 +1093,7 @@ public class EnemyMovementController : MonoBehaviour
 
     public void SetDetectedDestination(Vector2 destination, EnemySpeedType speedType = EnemySpeedType.Sprint)
     {
-        if (currentState != EnemyState.Detected && currentState != EnemyState.Fleeing)
+        if (!UsesCombatMovementOverridesForState(currentState) && currentState != EnemyState.Fleeing)
             return;
 
         hasDetectedMovementOverride = true;
@@ -1011,13 +1139,16 @@ public class EnemyMovementController : MonoBehaviour
         returnToStartAfterTemporaryStates = settings.ReturnToStartAfterTemporaryStates;
         returnToStartSpeedType = settings.ReturnToStartSpeedType;
         enterAlertStateWhenTargetLost = settings.EnterAlertStateWhenTargetLost;
+        alertChaseTarget = settings.ChaseTarget;
         alertNoiseFocusDuration = settings.AlertNoiseFocusDuration;
+        alertTargetLostDuration = settings.AlertTargetLostDuration;
         defaultLookAroundDuration = settings.DefaultLookAroundDuration;
         lookAroundTurnInterval = settings.LookAroundTurnInterval;
         lookAroundRotationSpeed = settings.LookAroundRotationSpeed;
         randomLookAngleRange = settings.RandomLookAngleRange;
         useItinerary = settings.UseItinerary;
         loopItinerary = settings.LoopItinerary;
+        investigate = settings.Investigate;
         detectionBehavior = settings.DetectionBehavior;
         searchLastKnownTargetPositionWhenTargetLost = settings.SearchLastKnownTargetPositionWhenTargetLost;
         missingFleePointFallbackBehavior = settings.MissingFleePointFallbackBehavior;
@@ -1040,7 +1171,7 @@ public class EnemyMovementController : MonoBehaviour
 
     public void HoldDetectedPosition()
     {
-        if (currentState != EnemyState.Detected)
+        if (!UsesCombatMovementOverridesForState(currentState))
             return;
 
         hasDetectedMovementOverride = true;
@@ -1051,8 +1182,20 @@ public class EnemyMovementController : MonoBehaviour
     {
         hasDetectedMovementOverride = false;
 
-        if (!resumeDefaultDetectedBehavior || currentState != EnemyState.Detected)
+        if (!resumeDefaultDetectedBehavior || !UsesCombatMovementOverridesForState(currentState))
             return;
+
+        if (currentState == EnemyState.Alert)
+        {
+            if (alertChaseTarget && detectedTarget != null)
+                SetFollowTarget(detectedTarget, true);
+            else if (alertChaseTarget && HasActiveAlertStimulus())
+                SetDirectDestination(lastKnownTargetPosition, true);
+            else
+                StopMovementImmediately();
+
+            return;
+        }
 
         if (ResolveDetectionBehavior() == EnemyDetectionBehavior.ChasePlayer && detectedTarget != null)
             SetFollowTarget(detectedTarget, true);
@@ -1176,6 +1319,12 @@ public class EnemyMovementController : MonoBehaviour
 
     private void UpdateInvestigativeState(EnemyLookAroundContext context)
     {
+        if (currentState == EnemyState.Suspicious && !investigate)
+        {
+            UpdateStationarySuspicion();
+            return;
+        }
+
         if (hasExternalInvestigation && currentState == externalInvestigationState)
         {
             if (hasDestination && hasReachedDestination)
@@ -1248,12 +1397,35 @@ public class EnemyMovementController : MonoBehaviour
 
     private void UpdateAlertState()
     {
-        if (hasDestination)
+        if (hasDetectedMovementOverride)
         {
             if (!hasReachedDestination)
                 return;
 
             StopMovementImmediately();
+        }
+
+        if (alertChaseTarget && detectedTarget != null)
+        {
+            RememberAlertStimulus(detectedTarget.position);
+
+            if (!hasDetectedMovementOverride)
+                SetFollowTarget(detectedTarget, false);
+
+            return;
+        }
+
+        if (alertChaseTarget && HasActiveAlertStimulus())
+        {
+            if (IsWithinStoppingDistance(lastKnownTargetPosition))
+            {
+                StopMovementImmediately();
+                SetFacingPoint(lastKnownTargetPosition);
+                return;
+            }
+
+            SetDestinationIfChanged(lastKnownTargetPosition, false);
+            return;
         }
 
         if (alertHasNoiseFocus && Time.time < alertNoiseFocusUntil)
@@ -1263,16 +1435,12 @@ public class EnemyMovementController : MonoBehaviour
         }
 
         if (alertHasNoiseFocus)
-        {
-            alertHasNoiseFocus = false;
-            alertNoiseFocusUntil = float.NegativeInfinity;
-            alertNoiseFocusPoint = Vector2.zero;
-        }
+            ClearAlertFocus();
 
         Vector2 holdPosition = alertHoldPoint != null ? (Vector2)alertHoldPoint.position : CurrentPosition;
         if (alertHoldPoint != null && !IsWithinStoppingDistance(holdPosition))
         {
-            SetDirectDestination(holdPosition, true);
+            SetDestinationIfChanged(holdPosition, true);
             return;
         }
 
@@ -1432,6 +1600,7 @@ public class EnemyMovementController : MonoBehaviour
         detectedTarget = null;
         currentLookAroundContext = EnemyLookAroundContext.None;
         currentReturnContext = EnemyReturnContext.None;
+        stationarySuspicionUntil = float.NegativeInfinity;
         ClearManualFacingOverride();
         ChangeState(state);
         hasDestination = true;
@@ -1457,6 +1626,7 @@ public class EnemyMovementController : MonoBehaviour
         ResetExternalInvestigationState();
         currentReturnContext = context;
         currentLookAroundContext = EnemyLookAroundContext.None;
+        stationarySuspicionUntil = float.NegativeInfinity;
         ClearManualFacingOverride();
         ChangeState(EnemyState.ReturningToStart);
         hasDestination = true;
@@ -1831,7 +2001,7 @@ public class EnemyMovementController : MonoBehaviour
         if (aiPath == null)
             return;
 
-        if (currentState == EnemyState.Detected && hasDetectedMovementOverride)
+        if (UsesCombatMovementOverridesForState(currentState) && hasDetectedMovementOverride)
         {
             if (aiDestinationSetter != null)
                 aiDestinationSetter.target = null;
@@ -1845,6 +2015,18 @@ public class EnemyMovementController : MonoBehaviour
         EnemyDetectionBehavior behavior = ResolveDetectionBehavior();
         if (currentState == EnemyState.Detected &&
             behavior == EnemyDetectionBehavior.ChasePlayer &&
+            detectedTarget != null)
+        {
+            if (aiDestinationSetter != null)
+                aiDestinationSetter.target = detectedTarget;
+            else
+                aiPath.destination = detectedTarget.position;
+
+            return;
+        }
+
+        if (currentState == EnemyState.Alert &&
+            alertChaseTarget &&
             detectedTarget != null)
         {
             if (aiDestinationSetter != null)
@@ -1913,6 +2095,14 @@ public class EnemyMovementController : MonoBehaviour
         }
     }
 
+    private void SetDestinationIfChanged(Vector2 destination, bool forceSearchPath)
+    {
+        if (hasDestination && (currentDestination - destination).sqrMagnitude <= DestinationRefreshSqrDistance)
+            return;
+
+        SetDirectDestination(destination, forceSearchPath);
+    }
+
     private void SyncRuntimeMovementState()
     {
         currentMovementSpeed = ResolveActualMovementSpeed();
@@ -1953,6 +2143,7 @@ public class EnemyMovementController : MonoBehaviour
             EnemyState.Suspicious when hasDestination => runSpeed,
             EnemyState.Searching when hasDestination => runSpeed,
             EnemyState.ReturningToStart when hasDestination => ResolveSpeed(returnToStartSpeedType),
+            EnemyState.Alert when hasDetectedMovementOverride && hasDestination => ResolveSpeed(detectedMovementOverrideSpeedType),
             EnemyState.Alert when hasDestination => sprintSpeed,
             EnemyState.Detected when hasDetectedMovementOverride && hasDestination => ResolveSpeed(detectedMovementOverrideSpeedType),
             EnemyState.Detected when ResolveDetectionBehavior() == EnemyDetectionBehavior.ChasePlayer && detectedTarget != null => sprintSpeed,
@@ -1982,6 +2173,11 @@ public class EnemyMovementController : MonoBehaviour
         return currentState == EnemyState.Fleeing ? Mathf.Max(stoppingDistance, fleeStoppingDistance) : stoppingDistance;
     }
 
+    private bool UsesCombatMovementOverridesForState(EnemyState state)
+    {
+        return state == EnemyState.Detected || state == EnemyState.Alert;
+    }
+
     private EnemyDetectionBehavior ResolveDetectionBehavior()
     {
         return detectionBehavior == EnemyDetectionBehavior.FleeToPoint && !canFlee
@@ -1993,10 +2189,13 @@ public class EnemyMovementController : MonoBehaviour
 
     private Vector2 ResolveCurrentTargetPosition()
     {
-        if (currentState == EnemyState.Detected && hasDetectedMovementOverride && hasDestination)
+        if (UsesCombatMovementOverridesForState(currentState) && hasDetectedMovementOverride && hasDestination)
             return currentDestination;
 
         if (detectedTarget != null && currentState == EnemyState.Detected && ResolveDetectionBehavior() == EnemyDetectionBehavior.ChasePlayer)
+            return detectedTarget.position;
+
+        if (detectedTarget != null && currentState == EnemyState.Alert && alertChaseTarget)
             return detectedTarget.position;
 
         return hasDestination ? currentDestination : CurrentPosition;
@@ -2007,7 +2206,7 @@ public class EnemyMovementController : MonoBehaviour
         if (currentState == EnemyState.LookAround)
             return currentLookDirection;
 
-        if (currentState == EnemyState.Detected && faceTargetWhenDetected && detectedTarget != null)
+        if (ShouldFaceTrackedTarget())
         {
             Vector2 toTarget = (Vector2)detectedTarget.position - CurrentPosition;
             if (toTarget.sqrMagnitude > MinimumDirectionSqr)
@@ -2041,6 +2240,15 @@ public class EnemyMovementController : MonoBehaviour
             return lastStableFacingDirection;
 
         return Vector2.zero;
+    }
+
+    private bool ShouldFaceTrackedTarget()
+    {
+        if (!faceTargetWhenDetected || detectedTarget == null)
+            return false;
+
+        return currentState == EnemyState.Detected ||
+               currentState == EnemyState.Alert;
     }
 
     private Vector2 ResolveMovementVector()
@@ -2115,7 +2323,7 @@ public class EnemyMovementController : MonoBehaviour
         previousState = currentState;
         currentState = newState;
 
-        if (newState != EnemyState.Detected)
+        if (!UsesCombatMovementOverridesForState(newState))
             hasDetectedMovementOverride = false;
 
         if (debugMovement)
@@ -2123,6 +2331,80 @@ public class EnemyMovementController : MonoBehaviour
 
         MissionRuntimeEvents.RaiseEnemyStateChanged(this, oldState, newState);
         StateChanged?.Invoke(oldState, newState);
+    }
+
+    private void BeginSuspiciousFocusState(Vector2 position)
+    {
+        detectedTarget = null;
+        currentLookAroundContext = EnemyLookAroundContext.None;
+        currentReturnContext = EnemyReturnContext.None;
+        ChangeState(EnemyState.Suspicious);
+        RefreshStationarySuspicion(position);
+    }
+
+    private void RefreshStationarySuspicion(Vector2 position)
+    {
+        lastKnownTargetPosition = position;
+        stationarySuspicionUntil = Time.time + Mathf.Max(0f, defaultLookAroundDuration);
+        hasDestination = false;
+        StopMovementImmediately();
+        SetFacingPoint(position);
+    }
+
+    private void UpdateStationarySuspicion()
+    {
+        hasDestination = false;
+        StopMovementImmediately();
+        SetFacingPoint(lastKnownTargetPosition);
+
+        if (Time.time < stationarySuspicionUntil)
+            return;
+
+        if (returnToStartAfterTemporaryStates)
+            ReturnToStart();
+        else
+            ResumeStartingState();
+    }
+
+    private void PrepareInvestigativeState(Vector2 position, bool resetExternalInvestigation = true)
+    {
+        if (resetExternalInvestigation)
+            ResetExternalInvestigationState();
+
+        lastKnownTargetPosition = position;
+        fleeCompleted = false;
+        patrolWaiting = false;
+        itineraryPatrolCompletionPending = false;
+        ClearAlertFocus();
+    }
+
+    private void SetInvestigativeDestination(Vector2 position, bool forceSearchPath)
+    {
+        lastKnownTargetPosition = position;
+        if (hasDestination && (currentDestination - position).sqrMagnitude <= DestinationRefreshSqrDistance)
+            return;
+
+        currentDestination = position;
+        hasDestination = true;
+        SetDirectDestination(position, forceSearchPath);
+    }
+
+    private void RememberAlertStimulus(Vector2 position)
+    {
+        lastKnownTargetPosition = position;
+        alertStimulusUntil = Time.time + alertTargetLostDuration;
+    }
+
+    private void ClearAlertFocus()
+    {
+        alertHasNoiseFocus = false;
+        alertNoiseFocusUntil = float.NegativeInfinity;
+        alertNoiseFocusPoint = Vector2.zero;
+    }
+
+    private bool HasActiveAlertStimulus()
+    {
+        return Time.time < alertStimulusUntil;
     }
 
     private void CacheReferences()
@@ -2246,6 +2528,7 @@ public class EnemyMovementController : MonoBehaviour
         minimumMoveSpeed = Mathf.Clamp(minimumMoveSpeed, 0f, sprintSpeed);
         rotationSpeed = Mathf.Max(0f, rotationSpeed);
         alertNoiseFocusDuration = Mathf.Max(0f, alertNoiseFocusDuration);
+        alertTargetLostDuration = Mathf.Max(0f, alertTargetLostDuration);
         defaultLookAroundDuration = Mathf.Max(0f, defaultLookAroundDuration);
         lookAroundTurnInterval = Mathf.Max(MinimumInterval, lookAroundTurnInterval);
         lookAroundRotationSpeed = Mathf.Max(0f, lookAroundRotationSpeed);
@@ -2479,86 +2762,4 @@ public class EnemyMovementController : MonoBehaviour
             (vector.x * sin) + (vector.y * cos));
     }
 
-    private void OnDrawGizmosSelected()
-    {
-        if (!drawCurrentDestination && !drawPatrolGizmos && !drawStartPosition && !drawFleePoint && !drawStateLabel)
-            return;
-
-        Vector3 origin = movementOrigin != null ? movementOrigin.position : transform.position;
-
-        if (drawStartPosition)
-        {
-            Gizmos.color = new Color(0.35f, 0.95f, 1f, 0.9f);
-            Gizmos.DrawWireSphere(Application.isPlaying ? (Vector3)startingPosition : transform.position, 0.18f);
-        }
-
-        if (drawCurrentDestination && hasDestination)
-        {
-            Gizmos.color = new Color(1f, 0.8f, 0.2f, 0.95f);
-            Gizmos.DrawLine(origin, currentDestination);
-            Gizmos.DrawSphere(currentDestination, 0.14f);
-            Gizmos.DrawWireSphere(currentDestination, ResolveCurrentStoppingDistance());
-        }
-
-        if (drawPatrolGizmos && TryGetGizmoPatrolPoints(out List<PatrolPoint> gizmoPatrolPoints))
-            DrawPatrolGizmos(gizmoPatrolPoints, GetActivePatrolMode());
-
-        if (drawFleePoint && fleePoint != null)
-        {
-            Gizmos.color = new Color(1f, 0.35f, 0.35f, 0.95f);
-            Gizmos.DrawWireSphere(fleePoint.position, 0.2f);
-            Gizmos.DrawLine(origin, fleePoint.position);
-        }
-
-        Vector2 movementVector = ResolveMovementVector();
-        if (movementVector.sqrMagnitude > MinimumDirectionSqr)
-        {
-            Gizmos.color = new Color(0.45f, 0.85f, 1f, 0.9f);
-            Gizmos.DrawLine(origin, origin + (Vector3)(movementVector.normalized * 1.25f));
-        }
-
-#if UNITY_EDITOR
-        if (drawStateLabel)
-        {
-            string itineraryLabel = ShouldUseItinerary && currentItineraryIndex >= 0
-                ? $"\nItinerary: {currentItineraryIndex} {CurrentItineraryStepName}"
-                : string.Empty;
-            Handles.Label(origin + (Vector3.up * 0.4f), $"{currentState}\nSpeed: {currentMovementSpeed:0.00}{itineraryLabel}");
-        }
-#endif
-    }
-
-    private bool TryGetGizmoPatrolPoints(out List<PatrolPoint> gizmoPatrolPoints)
-    {
-        if (Application.isPlaying && TryGetActivePatrolPoints(out gizmoPatrolPoints))
-            return true;
-
-        gizmoPatrolPoints = patrolPoints;
-        return gizmoPatrolPoints != null && gizmoPatrolPoints.Count > 0;
-    }
-
-    private void DrawPatrolGizmos(List<PatrolPoint> gizmoPatrolPoints, EnemyPatrolMode gizmoPatrolMode)
-    {
-        Gizmos.color = new Color(0.4f, 1f, 0.4f, 0.8f);
-        for (int i = 0; i < gizmoPatrolPoints.Count; i++)
-        {
-            PatrolPoint patrolPoint = gizmoPatrolPoints[i];
-            if (patrolPoint?.Point == null)
-                continue;
-
-            Vector3 pointPosition = patrolPoint.Point.position;
-            Gizmos.DrawWireSphere(pointPosition, 0.12f);
-
-            if (gizmoPatrolMode == EnemyPatrolMode.Loop)
-            {
-                PatrolPoint nextPoint = gizmoPatrolPoints[(i + 1) % gizmoPatrolPoints.Count];
-                if (nextPoint?.Point != null)
-                    Gizmos.DrawLine(pointPosition, nextPoint.Point.position);
-            }
-            else if (i < gizmoPatrolPoints.Count - 1 && gizmoPatrolPoints[i + 1]?.Point != null)
-            {
-                Gizmos.DrawLine(pointPosition, gizmoPatrolPoints[i + 1].Point.position);
-            }
-        }
-    }
 }

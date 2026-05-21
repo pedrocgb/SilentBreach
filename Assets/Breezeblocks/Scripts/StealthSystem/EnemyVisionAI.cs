@@ -56,6 +56,10 @@ public class EnemyVisionAI : MonoBehaviour
 
     private float detectionDecaySpeed = 0.75f;
 
+    private float fullDetectionRadius;
+
+    private float fullDetectionSpeedMultiplier = 5f;
+
     private bool reactToFlashlight = true;
 
     private float flashlightSourceLostDuration = 2f;
@@ -73,8 +77,6 @@ public class EnemyVisionAI : MonoBehaviour
     private float noBonusDistance = 6f;
 
     private float closeRangeDetectionMultiplier = 4f;
-
-    private bool debugDraw = true;
 
     private bool debugLogging;
 
@@ -109,6 +111,12 @@ public class EnemyVisionAI : MonoBehaviour
     public bool CanCurrentlyDetectTarget => canCurrentlyDetectTarget;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public bool TargetInsideFullDetectionRadius => targetInsideFullDetectionRadius;
+
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public bool UsingFullDetectionRadius => usingFullDetectionRadius;
+
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool CanCurrentlySeeFlashlight => canCurrentlySeeFlashlight;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
@@ -138,6 +146,13 @@ public class EnemyVisionAI : MonoBehaviour
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool ShouldIgnoreNoise => enemyMovementController != null && !enemyMovementController.CanReactToNoise();
 
+    public Vector2 GizmoVisionOrigin => VisionOriginPosition;
+    public Vector2 GizmoForwardDirection => ForwardDirection;
+    public float ConfiguredVisionRange => visionRange;
+    public float ConfiguredVisionAngle => visionAngle;
+    public float ConfiguredFullDetectionRadius => fullDetectionRadius;
+    public float ConfiguredFullDetectionSpeedMultiplier => fullDetectionSpeedMultiplier;
+
     [SerializeField, HideInInspector] private float currentDetectionValue;
     [SerializeField, HideInInspector] private float currentTargetVisibility;
     [SerializeField, HideInInspector] private Vector2 lastKnownTargetPosition;
@@ -146,6 +161,8 @@ public class EnemyVisionAI : MonoBehaviour
     [SerializeField, HideInInspector] private bool hasLineOfSight;
     [SerializeField, HideInInspector] private bool meetsVisibilityThreshold;
     [SerializeField, HideInInspector] private bool canCurrentlyDetectTarget;
+    [SerializeField, HideInInspector] private bool targetInsideFullDetectionRadius;
+    [SerializeField, HideInInspector] private bool usingFullDetectionRadius;
     [SerializeField, HideInInspector] private bool canCurrentlySeeFlashlight;
     [SerializeField, HideInInspector] private bool hasActiveFlashlightStimulus;
     [SerializeField, HideInInspector] private float currentTargetDistance;
@@ -238,6 +255,8 @@ public class EnemyVisionAI : MonoBehaviour
         visibilityThreshold = settings.VisibilityThreshold;
         detectionSpeed = settings.DetectionSpeed;
         detectionDecaySpeed = settings.DetectionDecaySpeed;
+        fullDetectionRadius = settings.FullDetectionRadius;
+        fullDetectionSpeedMultiplier = settings.FullDetectionSpeedMultiplier;
         reactToFlashlight = settings.ReactToFlashlight;
         flashlightSourceLostDuration = settings.FlashlightSourceLostDuration;
         flashlightSourceUpdateDistance = settings.FlashlightSourceUpdateDistance;
@@ -247,7 +266,6 @@ public class EnemyVisionAI : MonoBehaviour
         closeRangeDistance = settings.CloseRangeDistance;
         noBonusDistance = settings.NoBonusDistance;
         closeRangeDetectionMultiplier = settings.CloseRangeDetectionMultiplier;
-        debugDraw = settings.DebugDraw;
         debugLogging = settings.DebugLogging;
 
         ClampSettings();
@@ -265,6 +283,8 @@ public class EnemyVisionAI : MonoBehaviour
         hasActiveFlashlightStimulus = false;
         targetInRange = false;
         targetInsideVisionCone = false;
+        targetInsideFullDetectionRadius = false;
+        usingFullDetectionRadius = false;
         hasLineOfSight = !requireLineOfSight || obstacleMask.value == 0;
         meetsVisibilityThreshold = false;
         currentTargetVisibility = 0f;
@@ -279,11 +299,14 @@ public class EnemyVisionAI : MonoBehaviour
         hasActiveFlashlightStimulus = reactToFlashlight &&
                                       hasTrackedFlashlightSource &&
                                       (canCurrentlySeeFlashlight || Time.time < flashlightStimulusHoldUntil);
+        Vector2 targetPosition = TargetSamplePosition;
+        if (TryApplyFullDetectionRadius(origin, targetPosition))
+            return;
+
         float effectiveVisionRange = ResolveEffectiveVisionRange();
         if (effectiveVisionRange <= 0f)
             return;
 
-        Vector2 targetPosition = TargetSamplePosition;
         Vector2 toTarget = targetPosition - origin;
         float distance = toTarget.magnitude;
         currentTargetDistance = distance;
@@ -319,7 +342,9 @@ public class EnemyVisionAI : MonoBehaviour
     {
         if (canCurrentlyDetectTarget)
         {
-            float detectionFactor = CalculateDetectionFactor();
+            float detectionFactor = usingFullDetectionRadius
+                ? Mathf.Clamp01(externalPerceptionMultiplier)
+                : CalculateDetectionFactor();
             currentDetectionValue = Mathf.MoveTowards(
                 currentDetectionValue,
                 1f,
@@ -344,12 +369,18 @@ public class EnemyVisionAI : MonoBehaviour
         if (fullyDetected)
         {
             enemyMovementController.ClearExternalInvestigation(resumeDefaultBehavior: false);
-            enemyMovementController.SetDetected(targetTransform);
+            if (alertState)
+                enemyMovementController.UpdateAlertVisualTarget(targetTransform, lastKnownTargetPosition);
+            else
+                enemyMovementController.SetDetected(targetTransform);
         }
         else if (wasFullyDetectedLastFrame)
         {
             enemyMovementController.ClearExternalInvestigation(resumeDefaultBehavior: false);
-            enemyMovementController.LoseTarget();
+            if (alertState)
+                enemyMovementController.ClearAlertVisualTarget();
+            else
+                enemyMovementController.LoseTarget();
         }
         else if (alertState)
         {
@@ -386,7 +417,7 @@ public class EnemyVisionAI : MonoBehaviour
                 hasLastKnownTargetPosition &&
                 !combatOwnsTemporaryStates)
             {
-                enemyMovementController.SetSuspicious(lastKnownTargetPosition);
+                enemyMovementController.RefreshSuspicion(lastKnownTargetPosition);
             }
         }
 
@@ -421,6 +452,42 @@ public class EnemyVisionAI : MonoBehaviour
 
         float t = Mathf.InverseLerp(closeRangeDistance, noBonusDistance, distance);
         return Mathf.Lerp(closeRangeDetectionMultiplier, 1f, t);
+    }
+
+    private bool TryApplyFullDetectionRadius(Vector2 observerPosition, Vector2 targetPosition)
+    {
+        if (fullDetectionRadius <= 0f)
+            return false;
+
+        float distanceFromCenter = Vector2.Distance(transform.position, targetPosition);
+        currentTargetDistance = distanceFromCenter;
+        if (distanceFromCenter > fullDetectionRadius)
+            return false;
+
+        targetInsideFullDetectionRadius = true;
+        targetInRange = true;
+
+        if (requireLineOfSight && obstacleMask.value != 0)
+        {
+            hasLineOfSight = Physics2D.Linecast(observerPosition, targetPosition, obstacleMask).collider == null;
+            if (!hasLineOfSight)
+                return false;
+        }
+
+        currentTargetVisibility = targetVisibility != null
+            ? targetVisibility.CurrentVisibility * externalPerceptionMultiplier
+            : externalPerceptionMultiplier;
+        canCurrentlyDetectTarget = externalPerceptionMultiplier > 0f;
+        meetsVisibilityThreshold = canCurrentlyDetectTarget;
+        usingFullDetectionRadius = canCurrentlyDetectTarget;
+        currentDistanceDetectionMultiplier = fullDetectionSpeedMultiplier;
+
+        if (!canCurrentlyDetectTarget)
+            return false;
+
+        lastKnownTargetPosition = targetPosition;
+        hasLastKnownTargetPosition = true;
+        return true;
     }
 
     private void EvaluateFlashlightVisibility(Vector2 observerPosition)
@@ -657,6 +724,8 @@ public class EnemyVisionAI : MonoBehaviour
         visibilityThreshold = Mathf.Clamp01(visibilityThreshold);
         detectionSpeed = Mathf.Max(0f, detectionSpeed);
         detectionDecaySpeed = Mathf.Max(0f, detectionDecaySpeed);
+        fullDetectionRadius = Mathf.Max(0f, fullDetectionRadius);
+        fullDetectionSpeedMultiplier = Mathf.Max(0f, fullDetectionSpeedMultiplier);
         flashlightSourceLostDuration = Mathf.Max(0f, flashlightSourceLostDuration);
         flashlightSourceUpdateDistance = Mathf.Max(0f, flashlightSourceUpdateDistance);
         flashlightVisibilitySampleCount = Mathf.Clamp(flashlightVisibilitySampleCount, 1, 9);
@@ -709,65 +778,6 @@ public class EnemyVisionAI : MonoBehaviour
             }
 
             return Rotate(transform.TransformDirection(localForwardDirection.normalized), forwardAngleOffset);
-        }
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        if (!debugDraw)
-            return;
-
-        Vector2 origin = VisionOriginPosition;
-        Color stateColor = CurrentState switch
-        {
-            EnemyState.Idle => new Color(0.4f, 1f, 0.4f, 0.85f),
-            EnemyState.Patrol => new Color(0.2f, 0.85f, 1f, 0.85f),
-            EnemyState.Suspicious => new Color(1f, 0.85f, 0.2f, 0.9f),
-            EnemyState.Searching => new Color(1f, 0.65f, 0.2f, 0.9f),
-            _ => new Color(1f, 0.3f, 0.3f, 0.9f)
-        };
-
-        Gizmos.color = stateColor;
-        Gizmos.DrawWireSphere(origin, visionRange);
-
-        Vector2 forward = ForwardDirection;
-        if (visionAngle >= 360f)
-        {
-            Gizmos.DrawLine(origin, origin + (forward * visionRange));
-        }
-        else
-        {
-            float halfAngle = visionAngle * 0.5f;
-            Vector2 left = Rotate(forward, -halfAngle) * visionRange;
-            Vector2 right = Rotate(forward, halfAngle) * visionRange;
-            Gizmos.DrawLine(origin, origin + left);
-            Gizmos.DrawLine(origin, origin + right);
-            DrawArc(origin, forward, visionRange, visionAngle);
-        }
-
-        if (targetTransform == null)
-            return;
-
-        Gizmos.color = canCurrentlyDetectTarget
-            ? new Color(1f, 0.15f, 0.15f, 0.95f)
-            : new Color(0.6f, 0.7f, 1f, 0.55f);
-
-        Gizmos.DrawLine(origin, TargetSamplePosition);
-    }
-
-    private void DrawArc(Vector2 origin, Vector2 forward, float radius, float angle)
-    {
-        const int Segments = 24;
-        float halfAngle = angle * 0.5f;
-        Vector2 previousPoint = origin + (Rotate(forward, -halfAngle) * radius);
-
-        for (int i = 1; i <= Segments; i++)
-        {
-            float t = i / (float)Segments;
-            float stepAngle = Mathf.Lerp(-halfAngle, halfAngle, t);
-            Vector2 nextPoint = origin + (Rotate(forward, stepAngle) * radius);
-            Gizmos.DrawLine(previousPoint, nextPoint);
-            previousPoint = nextPoint;
         }
     }
 

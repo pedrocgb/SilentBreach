@@ -61,6 +61,9 @@ public class ThrowableUtilityData : UtilityItemData
     [FoldoutGroup("Throwable/Impact")]
     [SerializeField] private NoiseType impactNoiseType = NoiseType.Common;
 
+    [FoldoutGroup("Throwable/Impact")]
+    [SerializeField] private bool impactExtremeNoise;
+
     [FoldoutGroup("Throwable/Impact"), MinValue(0f), SuffixLabel("s", true)]
     [SerializeField] private float impactNoiseCooldown = 0.05f;
 
@@ -93,6 +96,9 @@ public class ThrowableUtilityData : UtilityItemData
 
     [FoldoutGroup("Throwable/Detonation"), ShowIf(nameof(UsesDetonation))]
     [SerializeField] private NoiseType detonationNoiseType = NoiseType.Loud;
+
+    [FoldoutGroup("Throwable/Detonation"), ShowIf(nameof(UsesDetonation))]
+    [SerializeField] private bool detonationExtremeNoise = true;
 
     [FoldoutGroup("Throwable/Detonation"), ShowIf(nameof(UsesDetonation)), MinValue(0f)]
     [SerializeField] private float effectRadius = 3f;
@@ -137,6 +143,7 @@ public class ThrowableUtilityData : UtilityItemData
     public float ThrowAnimationDuration => throwAnimationDuration;
     public float ImpactNoise => impactNoise;
     public NoiseType ImpactNoiseType => impactNoiseType;
+    public bool ImpactExtremeNoise => impactExtremeNoise;
     public float ImpactNoiseCooldown => impactNoiseCooldown;
     public AudioClipSet ImpactSfx => impactSfx;
     public GameObject ResolveEffectPrefab => resolveEffectPrefab;
@@ -148,6 +155,7 @@ public class ThrowableUtilityData : UtilityItemData
     public float DetonationDelay => detonationDelay;
     public float DetonationNoise => detonationNoise;
     public NoiseType DetonationNoiseType => detonationNoiseType;
+    public bool DetonationExtremeNoise => detonationExtremeNoise;
     public float EffectRadius => effectRadius;
     public LayerMask EffectObstacleMask => effectObstacleMask;
     public float ExplosionDamage => explosionDamage;

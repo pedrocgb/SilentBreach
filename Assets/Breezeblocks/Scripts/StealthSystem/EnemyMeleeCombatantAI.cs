@@ -92,7 +92,8 @@ public class EnemyMeleeCombatantAI : MonoBehaviour
     {
         if (enemyMovementController == null ||
             EquippedMeleeWeapon == null ||
-            enemyMovementController.CurrentState != EnemyState.Detected ||
+            !IsCombatAwarenessState(enemyMovementController.CurrentState) ||
+            (enemyMovementController.CurrentState == EnemyState.Alert && !HasClearVisualOnTarget()) ||
             isFlashbanged ||
             IsBusy ||
             Time.time < nextAttackDecisionTime)
@@ -146,8 +147,11 @@ public class EnemyMeleeCombatantAI : MonoBehaviour
 
     private void HandleMovementStateChanged(EnemyState previousState, EnemyState newState)
     {
-        if (newState != EnemyState.Detected)
+        if (!IsCombatAwarenessState(newState) ||
+            (newState == EnemyState.Alert && !HasClearVisualOnTarget()))
+        {
             CancelActiveAttack();
+        }
 
         ApplyWeaponReadinessForState(newState, isInitialState: false);
     }
@@ -227,6 +231,7 @@ public class EnemyMeleeCombatantAI : MonoBehaviour
 
         RefreshDamageSource();
         meleeDamageSource?.BeginSwing();
+        meleeDamageSource?.PlaySwingSfx();
         IsAttacking = true;
         AttackProgress01 = 0f;
 
@@ -348,6 +353,16 @@ public class EnemyMeleeCombatantAI : MonoBehaviour
     private void ClampSettings()
     {
         attackDecisionInterval = Mathf.Max(MinimumDecisionInterval, attackDecisionInterval);
+    }
+
+    private bool HasClearVisualOnTarget()
+    {
+        return enemyVisionAI != null && enemyVisionAI.CanCurrentlyDetectTarget && enemyVisionAI.HasLineOfSight;
+    }
+
+    private static bool IsCombatAwarenessState(EnemyState state)
+    {
+        return state == EnemyState.Detected || state == EnemyState.Alert;
     }
 
     private static bool RequiresReadiedWeapon(EnemyState state)

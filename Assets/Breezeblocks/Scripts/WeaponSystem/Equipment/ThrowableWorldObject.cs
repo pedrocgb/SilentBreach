@@ -294,7 +294,7 @@ public class ThrowableWorldObject : MonoBehaviour
         lastImpactNoiseTime = Time.time;
 
         if (activeData.ImpactNoise > 0f)
-            NoiseManager.EmitNoise(impactPoint, activeData.ImpactNoise, activeData.ImpactNoiseType, gameObject);
+            NoiseManager.EmitNoise(impactPoint, activeData.ImpactNoise, activeData.ImpactNoiseType, gameObject, activeData.ImpactExtremeNoise);
 
         if (worldSfxManager == null)
             worldSfxManager = WorldSfxManager.Instance;
@@ -307,7 +307,7 @@ public class ThrowableWorldObject : MonoBehaviour
         if (activeData == null || activeData.DetonationNoise <= 0f)
             return;
 
-        NoiseManager.EmitNoise(detonationPoint, activeData.DetonationNoise, activeData.DetonationNoiseType, gameObject);
+        NoiseManager.EmitNoise(detonationPoint, activeData.DetonationNoise, activeData.DetonationNoiseType, gameObject, activeData.DetonationExtremeNoise);
     }
 
     private void CacheReferences()

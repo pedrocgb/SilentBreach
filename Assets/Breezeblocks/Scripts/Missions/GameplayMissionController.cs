@@ -8,6 +8,7 @@ using DG.Tweening;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Audio;
 
 namespace Breezeblocks.Missions
 {
@@ -65,6 +66,60 @@ public class GameplayMissionController : MonoBehaviour
 
     [FoldoutGroup("Player")]
     [SerializeField] private ActorHealth playerHealth;
+
+    [FoldoutGroup("Music")]
+    [SerializeField] private MissionMusicController missionMusicController;
+
+    [FoldoutGroup("Car Audio")]
+    [SerializeField] private WorldSfxManager worldSfxManager;
+
+    [FoldoutGroup("Car Audio")]
+    [SerializeField] private AudioMixerGroup carLoopMixerGroup;
+
+    [FoldoutGroup("Car Audio/One Shots"), Title("Car Door Open SFX"), InlineProperty, HideLabel]
+    [SerializeField] private AudioClipSet carDoorOpenSfx = new();
+
+    [FoldoutGroup("Car Audio/One Shots"), Title("Car Door Close SFX"), InlineProperty, HideLabel]
+    [SerializeField] private AudioClipSet carDoorCloseSfx = new();
+
+    [FoldoutGroup("Car Audio/One Shots"), Title("Car Start SFX"), InlineProperty, HideLabel]
+    [SerializeField] private AudioClipSet carStartSfx = new();
+
+    [FoldoutGroup("Car Audio/Loops"), Title("Car Engine Loop SFX"), InlineProperty, HideLabel]
+    [SerializeField] private AudioClipSet carEngineLoopSfx = new();
+
+    [FoldoutGroup("Car Audio/Loops"), Title("Car Idle Loop SFX"), InlineProperty, HideLabel]
+    [SerializeField] private AudioClipSet carIdleLoopSfx = new();
+
+    [FoldoutGroup("Car Audio/Loops"), LabelText("Idle Loop Local Offset")]
+    [SerializeField] private Vector3 carIdleLoopLocalOffset = new(-0.35f, 0f, 0f);
+
+    [FoldoutGroup("Car Audio/Loops"), LabelText("Engine Loop Local Offset")]
+    [SerializeField] private Vector3 carEngineLoopLocalOffset = new(0.35f, 0f, 0f);
+
+    [FoldoutGroup("Car Audio")]
+    [SerializeField] private NoiseType carSfxSoundType = NoiseType.Common;
+
+    [FoldoutGroup("Car Audio"), Range(0f, 1f)]
+    [SerializeField] private float carLoopSpatialBlend = 1f;
+
+    [FoldoutGroup("Car Audio"), MinValue(0f)]
+    [SerializeField] private float carLoopMinDistance = 1.5f;
+
+    [FoldoutGroup("Car Audio"), MinValue(0f)]
+    [SerializeField] private float carLoopMaxDistance = 22f;
+
+    [FoldoutGroup("Car Audio")]
+    [SerializeField] private AudioRolloffMode carLoopRolloffMode = AudioRolloffMode.Logarithmic;
+
+    [FoldoutGroup("Car Audio"), MinValue(0f)]
+    [SerializeField] private float carLoopDopplerLevel = 0f;
+
+    [FoldoutGroup("Car Audio"), Range(0f, 360f)]
+    [SerializeField] private float carLoopSpread;
+
+    [FoldoutGroup("Car Audio"), Range(0, 256)]
+    [SerializeField] private int carLoopPriority = 96;
 
     [FoldoutGroup("Job")]
     [SerializeField] private HideoutJobDefinition fallbackMission;
@@ -177,6 +232,9 @@ public class GameplayMissionController : MonoBehaviour
     [FoldoutGroup("Escape and Win")]
     [SerializeField] private Transform outroDriveTarget;
 
+    [FoldoutGroup("Escape and Win"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
+    [SerializeField] private List<Collider2D> carCollidersToDisableWhileBoarding = new();
+
     [FoldoutGroup("Escape and Win"), MinValue(0f), SuffixLabel("s", true)]
     [SerializeField] private float outroPlayerEntryDuration = 0.45f;
 
@@ -208,11 +266,14 @@ public class GameplayMissionController : MonoBehaviour
     private readonly List<FailureRuntimeState> failureStates = new();
     private Sequence escapePromptSequence;
     private Sequence timeLimitWarningSequence;
+    private Tween carEngineLoopTween;
     private HideoutJobDefinition currentJob;
     private Color timeLimitDefaultColor = Color.white;
     private bool gameplayStarted;
     private bool missionEnded;
     private bool objectivesCompleted;
+    private AudioSource carIdleLoopSource;
+    private AudioSource carEngineLoopSource;
 
     private void Reset()
     {
@@ -222,6 +283,7 @@ public class GameplayMissionController : MonoBehaviour
     private void Awake()
     {
         CacheReferences();
+        PrepareCarAudio();
         PrepareUiDefaults();
         InitializeJobRuntime();
         SetCollidersEnabled(collidersToEnableAfterGameplayStart, false);
@@ -261,6 +323,7 @@ public class GameplayMissionController : MonoBehaviour
         if (!missionEnded && gameplayStarted)
             UpdateTimeLimitFailures(Time.deltaTime);
 
+        EnsureCarIdleLoopRunning();
         RefreshTimeLimitUi();
     }
 
@@ -280,6 +343,12 @@ public class GameplayMissionController : MonoBehaviour
         escapePromptSequence?.Kill();
         escapePromptSequence = null;
         StopTimeLimitWarningPulse(resetScale: false);
+        carEngineLoopTween?.Kill();
+        carEngineLoopTween = null;
+        if (carIdleLoopSource != null)
+            carIdleLoopSource.Stop();
+        if (carEngineLoopSource != null)
+            carEngineLoopSource.Stop();
     }
 
     public void TryHandleEscapeTrigger(GameObject enteringRoot)
@@ -288,6 +357,30 @@ public class GameplayMissionController : MonoBehaviour
             return;
 
         StartCoroutine(PlayWinRoutine());
+    }
+
+    public bool TryHandleMusicTrigger(GameObject enteringRoot, MissionMusicCue cue)
+    {
+        if (missionEnded || !gameplayStarted || !IsPlayerRoot(enteringRoot) || missionMusicController == null)
+            return false;
+
+        switch (cue)
+        {
+            case MissionMusicCue.Lurking:
+                missionMusicController.PlayLurkingMusic();
+                return true;
+
+            case MissionMusicCue.Alerted:
+                missionMusicController.PlayAlertedMusic();
+                return true;
+
+            case MissionMusicCue.GameOver:
+                missionMusicController.PlayGameOverMusic();
+                return true;
+
+            default:
+                return false;
+        }
     }
 
     private void InitializeJobRuntime()
@@ -388,6 +481,12 @@ public class GameplayMissionController : MonoBehaviour
 
         if (playerHealth == null)
             playerHealth = playerRoot.GetComponent<ActorHealth>();
+
+        if (missionMusicController == null)
+            missionMusicController = GetComponent<MissionMusicController>();
+
+        if (missionMusicController == null)
+            missionMusicController = FindFirstObjectByType<MissionMusicController>();
     }
 
     private void PrepareUiDefaults()
@@ -421,6 +520,34 @@ public class GameplayMissionController : MonoBehaviour
         }
     }
 
+    private void PrepareCarAudio()
+    {
+        carDoorOpenSfx ??= new AudioClipSet();
+        carDoorOpenSfx.Validate();
+        carDoorCloseSfx ??= new AudioClipSet();
+        carDoorCloseSfx.Validate();
+        carStartSfx ??= new AudioClipSet();
+        carStartSfx.Validate();
+        carEngineLoopSfx ??= new AudioClipSet();
+        carEngineLoopSfx.Validate();
+        carIdleLoopSfx ??= new AudioClipSet();
+        carIdleLoopSfx.Validate();
+
+        carLoopSpatialBlend = Mathf.Clamp01(carLoopSpatialBlend);
+        carLoopMinDistance = Mathf.Max(0f, carLoopMinDistance);
+        carLoopMaxDistance = Mathf.Max(carLoopMinDistance, carLoopMaxDistance);
+        carLoopDopplerLevel = Mathf.Max(0f, carLoopDopplerLevel);
+        carLoopSpread = Mathf.Clamp(carLoopSpread, 0f, 360f);
+        carLoopPriority = Mathf.Clamp(carLoopPriority, 0, 256);
+
+        if (introCarTransform == null)
+            return;
+
+        carIdleLoopSource = EnsureCarLoopSource(carIdleLoopSource, "Car Idle Loop Source", carIdleLoopLocalOffset);
+        carEngineLoopSource = EnsureCarLoopSource(carEngineLoopSource, "Car Engine Loop Source", carEngineLoopLocalOffset);
+        EnsureCarIdleLoopRunning();
+    }
+
     private bool CanPlayIntroCinematic()
     {
         return introCarTransform != null &&
@@ -436,6 +563,7 @@ public class GameplayMissionController : MonoBehaviour
         yield return DriveCarToPoint(introCarTransform, introDriveTarget, introDriveSpeed, introDriveAcceleration, introDriveDeceleration, startAtCruiseSpeed: true);
 
         PlayCarAnimation(openDoorAnimationState);
+        PlayCarDoorOpenSfx();
         if (introDoorOpenWait > 0f)
             yield return new WaitForSecondsRealtime(introDoorOpenWait);
 
@@ -445,6 +573,7 @@ public class GameplayMissionController : MonoBehaviour
         yield return MovePlayerToPoint(introPlayerExitPoint, introPlayerFacingTarget, introPlayerExitDuration);
 
         PlayCarAnimation(closeDoorAnimationState);
+        PlayCarDoorCloseSfx();
         if (introDoorCloseWait > 0f)
             yield return new WaitForSecondsRealtime(introDoorCloseWait);
 
@@ -481,18 +610,33 @@ public class GameplayMissionController : MonoBehaviour
             yield break;
         }
 
+        if (missionEscapeTrigger != null)
+            missionEscapeTrigger.SetEscapeEnabled(false);
+
         PlayCarAnimation(openDoorAnimationState);
+        PlayCarDoorOpenSfx();
         if (outroDoorOpenWait > 0f)
             yield return new WaitForSecondsRealtime(outroDoorOpenWait);
 
-        yield return MovePlayerToPoint(outroPlayerEntryPoint != null ? outroPlayerEntryPoint : introCarTransform, outroPlayerEntryPoint, outroPlayerEntryDuration);
+        SetCollidersEnabled(carCollidersToDisableWhileBoarding, false);
+        Transform boardingSeatTarget = outroCarSeatPoint != null
+            ? outroCarSeatPoint
+            : outroPlayerEntryPoint != null ? outroPlayerEntryPoint : introCarTransform;
+        yield return MovePlayerToPoint(boardingSeatTarget, boardingSeatTarget, outroPlayerEntryDuration);
         AttachPlayerToPoint(outroCarSeatPoint != null ? outroCarSeatPoint : introCarTransform, parentToSeat: true);
+        float carStartDuration = PlayCarStartSfx();
+        float carStartSfxEndTime = carStartDuration > 0f ? Time.unscaledTime + carStartDuration : float.NegativeInfinity;
         ClampPlayerRotationToZero();
         SetCollidersEnabled(collidersToEnableAfterGameplayStart, false);
 
         PlayCarAnimation(closeDoorAnimationState);
+        PlayCarDoorCloseSfx();
         if (outroDoorCloseWait > 0f)
             yield return new WaitForSecondsRealtime(outroDoorCloseWait);
+
+        float remainingCarStartWait = carStartSfxEndTime - Time.unscaledTime;
+        if (remainingCarStartWait > 0f)
+            yield return new WaitForSecondsRealtime(remainingCarStartWait);
 
         if (outroDriveTarget != null)
             yield return DriveCarToPoint(introCarTransform, outroDriveTarget, outroDriveSpeed, outroDriveAcceleration, outroDriveDeceleration, startAtCruiseSpeed: true);
@@ -529,7 +673,7 @@ public class GameplayMissionController : MonoBehaviour
         ForcePlayerFacing(facingTarget != null ? facingTarget.position : targetPoint.position);
     }
 
-    private static IEnumerator DriveCarToPoint(Transform carTransform, Transform targetPoint, float driveSpeed, float acceleration, float deceleration, bool startAtCruiseSpeed)
+    private IEnumerator DriveCarToPoint(Transform carTransform, Transform targetPoint, float driveSpeed, float acceleration, float deceleration, bool startAtCruiseSpeed)
     {
         if (carTransform == null || targetPoint == null)
             yield break;
@@ -556,6 +700,7 @@ public class GameplayMissionController : MonoBehaviour
 
         Vector2 direction = path / totalDistance;
         float currentSpeed = startAtCruiseSpeed ? maxSpeed : 0f;
+        SetCarEngineLoopActive(true);
 
         while (true)
         {
@@ -606,6 +751,7 @@ public class GameplayMissionController : MonoBehaviour
         }
 
         carTransform.position = targetPosition;
+        SetCarEngineLoopActive(false);
     }
 
     private void AttachPlayerToPoint(Transform targetPoint, bool parentToSeat)
@@ -648,6 +794,176 @@ public class GameplayMissionController : MonoBehaviour
             return;
 
         introCarAnimator.Play(stateName, 0, 0f);
+    }
+
+    private void PlayCarDoorOpenSfx()
+    {
+        PlayCarOneShot(carDoorOpenSfx);
+    }
+
+    private void PlayCarDoorCloseSfx()
+    {
+        PlayCarOneShot(carDoorCloseSfx);
+    }
+
+    private float PlayCarStartSfx()
+    {
+        return PlayCarOneShot(carStartSfx);
+    }
+
+    private float PlayCarOneShot(AudioClipSet clipSet)
+    {
+        if (introCarTransform == null || clipSet == null || !clipSet.HasAnyClip)
+            return 0f;
+
+        ResolveWorldSfxManager();
+        if (worldSfxManager == null)
+            return 0f;
+
+        bool played = worldSfxManager.PlayClipSetAt(introCarTransform.position, clipSet, carSfxSoundType, out float playbackDuration);
+        return played ? playbackDuration : 0f;
+    }
+
+    private void StartCarIdleLoopIfNeeded()
+    {
+        if (carIdleLoopSource == null || carIdleLoopSource.isPlaying || carIdleLoopSfx == null || !carIdleLoopSfx.HasAnyClip)
+            return;
+
+        PlayLoopClipSet(carIdleLoopSource, carIdleLoopSfx, startVolume: true);
+    }
+
+    private void EnsureCarIdleLoopRunning()
+    {
+        if (introCarTransform == null || carIdleLoopSfx == null || !carIdleLoopSfx.HasAnyClip)
+            return;
+
+        carIdleLoopSource = EnsureCarLoopSource(carIdleLoopSource, "Car Idle Loop Source", carIdleLoopLocalOffset);
+        if (carIdleLoopSource == null)
+            return;
+
+        if (!carIdleLoopSource.isPlaying || carIdleLoopSource.clip == null)
+        {
+            StartCarIdleLoopIfNeeded();
+            return;
+        }
+
+        carIdleLoopSource.volume = Mathf.Clamp01(carIdleLoopSfx.Volume);
+    }
+
+    private void SetCarEngineLoopActive(bool active)
+    {
+        if (introCarTransform == null)
+            return;
+
+        EnsureCarIdleLoopRunning();
+        carEngineLoopSource = EnsureCarLoopSource(carEngineLoopSource, "Car Engine Loop Source", carEngineLoopLocalOffset);
+        if (carEngineLoopSource == null)
+            return;
+
+        carEngineLoopTween?.Kill();
+        carEngineLoopTween = null;
+
+        if (active)
+        {
+            if (!carEngineLoopSource.isPlaying)
+                PlayLoopClipSet(carEngineLoopSource, carEngineLoopSfx, startVolume: false);
+
+            if (carEngineLoopSource.clip == null)
+                return;
+
+            float targetVolume = carEngineLoopSfx != null ? Mathf.Clamp01(carEngineLoopSfx.Volume) : 0f;
+            carEngineLoopTween = DOTween.To(
+                    () => carEngineLoopSource.volume,
+                    value => carEngineLoopSource.volume = Mathf.Clamp01(value),
+                    targetVolume,
+                    0.2f)
+                .SetEase(Ease.InOutSine)
+                .SetUpdate(true);
+            return;
+        }
+
+        if (!carEngineLoopSource.isPlaying)
+            return;
+
+        carEngineLoopTween = DOTween.To(
+                () => carEngineLoopSource.volume,
+                value => carEngineLoopSource.volume = Mathf.Clamp01(value),
+                0f,
+                0.2f)
+            .SetEase(Ease.InOutSine)
+            .SetUpdate(true)
+            .OnComplete(() =>
+            {
+                if (carEngineLoopSource != null)
+                {
+                    carEngineLoopSource.Stop();
+                    carEngineLoopSource.clip = null;
+                }
+            });
+    }
+
+    private AudioSource EnsureCarLoopSource(AudioSource existingSource, string objectName, Vector3 localOffset)
+    {
+        if (introCarTransform == null)
+            return null;
+
+        AudioSource resolvedSource = existingSource;
+        if (resolvedSource == null)
+        {
+            Transform existingChild = introCarTransform.Find(objectName);
+            if (existingChild != null)
+                resolvedSource = existingChild.GetComponent<AudioSource>();
+        }
+
+        if (resolvedSource == null)
+        {
+            GameObject sourceObject = new(objectName);
+            sourceObject.transform.SetParent(introCarTransform, false);
+            resolvedSource = sourceObject.AddComponent<AudioSource>();
+        }
+
+        ConfigureCarLoopSource(resolvedSource, localOffset);
+        return resolvedSource;
+    }
+
+    private void ConfigureCarLoopSource(AudioSource source, Vector3 localOffset)
+    {
+        if (source == null)
+            return;
+
+        source.transform.localPosition = localOffset;
+        source.playOnAwake = false;
+        source.loop = true;
+        source.outputAudioMixerGroup = carLoopMixerGroup;
+        source.spatialBlend = carLoopSpatialBlend;
+        source.minDistance = carLoopMinDistance;
+        source.maxDistance = carLoopMaxDistance;
+        source.rolloffMode = carLoopRolloffMode;
+        source.dopplerLevel = carLoopDopplerLevel;
+        source.spread = carLoopSpread;
+        source.priority = carLoopPriority;
+    }
+
+    private static void PlayLoopClipSet(AudioSource source, AudioClipSet clipSet, bool startVolume)
+    {
+        if (source == null || clipSet == null || !clipSet.HasAnyClip)
+            return;
+
+        AudioClip clip = clipSet.GetRandomClip();
+        if (clip == null)
+            return;
+
+        source.clip = clip;
+        source.pitch = clipSet.GetRandomPitch();
+        source.volume = startVolume ? Mathf.Clamp01(clipSet.Volume) : 0f;
+        source.loop = true;
+        source.Play();
+    }
+
+    private void ResolveWorldSfxManager()
+    {
+        if (worldSfxManager == null)
+            worldSfxManager = WorldSfxManager.Instance;
     }
 
     private void BlockPlayerControls(bool blocked)
@@ -728,6 +1044,9 @@ public class GameplayMissionController : MonoBehaviour
     {
         if (missionEnded || !gameplayStarted)
             return;
+
+        if (stateEvent.NewState == EnemyState.Detected && stateEvent.PreviousState != EnemyState.Detected)
+            missionMusicController?.PlayAlertedMusic();
 
         if (stateEvent.NewState != EnemyState.Alert || stateEvent.PreviousState == EnemyState.Alert)
             return;
@@ -1051,6 +1370,7 @@ public class GameplayMissionController : MonoBehaviour
         escapePromptSequence = null;
         StopTimeLimitWarningPulse();
         BlockPlayerControls(true);
+        missionMusicController?.PlayGameOverMusic();
 
         yield return FadeAndShowScreen(playerWasKilled ? playerKilledScreen : questFailScreen);
     }

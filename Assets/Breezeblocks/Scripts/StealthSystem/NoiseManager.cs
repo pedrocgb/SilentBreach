@@ -67,9 +67,9 @@ public sealed class NoiseManager : MonoBehaviour
         Listeners.Remove(listener);
     }
 
-    public static void EmitNoise(Vector2 position, float intensity, NoiseType noiseType, GameObject source = null)
+    public static void EmitNoise(Vector2 position, float intensity, NoiseType noiseType, GameObject source = null, bool isExtremeNoise = false)
     {
-        EmitNoise(new NoiseEvent(position, intensity, noiseType, source));
+        EmitNoise(new NoiseEvent(position, intensity, noiseType, source, isExtremeNoise));
     }
 
     public static void EmitNoise(NoiseEvent noiseEvent)

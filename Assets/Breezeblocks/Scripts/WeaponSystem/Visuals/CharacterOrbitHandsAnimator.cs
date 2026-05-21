@@ -63,6 +63,9 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
     [FoldoutGroup("References")]
     [SerializeField] private EnemyMeleeCombatantAI enemyMeleeCombatantAI;
 
+    [FoldoutGroup("References")]
+    [SerializeField] private ActorHealth actorHealth;
+
     [FoldoutGroup("Rig"), MinValue(0f)]
     [SerializeField] private float sideOffset = 0.55f;
 
@@ -93,6 +96,9 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
     [FoldoutGroup("Motion"), MinValue(0f)]
     [SerializeField] private float locomotionDirectionSmoothing = 18f;
 
+    [FoldoutGroup("Motion"), MinValue(0f)]
+    [SerializeField] private float enemyUnarmedHandSmoothing = 22f;
+
     [FoldoutGroup("Setup")]
     [SerializeField] private bool autoCreateMissingVisualRig = true;
 
@@ -121,6 +127,9 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
     private float swingPhase;
     private float throwableChargeVisualProgress;
     private Vector2 smoothedMovementDirection = Vector2.right;
+    private Vector3 smoothedLeftHandLocalPosition;
+    private Vector3 smoothedRightHandLocalPosition;
+    private bool handPoseInitialized;
     private bool clearDisplayedItemOnTransitionComplete;
     private bool subscribedToPlayerEquipment;
 
@@ -176,6 +185,7 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
         swingCyclesPerSpeedUnit = Mathf.Max(0f, swingCyclesPerSpeedUnit);
         minimumMoveSpeedForSwing = Mathf.Max(0f, minimumMoveSpeedForSwing);
         locomotionDirectionSmoothing = Mathf.Max(0f, locomotionDirectionSmoothing);
+        enemyUnarmedHandSmoothing = Mathf.Max(0f, enemyUnarmedHandSmoothing);
 
         ResolveReferences();
         EnsureRig();
@@ -222,6 +232,9 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
 
         if (enemyMeleeCombatantAI == null)
             enemyMeleeCombatantAI = GetComponent<EnemyMeleeCombatantAI>();
+
+        if (actorHealth == null)
+            actorHealth = GetComponent<ActorHealth>();
 
         if (bodyAnchor == null)
             bodyAnchor = FindPreferredBodyAnchor();
@@ -367,6 +380,9 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
         clearDisplayedItemOnTransitionComplete = false;
         currentFacingDirection = ResolveFacingDirection();
         smoothedMovementDirection = currentFacingDirection.sqrMagnitude > MinDirectionSqr ? currentFacingDirection.normalized : Vector2.right;
+        smoothedLeftHandLocalPosition = leftHand != null ? leftHand.localPosition : Vector3.zero;
+        smoothedRightHandLocalPosition = rightHand != null ? rightHand.localPosition : Vector3.zero;
+        handPoseInitialized = false;
         ApplyHeldItemSprite();
         ApplyPose();
     }
@@ -473,8 +489,7 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
         Vector3 heldLeft = holdCenter + holdOffset;
         Vector3 heldRight = holdCenter - holdOffset;
 
-        leftHand.localPosition = Vector3.Lerp(unarmedLeft, heldLeft, poseBlend);
-        rightHand.localPosition = Vector3.Lerp(unarmedRight, heldRight, poseBlend);
+        ApplyHandPositions(Vector3.Lerp(unarmedLeft, heldLeft, poseBlend), Vector3.Lerp(unarmedRight, heldRight, poseBlend), smoothEnemyUnarmed: true);
         ApplyHeldItemVisual(holdCenter, localForward, poseBlend);
     }
 
@@ -499,8 +514,7 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
             heldItemCenter += frontHandOffset * 0.5f;
         }
 
-        leftHand.localPosition = Vector3.Lerp(unarmedLeft, heldLeft, poseBlend);
-        rightHand.localPosition = Vector3.Lerp(unarmedRight, heldRight, poseBlend);
+        ApplyHandPositions(Vector3.Lerp(unarmedLeft, heldLeft, poseBlend), Vector3.Lerp(unarmedRight, heldRight, poseBlend), smoothEnemyUnarmed: false);
         ApplyHeldItemVisual(heldItemCenter, localForward, poseBlend);
     }
 
@@ -564,8 +578,7 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
         currentRadius = Mathf.Lerp(currentRadius, idleRadius, throwRecoveryWeight);
 
         Vector3 rightHandTarget = (Vector3)(throwDirection * currentRadius);
-        leftHand.localPosition = unarmedLeft;
-        rightHand.localPosition = Vector3.Lerp(unarmedRight, rightHandTarget, poseBlend);
+        ApplyHandPositions(unarmedLeft, Vector3.Lerp(unarmedRight, rightHandTarget, poseBlend), smoothEnemyUnarmed: false);
         ApplyHeldItemVisual(rightHandTarget, throwDirection, poseBlend);
 
         if (heldItemRenderer != null && clampedThrowProgress >= HeldItemReleaseProgress)
@@ -606,8 +619,7 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
 
             Vector3 heldLeft = holdCenter + handOffset;
             Vector3 heldRight = holdCenter - handOffset;
-            leftHand.localPosition = Vector3.Lerp(unarmedLeft, heldLeft, poseBlend);
-            rightHand.localPosition = Vector3.Lerp(unarmedRight, heldRight, poseBlend);
+            ApplyHandPositions(Vector3.Lerp(unarmedLeft, heldLeft, poseBlend), Vector3.Lerp(unarmedRight, heldRight, poseBlend), smoothEnemyUnarmed: false);
             ApplyHeldItemVisual(holdCenter, swingDirection, poseBlend);
             return;
         }
@@ -628,9 +640,44 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
         Vector3 rightHandTarget = (Vector3)(oneHandSwingDirection * currentRadiusOneHanded);
         Vector3 leftHandTarget = (Vector3)(localSide * (sideOffset * 0.74f)) + (Vector3)(localForward * (0.04f + (0.07f * attackWeight)));
 
-        leftHand.localPosition = Vector3.Lerp(unarmedLeft, leftHandTarget, poseBlend);
-        rightHand.localPosition = Vector3.Lerp(unarmedRight, rightHandTarget, poseBlend);
+        ApplyHandPositions(Vector3.Lerp(unarmedLeft, leftHandTarget, poseBlend), Vector3.Lerp(unarmedRight, rightHandTarget, poseBlend), smoothEnemyUnarmed: false);
         ApplyHeldItemVisual(rightHandTarget, oneHandSwingDirection, poseBlend);
+    }
+
+    private void ApplyHandPositions(Vector3 leftTarget, Vector3 rightTarget, bool smoothEnemyUnarmed)
+    {
+        if (leftHand == null || rightHand == null)
+            return;
+
+        bool shouldSmooth = smoothEnemyUnarmed &&
+                            enemyMovementController != null &&
+                            playerMotor == null &&
+                            displayedItem == null &&
+                            enemyUnarmedHandSmoothing > 0f &&
+                            Application.isPlaying;
+
+        if (!shouldSmooth)
+        {
+            smoothedLeftHandLocalPosition = leftTarget;
+            smoothedRightHandLocalPosition = rightTarget;
+            handPoseInitialized = true;
+            leftHand.localPosition = leftTarget;
+            rightHand.localPosition = rightTarget;
+            return;
+        }
+
+        if (!handPoseInitialized)
+        {
+            smoothedLeftHandLocalPosition = leftTarget;
+            smoothedRightHandLocalPosition = rightTarget;
+            handPoseInitialized = true;
+        }
+
+        float blend = 1f - Mathf.Exp(-enemyUnarmedHandSmoothing * Time.deltaTime);
+        smoothedLeftHandLocalPosition = Vector3.Lerp(smoothedLeftHandLocalPosition, leftTarget, blend);
+        smoothedRightHandLocalPosition = Vector3.Lerp(smoothedRightHandLocalPosition, rightTarget, blend);
+        leftHand.localPosition = smoothedLeftHandLocalPosition;
+        rightHand.localPosition = smoothedRightHandLocalPosition;
     }
 
     private void ApplyHeldItemVisual(Vector3 holdCenter, Vector2 localForward, float poseBlend)
@@ -655,6 +702,9 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
 
     private EquipmentItemData ResolveImmediateHeldItem()
     {
+        if (ShouldSuppressHeldItemsForDownedState())
+            return null;
+
         if (playerEquipmentController != null && playerEquipmentController.CurrentHeldItem != null)
             return playerEquipmentController.CurrentHeldItem;
 
@@ -739,6 +789,9 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
         movementDirection = Vector2.zero;
         normalizedSpeed = 0f;
 
+        if (actorHealth != null && (actorHealth.IsDead || actorHealth.IsIncapacitated))
+            return 0f;
+
         if (playerMotor != null)
         {
             float speed = playerMotor.CurrentPlanarSpeed;
@@ -811,6 +864,9 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
 
     private EquipmentItemData ResolveImmediateEnemyHeldItem()
     {
+        if (ShouldSuppressHeldItemsForDownedState())
+            return null;
+
         if (enemyCombatantAI != null && enemyCombatantAI.EquippedFirearm != null)
             return enemyCombatantAI.EquippedFirearm;
 
@@ -840,6 +896,11 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
         }
 
         return 0f;
+    }
+
+    private bool ShouldSuppressHeldItemsForDownedState()
+    {
+        return actorHealth != null && (actorHealth.IsDead || actorHealth.IsIncapacitated);
     }
 
     private float ResolveMeleeAttackWeight(MeleeWeaponData meleeWeaponData)

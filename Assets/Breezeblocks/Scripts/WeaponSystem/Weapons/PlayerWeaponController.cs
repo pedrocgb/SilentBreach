@@ -384,7 +384,7 @@ public class PlayerWeaponController : MonoBehaviour
         currentReserveAmmo = ResolveInitialReserveAmmo(firearm, startingReserveAmmo);
         RebuildAvailableFireModes();
         CurrentAimDirection = playerMotor != null ? playerMotor.LastMoveDirection : Vector2.right;
-        EmitNoiseSpike(firearm.EquipNoise, GlobalSettings.Instance != null ? GlobalSettings.Instance.EquipNoiseDuration : 0.4f, firearm.EquipNoiseType);
+        EmitNoiseSpike(firearm.EquipNoise, GlobalSettings.Instance != null ? GlobalSettings.Instance.EquipNoiseDuration : 0.4f, firearm.EquipNoiseType, firearm.EquipExtremeNoise);
         NotifyWeaponStateChanged();
 
         _weaponRoutine = null;
@@ -408,7 +408,7 @@ public class PlayerWeaponController : MonoBehaviour
 
         yield return new WaitForSeconds(weaponBeingHolstered.HolsterTime);
 
-        EmitNoiseSpike(weaponBeingHolstered.HolsterNoise, GlobalSettings.Instance != null ? GlobalSettings.Instance.HolsterNoiseDuration : 0.6f, weaponBeingHolstered.HolsterNoiseType);
+        EmitNoiseSpike(weaponBeingHolstered.HolsterNoise, GlobalSettings.Instance != null ? GlobalSettings.Instance.HolsterNoiseDuration : 0.6f, weaponBeingHolstered.HolsterNoiseType, weaponBeingHolstered.HolsterExtremeNoise);
         EquippedFirearm = null;
         CurrentProjectile = null;
         CurrentFireMode = FireMode.None;
@@ -463,7 +463,7 @@ public class PlayerWeaponController : MonoBehaviour
     private IEnumerator MagazineReloadRoutine()
     {
         PlayMagazineReloadStartSfx();
-        EmitNoiseSpike(EquippedFirearm.ReloadNoise, EquippedFirearm.ReloadNoiseDuration, EquippedFirearm.ReloadNoiseType);
+        EmitNoiseSpike(EquippedFirearm.ReloadNoise, EquippedFirearm.ReloadNoiseDuration, EquippedFirearm.ReloadNoiseType, EquippedFirearm.ReloadExtremeNoise);
         float reloadDuration = Mathf.Max(0f, EquippedFirearm.ReloadTime);
         float midReloadSfxDelay = reloadDuration * EquippedFirearm.MagazineReloadMidSfxNormalizedTime;
         float remainingReloadDelay = Mathf.Max(0f, reloadDuration - midReloadSfxDelay);
@@ -482,7 +482,7 @@ public class PlayerWeaponController : MonoBehaviour
         {
             currentLoadedAmmo += roundsToTransfer;
             currentReserveAmmo -= roundsToTransfer;
-            EmitNoiseSpike(EquippedFirearm.ReloadNoise, EquippedFirearm.ReloadNoiseDuration, EquippedFirearm.ReloadNoiseType);
+            EmitNoiseSpike(EquippedFirearm.ReloadNoise, EquippedFirearm.ReloadNoiseDuration, EquippedFirearm.ReloadNoiseType, EquippedFirearm.ReloadExtremeNoise);
         }
 
         _reloadRoutine = null;
@@ -492,7 +492,7 @@ public class PlayerWeaponController : MonoBehaviour
     private IEnumerator BulletPerBulletReloadRoutine()
     {
         bool loadedAnyRound = false;
-        EmitNoiseSpike(EquippedFirearm.ReloadNoise, EquippedFirearm.ReloadNoiseDuration, EquippedFirearm.ReloadNoiseType);
+        EmitNoiseSpike(EquippedFirearm.ReloadNoise, EquippedFirearm.ReloadNoiseDuration, EquippedFirearm.ReloadNoiseType, EquippedFirearm.ReloadExtremeNoise);
 
         while (EquippedFirearm != null &&
                CurrentProjectile != null &&
@@ -512,7 +512,7 @@ public class PlayerWeaponController : MonoBehaviour
         }
 
         if (loadedAnyRound && EquippedFirearm != null)
-            EmitNoiseSpike(EquippedFirearm.ReloadNoise, EquippedFirearm.ReloadNoiseDuration, EquippedFirearm.ReloadNoiseType);
+            EmitNoiseSpike(EquippedFirearm.ReloadNoise, EquippedFirearm.ReloadNoiseDuration, EquippedFirearm.ReloadNoiseType, EquippedFirearm.ReloadExtremeNoise);
 
         _reloadRoutine = null;
         NotifyWeaponStateChanged();
@@ -608,7 +608,7 @@ public class PlayerWeaponController : MonoBehaviour
             return false;
 
         currentLoadedAmmo--;
-        EmitNoiseSpike(EquippedFirearm.ShootNoise, GlobalSettings.Instance != null ? GlobalSettings.Instance.ShotNoiseDuration : 0.1f, EquippedFirearm.ShootNoiseType);
+        EmitNoiseSpike(EquippedFirearm.ShootNoise, GlobalSettings.Instance != null ? GlobalSettings.Instance.ShotNoiseDuration : 0.1f, EquippedFirearm.ShootNoiseType, EquippedFirearm.ShootExtremeNoise);
         SpawnMuzzleFlash();
         ApplyShotVisibility();
         ApplyScreenshake();
@@ -931,8 +931,13 @@ public class PlayerWeaponController : MonoBehaviour
 
     private void EmitNoiseSpike(float amount, float duration, NoiseType noiseType)
     {
+        EmitNoiseSpike(amount, duration, noiseType, false);
+    }
+
+    private void EmitNoiseSpike(float amount, float duration, NoiseType noiseType, bool isExtremeNoise)
+    {
         if (playerNoise != null)
-            playerNoise.AddNoiseSpike(amount, duration, noiseType);
+            playerNoise.AddNoiseSpike(amount, duration, noiseType, isExtremeNoise);
     }
 
     private void ConsumeAccurateStanceAfterShot()

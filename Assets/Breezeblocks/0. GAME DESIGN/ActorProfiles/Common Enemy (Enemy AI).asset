@@ -41,10 +41,13 @@ MonoBehaviour:
     LockRotationWhenIdle: 1
     PatrolMode: 0
     DetachReferencedPointsToWorldOnAwake: 1
-    ReturnToStartAfterTemporaryStates: 0
+    ReturnToStartAfterTemporaryStates: 1
+    Investigate: 0
     ReturnToStartSpeedType: 0
     EnterAlertStateWhenTargetLost: 0
-    AlertNoiseFocusDuration: 2
+    ChaseTarget: 0
+    AlertNoiseFocusDuration: 0
+    AlertTargetLostDuration: 0
     DefaultLookAroundDuration: 2.5
     LookAroundTurnInterval: 0.5
     LookAroundRotationSpeed: 360
@@ -79,7 +82,9 @@ MonoBehaviour:
     VisibilityThreshold: 0.15
     DetectionSpeed: 1.25
     DetectionDecaySpeed: 0.5
-    ReactToFlashlight: 1
+    FullDetectionRadius: 1
+    FullDetectionSpeedMultiplier: 5
+    ReactToFlashlight: 0
     FlashlightSourceLostDuration: 2
     FlashlightSourceUpdateDistance: 0.75
     FlashlightVisibilitySampleCount: 5
@@ -88,13 +93,13 @@ MonoBehaviour:
     CloseRangeDistance: 1.5
     NoBonusDistance: 6
     CloseRangeDetectionMultiplier: 4
-    DebugDraw: 1
     DebugLogging: 0
   Hearing:
     EnableHearing: 1
     LoudHearingRange: 35
     CommonHearingRange: 9
     SilentHearingRange: 3
+    IgnoreSilentSounds: 1
     HearingThreshold: 0.2
     MaximumAccumulatedDetection: 1
     DetectionDecayDelay: 1
@@ -132,7 +137,6 @@ MonoBehaviour:
     MaxObstructionChecks: 4
     StackObstructionMultipliers: 1
     DebugHearing: 1
-    DrawHearingRanges: 1
   Combat:
     StartArmed: 0
     StartingFirearm: {fileID: 0}
@@ -168,7 +172,6 @@ MonoBehaviour:
     MuzzleFlashPoolPrewarm: 8
     MuzzleFlashRotationOffset: 0
     DebugCombat: 0
-    DrawCombatGizmos: 1
   Melee:
     StartArmed: 0
     StartingWeapon: {fileID: 0}

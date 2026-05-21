@@ -34,6 +34,9 @@ public abstract class UtilityItemData : EquipmentItemData
     [FoldoutGroup("Utility/Noise")]
     [SerializeField] private NoiseType equipNoiseType = NoiseType.Silent;
 
+    [FoldoutGroup("Utility/Noise")]
+    [SerializeField] private bool equipExtremeNoise;
+
     [FoldoutGroup("Utility/Noise"), MinValue(0f)]
     [SerializeField] private float holsterNoise;
 
@@ -42,6 +45,9 @@ public abstract class UtilityItemData : EquipmentItemData
 
     [FoldoutGroup("Utility/Noise")]
     [SerializeField] private NoiseType holsterNoiseType = NoiseType.Silent;
+
+    [FoldoutGroup("Utility/Noise")]
+    [SerializeField] private bool holsterExtremeNoise;
 
     public override EquipmentItemKind ItemKind => EquipmentItemKind.Utility;
     public override EquipmentSlotMask AllowedSlots => allowedSlots & EquipmentSlotMask.HandSlots;
@@ -54,9 +60,11 @@ public abstract class UtilityItemData : EquipmentItemData
     public float EquipNoise => equipNoise;
     public float EquipNoiseDuration => equipNoiseDuration;
     public NoiseType EquipNoiseType => equipNoiseType;
+    public bool EquipExtremeNoise => equipExtremeNoise;
     public float HolsterNoise => holsterNoise;
     public float HolsterNoiseDuration => holsterNoiseDuration;
     public NoiseType HolsterNoiseType => holsterNoiseType;
+    public bool HolsterExtremeNoise => holsterExtremeNoise;
     public virtual string UtilityTypeName => "Utility";
 
     protected virtual void OnValidate()

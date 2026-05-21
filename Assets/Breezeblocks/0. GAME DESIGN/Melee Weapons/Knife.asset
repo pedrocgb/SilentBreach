@@ -20,21 +20,47 @@ MonoBehaviour:
   gripType: 0
   equipTime: 0.15
   holsterTime: 0.1
+  aimPanDistance: 16
+  aimRotationSpeed: 720
   attackAnimationDuration: 0.35
+  attackSwingDuration: 0.18
   attackActiveStartNormalized: 0.15
   attackActiveEndNormalized: 0.55
   damage: 20
+  isLethal: 1
   armorPenetration: 5
   staggerDuration: 0.15
   attackReachDistance: 1.15
+  appliesPushForce: 0
+  pushForce: 5
+  swingSfx:
+    clips: []
+    volume: 1
+    pitchRange: {x: 1, y: 1}
+  defaultHitSfx:
+    clips: []
+    volume: 1
+    pitchRange: {x: 1, y: 1}
+  hitSfxByLayer:
+  - targetLayers:
+      serializedVersion: 2
+      m_Bits: 256
+    hitSfx:
+      clips:
+      - {fileID: 8300000, guid: 975e5a25e5a874b06b342f384e6eb084, type: 3}
+      volume: 1
+      pitchRange: {x: 1, y: 1}
   hitboxSize: {x: 0.6, y: 0.2}
   hitboxOffset: {x: 0.3, y: 0}
   attackNoise: 0.2
   attackNoiseDuration: 0.15
   attackNoiseType: 2
+  attackExtremeNoise: 0
   equipNoise: 0.2
   equipNoiseDuration: 0.2
   equipNoiseType: 1
+  equipExtremeNoise: 0
   holsterNoise: 0.2
   holsterNoiseDuration: 0.2
   holsterNoiseType: 1
+  holsterExtremeNoise: 0

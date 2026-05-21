@@ -152,8 +152,6 @@ public class EnemyCombatantAI : MonoBehaviour
 
     private bool debugCombat;
 
-    private bool drawCombatGizmos = true;
-
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsDrafted => isDrafted;
 
@@ -307,6 +305,9 @@ public class EnemyCombatantAI : MonoBehaviour
 
         SyncVisionState();
 
+        if (!isDrafted && ShouldDraftCombatForCurrentAwareness())
+            BeginDraftedCombat();
+
         if (equippedFirearm == null || currentProjectile == null || !isDrafted)
             return;
 
@@ -360,8 +361,6 @@ public class EnemyCombatantAI : MonoBehaviour
         muzzleFlashPoolPrewarm = settings.MuzzleFlashPoolPrewarm;
         muzzleFlashRotationOffset = settings.MuzzleFlashRotationOffset;
         debugCombat = settings.DebugCombat;
-        drawCombatGizmos = settings.DrawCombatGizmos;
-
         ClampSettings();
         EnsureCoverBuffer();
         ResetStowedWeaponLoadout();
@@ -449,7 +448,7 @@ public class EnemyCombatantAI : MonoBehaviour
 
     private void HandleMovementStateChanged(EnemyState previousState, EnemyState newState)
     {
-        if (previousState == EnemyState.Detected && newState != EnemyState.Detected)
+        if (IsCombatAwarenessState(previousState) && !IsCombatAwarenessState(newState))
             EndDraftedCombat(clearCoverState: true);
 
         ApplyWeaponReadinessForState(newState, isInitialState: false);
@@ -632,6 +631,25 @@ public class EnemyCombatantAI : MonoBehaviour
 
         if (hasClearVisualOnTarget)
             lastSeenTargetPosition = ResolveCurrentAimPoint();
+    }
+
+    private bool ShouldDraftCombatForCurrentAwareness()
+    {
+        if (enemyMovementController == null ||
+            equippedFirearm == null ||
+            currentProjectile == null)
+        {
+            return false;
+        }
+
+        EnemyState awarenessState = enemyMovementController.CurrentState;
+        return awarenessState == EnemyState.Detected ||
+               (awarenessState == EnemyState.Alert && hasClearVisualOnTarget);
+    }
+
+    private static bool IsCombatAwarenessState(EnemyState state)
+    {
+        return state == EnemyState.Detected || state == EnemyState.Alert;
     }
 
     private void UpdateFlashbangedBehavior()
@@ -1144,6 +1162,7 @@ public class EnemyCombatantAI : MonoBehaviour
             return false;
 
         currentLoadedAmmo--;
+        EmitNoiseEvent(equippedFirearm.ShootNoise, equippedFirearm.ShootNoiseType, equippedFirearm.ShootExtremeNoise);
         SpawnMuzzleFlash();
         PlayShotSequenceSfx();
         return true;
@@ -1446,6 +1465,8 @@ public class EnemyCombatantAI : MonoBehaviour
         if (equippedFirearm == null || equippedFirearm.ReloadStyle != ReloadType.Magazine)
             return;
 
+        EmitNoiseEvent(equippedFirearm.ReloadNoise, equippedFirearm.ReloadNoiseType, equippedFirearm.ReloadExtremeNoise);
+
         ResolveWorldSfxManager();
         if (worldSfxManager == null)
             return;
@@ -1457,6 +1478,8 @@ public class EnemyCombatantAI : MonoBehaviour
     {
         if (equippedFirearm == null || equippedFirearm.ReloadStyle != ReloadType.Magazine)
             return;
+
+        EmitNoiseEvent(equippedFirearm.ReloadNoise, equippedFirearm.ReloadNoiseType, equippedFirearm.ReloadExtremeNoise);
 
         ResolveWorldSfxManager();
         if (worldSfxManager == null)
@@ -1472,11 +1495,22 @@ public class EnemyCombatantAI : MonoBehaviour
         if (equippedFirearm == null || equippedFirearm.ReloadStyle != ReloadType.BulletPerBullet)
             return;
 
+        EmitNoiseEvent(equippedFirearm.ReloadNoise, equippedFirearm.ReloadNoiseType, equippedFirearm.ReloadExtremeNoise);
+
         ResolveWorldSfxManager();
         if (worldSfxManager == null)
             return;
 
         worldSfxManager.PlayClipSetAt(transform.position, equippedFirearm.BulletReloadSfx, equippedFirearm.ReloadNoiseType);
+    }
+
+    private void EmitNoiseEvent(float amount, NoiseType noiseType, bool isExtremeNoise)
+    {
+        if (amount <= 0f)
+            return;
+
+        Vector2 origin = firePoint != null ? (Vector2)firePoint.position : (Vector2)transform.position;
+        NoiseManager.EmitNoise(origin, amount, noiseType, gameObject, isExtremeNoise);
     }
 
     private void EnsureCoverBuffer()
@@ -1526,31 +1560,4 @@ public class EnemyCombatantAI : MonoBehaviour
         return new Vector2(rotatedDirection.x, rotatedDirection.y).normalized;
     }
 
-    private void OnDrawGizmosSelected()
-    {
-        if (!drawCombatGizmos)
-            return;
-
-        Vector3 origin = aimOrigin != null ? aimOrigin.position : transform.position;
-
-        Gizmos.color = new Color(1f, 0.4f, 0.2f, 0.6f);
-        Gizmos.DrawWireSphere(origin, coverDetectionRange);
-
-        if (currentSelectedCover != null)
-        {
-            Gizmos.color = new Color(0.25f, 1f, 0.7f, 0.9f);
-            Gizmos.DrawLine(origin, currentSelectedCoverPoint);
-            Gizmos.DrawSphere(currentSelectedCoverPoint, 0.14f);
-            Gizmos.DrawLine(currentSelectedCoverPoint, currentSelectedCoverPoint + (currentSelectedCoverProtectionDirection.normalized * 0.8f));
-        }
-
-        Gizmos.color = new Color(1f, 0.85f, 0.25f, 0.9f);
-        Gizmos.DrawLine(origin, origin + (Vector3)(currentAimDirection.normalized * 1.25f));
-
-        if (noCoverFallbackPoint != null)
-        {
-            Gizmos.color = new Color(0.7f, 0.7f, 1f, 0.9f);
-            Gizmos.DrawWireSphere(noCoverFallbackPoint.position, 0.18f);
-        }
-    }
 }

@@ -35,14 +35,24 @@ public class PlayerNoiseEmitter : MonoBehaviour
         EmitNoise(GetNoiseOriginPosition(), intensity, noiseType, gameObject);
     }
 
+    public void EmitNoise(float intensity, NoiseType noiseType, bool isExtremeNoise)
+    {
+        EmitNoise(GetNoiseOriginPosition(), intensity, noiseType, gameObject, isExtremeNoise);
+    }
+
     public void EmitNoise(Vector2 position, float intensity, NoiseType noiseType, GameObject source = null)
+    {
+        EmitNoise(position, intensity, noiseType, source, false);
+    }
+
+    public void EmitNoise(Vector2 position, float intensity, NoiseType noiseType, GameObject source, bool isExtremeNoise)
     {
         float scaledIntensity = Mathf.Max(0f, intensity * intensityMultiplier);
         if (scaledIntensity <= 0f)
             return;
 
         GameObject resolvedSource = source != null ? source : gameObject;
-        NoiseManager.EmitNoise(position, scaledIntensity, noiseType, resolvedSource);
+        NoiseManager.EmitNoise(position, scaledIntensity, noiseType, resolvedSource, isExtremeNoise);
 
         _lastNoisePosition = position;
         _lastNoiseIntensity = scaledIntensity;
@@ -50,7 +60,7 @@ public class PlayerNoiseEmitter : MonoBehaviour
         _lastNoiseTime = Time.time;
 
         if (debugLogging)
-            Debug.Log($"{name} emitted {noiseType} noise at {position} with intensity {scaledIntensity:0.00}.", this);
+            Debug.Log($"{name} emitted {(isExtremeNoise ? "EXTREME " : string.Empty)}{noiseType} noise at {position} with intensity {scaledIntensity:0.00}.", this);
     }
 
     public void ApplySettings(PlayerNoiseEmitterSettings settings)

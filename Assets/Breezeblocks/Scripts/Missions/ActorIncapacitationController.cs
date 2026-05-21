@@ -23,17 +23,34 @@ public class ActorIncapacitationController : MonoBehaviour
     [FoldoutGroup("Disable On Incapacitated"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
     [SerializeField] private List<MonoBehaviour> additionalBehavioursToDisable = new();
 
+    [FoldoutGroup("Death"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
+    [SerializeField] private List<GameObject> gameObjectsToHideOnDeath = new();
+
+    [FoldoutGroup("Visuals")]
+    [SerializeField] private SpriteRenderer stateSpriteRenderer;
+
+    [FoldoutGroup("Visuals"), PreviewField(72, ObjectFieldAlignment.Left)]
+    [SerializeField] private Sprite incapacitatedSprite;
+
+    [FoldoutGroup("Visuals"), PreviewField(72, ObjectFieldAlignment.Left)]
+    [SerializeField] private Sprite deadSprite;
+
     [FoldoutGroup("Wake Up"), MinValue(0f), Range(0.01f, 1f)]
     [SerializeField] private float restoredHealthFractionOnWake = 1f;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsIncapacitated => actorHealth != null && actorHealth.IsIncapacitated;
 
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public bool IsDead => actorHealth != null && actorHealth.IsDead;
+
     public event Action<bool> IncapacitationStateChanged;
 
     private readonly List<MonoBehaviour> runtimeBehavioursToDisable = new();
     private readonly Dictionary<MonoBehaviour, bool> cachedEnabledStates = new();
     private Coroutine wakeUpRoutine;
+    private Sprite defaultSprite;
+    private bool defaultSpriteCached;
 
     public static ActorIncapacitationController EnsureOn(GameObject actorRoot)
     {
@@ -53,12 +70,14 @@ public class ActorIncapacitationController : MonoBehaviour
     {
         CacheReferences();
         CacheAutoDisableBehaviours();
+        CacheDefaultSprite();
     }
 
     private void Awake()
     {
         CacheReferences();
         CacheAutoDisableBehaviours();
+        CacheDefaultSprite();
     }
 
     private void OnEnable()
@@ -89,7 +108,9 @@ public class ActorIncapacitationController : MonoBehaviour
         restoredHealthFractionOnWake = Mathf.Clamp01(restoredHealthFractionOnWake);
         CacheReferences();
         CacheAutoDisableBehaviours();
+        CacheDefaultSprite();
         RemoveNullDisableEntries();
+        RemoveNullDeathHideEntries();
     }
 
     public void WakeUpNow()
@@ -114,24 +135,9 @@ public class ActorIncapacitationController : MonoBehaviour
             wakeUpRoutine = null;
         }
 
-        CacheAutoDisableBehaviours();
-        cachedEnabledStates.Clear();
-
-        for (int i = 0; i < runtimeBehavioursToDisable.Count; i++)
-        {
-            MonoBehaviour behaviour = runtimeBehavioursToDisable[i];
-            if (behaviour == null || behaviour == this)
-                continue;
-
-            cachedEnabledStates[behaviour] = behaviour.enabled;
-            behaviour.enabled = false;
-        }
-
-        if (movementBody != null)
-        {
-            movementBody.linearVelocity = Vector2.zero;
-            movementBody.angularVelocity = 0f;
-        }
+        DisableRuntimeBehaviours();
+        StopMotion();
+        ApplyVisualState();
 
         IncapacitationStateChanged?.Invoke(true);
 
@@ -148,6 +154,9 @@ public class ActorIncapacitationController : MonoBehaviour
             wakeUpRoutine = null;
         }
 
+        if (actorHealth != null && actorHealth.IsDead)
+            return;
+
         foreach (KeyValuePair<MonoBehaviour, bool> pair in cachedEnabledStates)
         {
             if (pair.Key != null)
@@ -155,6 +164,7 @@ public class ActorIncapacitationController : MonoBehaviour
         }
 
         cachedEnabledStates.Clear();
+        ApplyVisualState();
         IncapacitationStateChanged?.Invoke(false);
     }
 
@@ -165,6 +175,12 @@ public class ActorIncapacitationController : MonoBehaviour
             StopCoroutine(wakeUpRoutine);
             wakeUpRoutine = null;
         }
+
+        DisableRuntimeBehaviours();
+        StopMotion();
+        ApplyVisualState();
+        HideDeathObjects();
+        IncapacitationStateChanged?.Invoke(false);
     }
 
     private IEnumerator WakeUpRoutine(float delay)
@@ -183,6 +199,9 @@ public class ActorIncapacitationController : MonoBehaviour
 
         if (movementBody == null)
             movementBody = GetComponent<Rigidbody2D>();
+
+        if (stateSpriteRenderer == null)
+            stateSpriteRenderer = GetComponentInChildren<SpriteRenderer>(true);
     }
 
     private void CacheAutoDisableBehaviours()
@@ -217,6 +236,78 @@ public class ActorIncapacitationController : MonoBehaviour
     private void RemoveNullDisableEntries()
     {
         additionalBehavioursToDisable.RemoveAll(behaviour => behaviour == null || behaviour == this || behaviour == actorHealth);
+    }
+
+    private void RemoveNullDeathHideEntries()
+    {
+        gameObjectsToHideOnDeath.RemoveAll(entry => entry == null || entry == gameObject);
+    }
+
+    private void CacheDefaultSprite()
+    {
+        if (defaultSpriteCached || stateSpriteRenderer == null)
+            return;
+
+        defaultSprite = stateSpriteRenderer.sprite;
+        defaultSpriteCached = true;
+    }
+
+    private void DisableRuntimeBehaviours()
+    {
+        CacheAutoDisableBehaviours();
+
+        for (int i = 0; i < runtimeBehavioursToDisable.Count; i++)
+        {
+            MonoBehaviour behaviour = runtimeBehavioursToDisable[i];
+            if (behaviour == null || behaviour == this)
+                continue;
+
+            if (!cachedEnabledStates.ContainsKey(behaviour))
+                cachedEnabledStates[behaviour] = behaviour.enabled;
+
+            behaviour.enabled = false;
+        }
+    }
+
+    private void StopMotion()
+    {
+        if (movementBody == null)
+            return;
+
+        movementBody.linearVelocity = Vector2.zero;
+        movementBody.angularVelocity = 0f;
+    }
+
+    private void ApplyVisualState()
+    {
+        CacheDefaultSprite();
+        if (stateSpriteRenderer == null)
+            return;
+
+        if (actorHealth != null && actorHealth.IsDead && deadSprite != null)
+        {
+            stateSpriteRenderer.sprite = deadSprite;
+            return;
+        }
+
+        if (actorHealth != null && actorHealth.IsIncapacitated && incapacitatedSprite != null)
+        {
+            stateSpriteRenderer.sprite = incapacitatedSprite;
+            return;
+        }
+
+        if (defaultSpriteCached)
+            stateSpriteRenderer.sprite = defaultSprite;
+    }
+
+    private void HideDeathObjects()
+    {
+        for (int i = 0; i < gameObjectsToHideOnDeath.Count; i++)
+        {
+            GameObject target = gameObjectsToHideOnDeath[i];
+            if (target != null)
+                target.SetActive(false);
+        }
     }
 }
 

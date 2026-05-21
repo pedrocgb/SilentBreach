@@ -79,6 +79,8 @@ MonoBehaviour:
     VisibilityThreshold: 0.15
     DetectionSpeed: 1.25
     DetectionDecaySpeed: 0.5
+    FullDetectionRadius: 1
+    FullDetectionSpeedMultiplier: 5
     ReactToFlashlight: 1
     FlashlightSourceLostDuration: 2
     FlashlightSourceUpdateDistance: 0.75
@@ -169,3 +171,8 @@ MonoBehaviour:
     MuzzleFlashRotationOffset: 0
     DebugCombat: 0
     DrawCombatGizmos: 1
+  Melee:
+    StartArmed: 1
+    StartingWeapon: {fileID: 0}
+    AttackDecisionInterval: 0.05
+    DebugMelee: 0

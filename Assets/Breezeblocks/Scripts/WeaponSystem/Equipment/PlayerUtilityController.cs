@@ -287,7 +287,7 @@ public class PlayerUtilityController : MonoBehaviour
 
         EquippedUtility = utilityItem;
         IsAiming = false;
-        EmitNoiseSpike(utilityItem.EquipNoise, utilityItem.EquipNoiseDuration, utilityItem.EquipNoiseType);
+        EmitNoiseSpike(utilityItem.EquipNoise, utilityItem.EquipNoiseDuration, utilityItem.EquipNoiseType, utilityItem.EquipExtremeNoise);
         ApplyInitialUtilityState(utilityItem);
         NotifyUtilityStateChanged();
         busyRoutine = null;
@@ -316,7 +316,8 @@ public class PlayerUtilityController : MonoBehaviour
         EmitNoiseSpike(
             utilityBeingHolstered.HolsterNoise,
             utilityBeingHolstered.HolsterNoiseDuration,
-            utilityBeingHolstered.HolsterNoiseType);
+            utilityBeingHolstered.HolsterNoiseType,
+            utilityBeingHolstered.HolsterExtremeNoise);
         EquippedUtility = null;
         ResetThrowableInputState();
         NotifyUtilityStateChanged();
@@ -518,7 +519,7 @@ public class PlayerUtilityController : MonoBehaviour
         if (flashlightData == null)
             return;
 
-        EmitNoiseSpike(flashlightData.ToggleNoise, flashlightData.ToggleNoiseDuration, flashlightData.ToggleSfxType);
+        EmitNoiseSpike(flashlightData.ToggleNoise, flashlightData.ToggleNoiseDuration, flashlightData.ToggleSfxType, flashlightData.ToggleExtremeNoise);
 
         if (worldSfxManager == null)
             worldSfxManager = WorldSfxManager.Instance;
@@ -568,8 +569,13 @@ public class PlayerUtilityController : MonoBehaviour
 
     private void EmitNoiseSpike(float amount, float duration, NoiseType noiseType)
     {
+        EmitNoiseSpike(amount, duration, noiseType, false);
+    }
+
+    private void EmitNoiseSpike(float amount, float duration, NoiseType noiseType, bool isExtremeNoise)
+    {
         if (playerNoise != null)
-            playerNoise.AddNoiseSpike(amount, duration, noiseType);
+            playerNoise.AddNoiseSpike(amount, duration, noiseType, isExtremeNoise);
     }
 
     private void ResetThrowableInputState()

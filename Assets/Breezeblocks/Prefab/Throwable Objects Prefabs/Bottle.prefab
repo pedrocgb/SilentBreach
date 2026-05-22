@@ -58,7 +58,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
+  - {fileID: 2100000, guid: a449998e73c605e46912be7cdc034832, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -169,6 +169,8 @@ MonoBehaviour:
   rigidbody2D: {fileID: 258164920544520027}
   primaryCollider: {fileID: 1006275278294057938}
   pooledObject: {fileID: 403901162114057964}
+  globalObjectPooler: {fileID: 0}
+  worldSfxManager: {fileID: 0}
 --- !u!70 &1006275278294057938
 CapsuleCollider2D:
   m_ObjectHideFlags: 0

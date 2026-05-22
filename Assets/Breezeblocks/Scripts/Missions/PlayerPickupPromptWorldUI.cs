@@ -6,7 +6,7 @@ namespace Breezeblocks.Missions
 {
 
 [DisallowMultipleComponent]
-[AddComponentMenu("Breezeblocks/Missions/Player Pickup Prompt World UI")]
+[AddComponentMenu("Breezeblocks/Missions/Player Interact Prompt World UI")]
 public class PlayerPickupPromptWorldUI : MonoBehaviour
 {
     [FoldoutGroup("References")]
@@ -32,7 +32,7 @@ public class PlayerPickupPromptWorldUI : MonoBehaviour
             pickupInteractor = GetComponentInParent<PlayerPickupInteractor>();
 
         if (pickupInteractor != null)
-            pickupInteractor.CurrentPickableChanged += HandlePickableChanged;
+            pickupInteractor.CurrentInteractableChanged += HandleInteractableChanged;
 
         Refresh();
     }
@@ -40,17 +40,17 @@ public class PlayerPickupPromptWorldUI : MonoBehaviour
     private void OnDisable()
     {
         if (pickupInteractor != null)
-            pickupInteractor.CurrentPickableChanged -= HandlePickableChanged;
+            pickupInteractor.CurrentInteractableChanged -= HandleInteractableChanged;
     }
 
-    private void HandlePickableChanged(PickableItemWorld pickable)
+    private void HandleInteractableChanged(PlayerWorldInteractable interactable)
     {
         Refresh();
     }
 
     private void Refresh()
     {
-        bool visible = pickupInteractor != null && !pickupInteractor.IsInputBlocked && pickupInteractor.CurrentPickable != null;
+        bool visible = pickupInteractor != null && !pickupInteractor.IsInputBlocked && pickupInteractor.CurrentInteractable != null;
         if (pickUpPromptRoot != null)
             pickUpPromptRoot.SetActive(visible);
 

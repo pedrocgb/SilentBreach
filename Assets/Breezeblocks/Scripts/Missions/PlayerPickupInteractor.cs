@@ -7,16 +7,18 @@ namespace Breezeblocks.Missions
 {
 
 [DisallowMultipleComponent]
-[AddComponentMenu("Breezeblocks/Missions/Player Pickup Interactor")]
+[AddComponentMenu("Breezeblocks/Missions/Player Interactor")]
 public class PlayerPickupInteractor : MonoBehaviour
 {
     private const float MinimumRange = 0.01f;
+    private const string LegacyPickUpActionName = "Pick Up";
+    private const string DefaultInteractActionName = "Interact";
 
     [FoldoutGroup("Rewired"), MinValue(0)]
     [SerializeField] private int rewiredPlayerId;
 
-    [FoldoutGroup("Rewired")]
-    [SerializeField] private string pickUpAction = "Pick Up";
+    [FoldoutGroup("Rewired"), LabelText("Interact Action")]
+    [SerializeField] private string pickUpAction = DefaultInteractActionName;
 
     [FoldoutGroup("References")]
     [SerializeField] private Transform interactionOrigin;
@@ -24,8 +26,11 @@ public class PlayerPickupInteractor : MonoBehaviour
     [FoldoutGroup("References")]
     [SerializeField] private PlayerPickupInventory pickupInventory;
 
-    [FoldoutGroup("Detection"), MinValue(MinimumRange)]
+    [FoldoutGroup("Detection"), MinValue(MinimumRange), LabelText("Interaction Range")]
     [SerializeField] private float pickupRange = 1.25f;
+
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public PlayerWorldInteractable CurrentInteractable => currentInteractable;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public PickableItemWorld CurrentPickable => currentPickable;
@@ -33,10 +38,13 @@ public class PlayerPickupInteractor : MonoBehaviour
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsInputBlocked => inputBlocked;
 
+    public event Action<PlayerWorldInteractable> CurrentInteractableChanged;
     public event Action<PickableItemWorld> CurrentPickableChanged;
+    public event Action<PlayerWorldInteractable> Interacted;
     public event Action<PickableItemWorld> PickedUp;
 
     private Player rewiredPlayer;
+    private PlayerWorldInteractable currentInteractable;
     private PickableItemWorld currentPickable;
     private bool inputBlocked;
 
@@ -57,12 +65,13 @@ public class PlayerPickupInteractor : MonoBehaviour
         if (pickupInventory == null)
             pickupInventory = GetComponent<PlayerPickupInventory>() ?? gameObject.AddComponent<PlayerPickupInventory>();
 
+        MigrateLegacyActionName();
         ResolveRewiredPlayer();
     }
 
     private void Update()
     {
-        RefreshCurrentPickable();
+        RefreshCurrentInteractable();
 
         if (inputBlocked)
             return;
@@ -70,13 +79,14 @@ public class PlayerPickupInteractor : MonoBehaviour
         if (rewiredPlayer == null && !ResolveRewiredPlayer())
             return;
 
-        if (currentPickable != null && rewiredPlayer.GetButtonDown(pickUpAction))
-            TryPickUpCurrent();
+        if (currentInteractable != null && rewiredPlayer.GetButtonDown(pickUpAction))
+            TryInteractCurrent();
     }
 
     public void SetInputBlocked(bool blocked)
     {
         inputBlocked = blocked;
+        CurrentInteractableChanged?.Invoke(currentInteractable);
         CurrentPickableChanged?.Invoke(currentPickable);
     }
 
@@ -90,48 +100,60 @@ public class PlayerPickupInteractor : MonoBehaviour
         return pickupInventory != null ? pickupInventory.GetItemCount(itemId) : 0;
     }
 
-    private void RefreshCurrentPickable()
+    private void OnValidate()
     {
-        PickableItemWorld bestPickable = null;
+        pickupRange = Mathf.Max(MinimumRange, pickupRange);
+        MigrateLegacyActionName();
+    }
+
+    private void RefreshCurrentInteractable()
+    {
+        PlayerWorldInteractable bestInteractable = null;
         float bestDistanceSqr = float.PositiveInfinity;
         Vector3 origin = interactionOrigin != null ? interactionOrigin.position : transform.position;
         float maxDistanceSqr = Mathf.Max(MinimumRange, pickupRange) * Mathf.Max(MinimumRange, pickupRange);
 
-        var activeItems = PickableItemWorld.ActiveItems;
-        for (int i = 0; i < activeItems.Count; i++)
+        var activeInteractables = PlayerWorldInteractable.ActiveInteractables;
+        for (int i = 0; i < activeInteractables.Count; i++)
         {
-            PickableItemWorld candidate = activeItems[i];
-            if (candidate == null || !candidate.isActiveAndEnabled || candidate.IsCollected)
+            PlayerWorldInteractable candidate = activeInteractables[i];
+            if (candidate == null || !candidate.CanInteract(gameObject))
                 continue;
 
-            float distanceSqr = ((Vector2)(candidate.transform.position - origin)).sqrMagnitude;
+            float distanceSqr = ((Vector2)(candidate.InteractionPosition - origin)).sqrMagnitude;
             if (distanceSqr > maxDistanceSqr || distanceSqr >= bestDistanceSqr)
                 continue;
 
             bestDistanceSqr = distanceSqr;
-            bestPickable = candidate;
+            bestInteractable = candidate;
         }
 
-        if (currentPickable == bestPickable)
+        if (currentInteractable == bestInteractable)
             return;
 
-        currentPickable = bestPickable;
+        currentInteractable = bestInteractable;
+        currentPickable = bestInteractable as PickableItemWorld;
+        CurrentInteractableChanged?.Invoke(currentInteractable);
         CurrentPickableChanged?.Invoke(currentPickable);
     }
 
-    private void TryPickUpCurrent()
+    private void TryInteractCurrent()
     {
-        if (currentPickable == null || pickupInventory == null)
+        if (currentInteractable == null)
             return;
 
-        PickableItemWorld collected = currentPickable;
-        if (!collected.Collect(gameObject))
+        PlayerWorldInteractable interacted = currentInteractable;
+        if (!interacted.TryInteract(gameObject))
             return;
 
-        pickupInventory.AddItem(collected);
-        currentPickable = null;
-        CurrentPickableChanged?.Invoke(null);
-        PickedUp?.Invoke(collected);
+        if (interacted is PickableItemWorld collected)
+        {
+            pickupInventory?.AddItem(collected);
+            PickedUp?.Invoke(collected);
+        }
+
+        Interacted?.Invoke(interacted);
+        RefreshCurrentInteractable();
     }
 
     private bool ResolveRewiredPlayer()
@@ -141,6 +163,12 @@ public class PlayerPickupInteractor : MonoBehaviour
 
         rewiredPlayer = ReInput.players.GetPlayer(rewiredPlayerId);
         return rewiredPlayer != null;
+    }
+
+    private void MigrateLegacyActionName()
+    {
+        if (string.IsNullOrWhiteSpace(pickUpAction) || string.Equals(pickUpAction, LegacyPickUpActionName, StringComparison.OrdinalIgnoreCase))
+            pickUpAction = DefaultInteractActionName;
     }
 }
 

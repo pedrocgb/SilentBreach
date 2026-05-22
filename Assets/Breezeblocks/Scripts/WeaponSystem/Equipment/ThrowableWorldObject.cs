@@ -116,7 +116,7 @@ public class ThrowableWorldObject : MonoBehaviour
 
         if (activeData.UsesTimerDetonation && Time.time >= detonateAtTime)
         {
-            Detonate(transform.position, playImpactFeedback: true);
+            Detonate(transform.position);
             return;
         }
 
@@ -138,13 +138,14 @@ public class ThrowableWorldObject : MonoBehaviour
             return;
 
         Vector2 impactPoint = collision.contactCount > 0 ? collision.GetContact(0).point : (Vector2)transform.position;
-        EmitImpactFeedback(impactPoint);
 
         if (activeData.UsesHitDetonation)
         {
-            Detonate(impactPoint, playImpactFeedback: false);
+            Detonate(impactPoint);
             return;
         }
+
+        EmitImpactFeedback(impactPoint);
 
         if (hasResolvedPrimaryImpact)
             return;
@@ -173,7 +174,7 @@ public class ThrowableWorldObject : MonoBehaviour
         }
     }
 
-    private void Detonate(Vector2 detonationPoint, bool playImpactFeedback)
+    private void Detonate(Vector2 detonationPoint)
     {
         if (activeData == null)
         {
@@ -182,12 +183,10 @@ public class ThrowableWorldObject : MonoBehaviour
         }
 
         hasResolvedPrimaryImpact = true;
-        if (playImpactFeedback)
-            EmitImpactFeedback(detonationPoint, ignoreCooldown: true);
-
         StopAtImpact();
         SpawnResolveEffect(detonationPoint);
         EmitDetonationNoise(detonationPoint);
+        EmitDetonationSfx(detonationPoint);
         affectedActorRoots.Clear();
 
         if (activeData.EffectRadius > 0f)
@@ -235,13 +234,14 @@ public class ThrowableWorldObject : MonoBehaviour
         }
 
         Vector2 impactPoint = transform.position;
-        EmitImpactFeedback(impactPoint, ignoreCooldown: true);
 
         if (activeData.UsesHitDetonation)
         {
-            Detonate(impactPoint, playImpactFeedback: false);
+            Detonate(impactPoint);
             return;
         }
+
+        EmitImpactFeedback(impactPoint, ignoreCooldown: true);
 
         hasResolvedPrimaryImpact = true;
         if (activeData.UsesTimerDetonation)
@@ -262,7 +262,11 @@ public class ThrowableWorldObject : MonoBehaviour
         if (hitCollider.GetComponentInParent<PlayerTopDownMotor2D>() != null)
         {
             PlayerFlashbangEffect.EnsureOn(hitCollider.transform.root.gameObject)
-                ?.ApplyFlashbang(activeData.FlashbangDuration, activeData.FlashbangRecoveryThreshold, activeData.PlayerRingingLoopClip);
+                ?.ApplyFlashbang(
+                    activeData.FlashbangDuration,
+                    activeData.FlashbangRecoveryThreshold,
+                    activeData.PlayerRingingLoopClip,
+                    activeData.OverridePlayerRingingSpatialBlend ? activeData.PlayerRingingSpatialBlend : 0f);
             return;
         }
 
@@ -308,6 +312,17 @@ public class ThrowableWorldObject : MonoBehaviour
             return;
 
         NoiseManager.EmitNoise(detonationPoint, activeData.DetonationNoise, activeData.DetonationNoiseType, gameObject, activeData.DetonationExtremeNoise);
+    }
+
+    private void EmitDetonationSfx(Vector2 detonationPoint)
+    {
+        if (activeData == null)
+            return;
+
+        if (worldSfxManager == null)
+            worldSfxManager = WorldSfxManager.Instance;
+
+        worldSfxManager?.PlayClipSetAt(detonationPoint, activeData.DetonationSfx, activeData.DetonationNoiseType);
     }
 
     private void CacheReferences()

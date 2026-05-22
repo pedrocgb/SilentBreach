@@ -54,11 +54,15 @@ public class PlayerVisionLight : MonoBehaviour
     private Camera _cam;
     private bool _externallyDrivenThisFrame;
     private bool _inputBlocked;
+    private bool _medusaVisionOverride;
+    private bool _defaultAnglesCached;
 
     private float _lastOuterRadius = -1f;
     private float _lastInnerRadius = -1f;
     private float _lastOuterAngle = -1f;
     private float _lastInnerAngle = -1f;
+    private float _defaultOuterAngle;
+    private float _defaultInnerAngle;
 
     private void OnEnable()
     {
@@ -74,6 +78,7 @@ public class PlayerVisionLight : MonoBehaviour
     private void Awake()
     {
         CacheRefs();
+        CacheDefaultAngles();
         ApplyShapeIfChanged(force: true);
 
         if (Application.isPlaying)
@@ -175,6 +180,7 @@ public class PlayerVisionLight : MonoBehaviour
             externalDirection = FacingDirection;
 
         _externallyDrivenThisFrame = false;
+        ApplyRotationImmediate();
     }
 
     public void ApplySettings(PlayerVisionLightSettings settings)
@@ -201,6 +207,12 @@ public class PlayerVisionLight : MonoBehaviour
         ApplyRotationImmediate();
     }
 
+    public void SetMedusaVisionOverride(bool enabled)
+    {
+        _medusaVisionOverride = enabled;
+        ApplyShapeIfChanged(force: true);
+    }
+
     private void CacheRefs()
     {
         if (_light2D == null)
@@ -208,6 +220,19 @@ public class PlayerVisionLight : MonoBehaviour
 
         if (_cam == null)
             _cam = Camera.main;
+    }
+
+    private void CacheDefaultAngles()
+    {
+        if (_defaultAnglesCached)
+            return;
+
+        if (_light2D == null)
+            return;
+
+        _defaultOuterAngle = _light2D.pointLightOuterAngle;
+        _defaultInnerAngle = _light2D.pointLightInnerAngle;
+        _defaultAnglesCached = true;
     }
 
     private void UpdateRotation(float deltaTime)
@@ -270,8 +295,8 @@ public class PlayerVisionLight : MonoBehaviour
         float radius = Mathf.Lerp(minViewRadius, maxViewRadius, visionLevel01);
         float outerRadius = radius;
         float innerRadius = radius * innerRadiusFraction;
-        float outerAngle = viewAngle;
-        float innerAngle = viewAngle * innerAngleFraction;
+        float outerAngle = _medusaVisionOverride ? 360f : ResolveDefaultOuterAngle();
+        float innerAngle = _medusaVisionOverride ? 360f : ResolveDefaultInnerAngle();
 
         if (!force &&
             Mathf.Approximately(outerRadius, _lastOuterRadius) &&
@@ -291,5 +316,21 @@ public class PlayerVisionLight : MonoBehaviour
         _lastInnerRadius = innerRadius;
         _lastOuterAngle = outerAngle;
         _lastInnerAngle = innerAngle;
+    }
+
+    private float ResolveDefaultOuterAngle()
+    {
+        if (_defaultAnglesCached)
+            return _defaultOuterAngle;
+
+        return viewAngle;
+    }
+
+    private float ResolveDefaultInnerAngle()
+    {
+        if (_defaultAnglesCached)
+            return _defaultInnerAngle;
+
+        return viewAngle * innerAngleFraction;
     }
 }

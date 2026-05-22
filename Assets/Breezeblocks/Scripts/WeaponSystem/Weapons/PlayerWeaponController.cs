@@ -148,7 +148,7 @@ public class PlayerWeaponController : MonoBehaviour
     public int CurrentAmmoCapacity => EquippedFirearm != null ? EquippedFirearm.AmmoCapacity : 0;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
-    public bool HasReserveAmmo => currentReserveAmmo > 0;
+    public bool HasReserveAmmo => GameplayConsoleCheatState.InfiniteReserveAmmo || currentReserveAmmo > 0;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public Vector2 CurrentAimDirection { get; private set; } = Vector2.right;
@@ -339,8 +339,22 @@ public class PlayerWeaponController : MonoBehaviour
             return false;
 
         currentReserveAmmo += amount;
+        EnsureConsoleAmmoReserveBuffer();
         NotifyWeaponStateChanged();
         return true;
+    }
+
+    public void EnsureConsoleAmmoReserveBuffer()
+    {
+        if (!GameplayConsoleCheatState.InfiniteReserveAmmo || EquippedFirearm == null)
+            return;
+
+        int bufferedReserveAmmo = Mathf.Max(currentReserveAmmo, Mathf.Max(1, EquippedFirearm.AmmoCapacity));
+        if (bufferedReserveAmmo == currentReserveAmmo)
+            return;
+
+        currentReserveAmmo = bufferedReserveAmmo;
+        NotifyWeaponStateChanged();
     }
 
     public void HolsterWeapon()
@@ -382,8 +396,9 @@ public class PlayerWeaponController : MonoBehaviour
         CurrentProjectile = projectile;
         currentLoadedAmmo = ResolveInitialLoadedAmmo(firearm, startingLoadedAmmo);
         currentReserveAmmo = ResolveInitialReserveAmmo(firearm, startingReserveAmmo);
+        EnsureConsoleAmmoReserveBuffer();
         RebuildAvailableFireModes();
-        CurrentAimDirection = playerMotor != null ? playerMotor.LastMoveDirection : Vector2.right;
+        CurrentAimDirection = ResolveEquipAimDirection();
         EmitNoiseSpike(firearm.EquipNoise, GlobalSettings.Instance != null ? GlobalSettings.Instance.EquipNoiseDuration : 0.4f, firearm.EquipNoiseType, firearm.EquipExtremeNoise);
         NotifyWeaponStateChanged();
 
@@ -446,7 +461,7 @@ public class PlayerWeaponController : MonoBehaviour
         if (IsReloading || CurrentProjectile == null)
             return;
 
-        if (currentLoadedAmmo >= CurrentAmmoCapacity || currentReserveAmmo <= 0)
+        if (currentLoadedAmmo >= CurrentAmmoCapacity || !HasReserveAmmo)
             return;
 
         if (EquippedFirearm.ReloadStyle == ReloadType.Magazine)
@@ -477,11 +492,15 @@ public class PlayerWeaponController : MonoBehaviour
             yield return new WaitForSeconds(remainingReloadDelay);
 
         int missingRounds = Mathf.Max(0, CurrentAmmoCapacity - currentLoadedAmmo);
-        int roundsToTransfer = Mathf.Min(missingRounds, currentReserveAmmo);
+        int roundsToTransfer = GameplayConsoleCheatState.InfiniteReserveAmmo
+            ? missingRounds
+            : Mathf.Min(missingRounds, currentReserveAmmo);
         if (roundsToTransfer > 0)
         {
             currentLoadedAmmo += roundsToTransfer;
-            currentReserveAmmo -= roundsToTransfer;
+            if (!GameplayConsoleCheatState.InfiniteReserveAmmo)
+                currentReserveAmmo -= roundsToTransfer;
+
             EmitNoiseSpike(EquippedFirearm.ReloadNoise, EquippedFirearm.ReloadNoiseDuration, EquippedFirearm.ReloadNoiseType, EquippedFirearm.ReloadExtremeNoise);
         }
 
@@ -497,15 +516,17 @@ public class PlayerWeaponController : MonoBehaviour
         while (EquippedFirearm != null &&
                CurrentProjectile != null &&
                currentLoadedAmmo < CurrentAmmoCapacity &&
-               currentReserveAmmo > 0)
+               HasReserveAmmo)
         {
             yield return new WaitForSeconds(EquippedFirearm.ReloadTime);
 
-            if (currentReserveAmmo <= 0 || currentLoadedAmmo >= CurrentAmmoCapacity)
+            if (!HasReserveAmmo || currentLoadedAmmo >= CurrentAmmoCapacity)
                 break;
 
             currentLoadedAmmo++;
-            currentReserveAmmo--;
+            if (!GameplayConsoleCheatState.InfiniteReserveAmmo)
+                currentReserveAmmo--;
+
             loadedAnyRound = true;
             PlayBulletReloadSfx();
             NotifyWeaponStateChanged();
@@ -804,6 +825,20 @@ public class PlayerWeaponController : MonoBehaviour
         return Vector2.right;
     }
 
+    private Vector2 ResolveEquipAimDirection()
+    {
+        if (playerVisionLight != null && playerVisionLight.FacingDirection.sqrMagnitude > MinDirectionSqr)
+            return playerVisionLight.FacingDirection.normalized;
+
+        if (CurrentAimDirection.sqrMagnitude > MinDirectionSqr)
+            return CurrentAimDirection.normalized;
+
+        if (playerMotor != null && playerMotor.LastMoveDirection.sqrMagnitude > MinDirectionSqr)
+            return playerMotor.LastMoveDirection.normalized;
+
+        return Vector2.right;
+    }
+
     private static Vector2 RotateAimDirectionTowards(Vector2 currentDirection, Vector2 targetDirection, float speedDegreesPerSecond, float deltaTime)
     {
         if (targetDirection.sqrMagnitude <= MinDirectionSqr)
@@ -990,6 +1025,9 @@ public class PlayerWeaponController : MonoBehaviour
     {
         int defaultReserveAmmo = firearm != null ? firearm.DefaultReserveAmmo : 0;
         int resolvedReserveAmmo = requestedReserveAmmo < 0 ? defaultReserveAmmo : requestedReserveAmmo;
+        if (GameplayConsoleCheatState.InfiniteReserveAmmo && firearm != null)
+            resolvedReserveAmmo = Mathf.Max(resolvedReserveAmmo, Mathf.Max(1, firearm.AmmoCapacity));
+
         return Mathf.Max(0, resolvedReserveAmmo);
     }
 

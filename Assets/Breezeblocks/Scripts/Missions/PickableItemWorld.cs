@@ -7,7 +7,7 @@ namespace Breezeblocks.Missions
 
 [DisallowMultipleComponent]
 [AddComponentMenu("Breezeblocks/Missions/Pickable Item World")]
-public class PickableItemWorld : MonoBehaviour
+public class PickableItemWorld : PlayerWorldInteractable
 {
     private static readonly List<PickableItemWorld> ActiveItemsInternal = new();
 
@@ -29,22 +29,35 @@ public class PickableItemWorld : MonoBehaviour
 
     private bool isCollected;
 
-    private void OnEnable()
+    protected override void OnEnable()
     {
+        base.OnEnable();
         isCollected = false;
         if (!ActiveItemsInternal.Contains(this))
             ActiveItemsInternal.Add(this);
     }
 
-    private void OnDisable()
+    protected override void OnDisable()
     {
+        base.OnDisable();
         ActiveItemsInternal.Remove(this);
     }
 
-    private void OnValidate()
+    protected override void OnValidate()
     {
+        base.OnValidate();
         itemId = itemId != null ? itemId.Trim() : string.Empty;
         itemDisplayName = itemDisplayName != null ? itemDisplayName.Trim() : string.Empty;
+    }
+
+    public override bool CanInteract(GameObject interactorRoot)
+    {
+        return base.CanInteract(interactorRoot) && !isCollected;
+    }
+
+    protected override bool Interact(GameObject interactorRoot)
+    {
+        return Collect(interactorRoot);
     }
 
     public bool Collect(GameObject pickerRoot)

@@ -1,6 +1,8 @@
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Audio;
 using UnityEngine.UI;
+using Breezeblocks.Missions;
 
 namespace Breezeblocks.WeaponSystem
 {
@@ -22,13 +24,26 @@ public class PlayerFlashbangEffect : MonoBehaviour
     [FoldoutGroup("References")]
     [SerializeField] private AudioSource ringingAudioSource;
 
+    [FoldoutGroup("References")]
+    [SerializeField] private WorldSfxManager worldSfxManager;
+
+    [FoldoutGroup("References")]
+    [SerializeField] private MissionMusicController missionMusicController;
+
+    [FoldoutGroup("References")]
+    [SerializeField] private GameplayMissionController gameplayMissionController;
+
+    [FoldoutGroup("Audio")]
+    [SerializeField] private AudioMixerGroup outputMixerGroup;
+
+    [FoldoutGroup("Audio"), Range(0f, 1f)]
+    [SerializeField] private float ringingMaxVolume = 1f;
+
     [FoldoutGroup("State"), ShowInInspector, ReadOnly, SuffixLabel("s", true)]
     public float EffectTimeRemaining => Mathf.Max(0f, effectEndTime - Time.unscaledTime);
 
     private float effectEndTime = float.NegativeInfinity;
     private float recoveryStartTime = float.NegativeInfinity;
-    private float cachedListenerVolume = 1f;
-    private bool cachedListenerVolumeValid;
 
     public static PlayerFlashbangEffect EnsureOn(GameObject actorRoot)
     {
@@ -46,6 +61,7 @@ public class PlayerFlashbangEffect : MonoBehaviour
     private void Awake()
     {
         EnsureRuntimePresentation();
+        ResolveManagedAudioControllers();
         SetWhiteoutAlpha(0f);
     }
 
@@ -67,43 +83,39 @@ public class PlayerFlashbangEffect : MonoBehaviour
 
         float recoveryProgress = ResolveRecoveryProgress();
         SetWhiteoutAlpha(1f - recoveryProgress);
-        AudioListener.volume = recoveryProgress;
+        ApplyAudioSuppression(recoveryProgress);
 
         if (ringingAudioSource != null)
         {
-            ringingAudioSource.volume = 1f - recoveryProgress;
+            ringingAudioSource.volume = Mathf.Clamp01(ringingMaxVolume) * (1f - recoveryProgress);
             if (!ringingAudioSource.isPlaying && ringingAudioSource.clip != null)
                 ringingAudioSource.Play();
         }
     }
 
-    public void ApplyFlashbang(float duration, float recoveryThreshold, AudioClip ringingLoopClip)
+    public void ApplyFlashbang(float duration, float recoveryThreshold, AudioClip ringingLoopClip, float ringingSpatialBlend)
     {
         duration = Mathf.Max(0.01f, duration);
         recoveryThreshold = Mathf.Clamp(recoveryThreshold, 0f, duration);
 
         enabled = true;
         EnsureRuntimePresentation();
-        if (!cachedListenerVolumeValid)
-        {
-            cachedListenerVolume = AudioListener.volume;
-            cachedListenerVolumeValid = true;
-        }
-
+        ResolveManagedAudioControllers();
         effectEndTime = Mathf.Max(effectEndTime, Time.unscaledTime + duration);
         recoveryStartTime = Mathf.Max(recoveryStartTime, Time.unscaledTime + recoveryThreshold);
         SetWhiteoutAlpha(1f);
-        AudioListener.volume = 0f;
+        ApplyAudioSuppression(0f);
 
         if (ringingAudioSource != null)
         {
+            ringingAudioSource.spatialBlend = Mathf.Clamp01(ringingSpatialBlend);
             if (ringingLoopClip != null)
                 ringingAudioSource.clip = ringingLoopClip;
 
             if (ringingAudioSource.clip != null)
             {
                 ringingAudioSource.loop = true;
-                ringingAudioSource.volume = 1f;
+                ringingAudioSource.volume = Mathf.Clamp01(ringingMaxVolume);
                 if (!ringingAudioSource.isPlaying)
                     ringingAudioSource.Play();
             }
@@ -123,16 +135,10 @@ public class PlayerFlashbangEffect : MonoBehaviour
 
     private void StopEffect()
     {
-        bool shouldRestoreListenerVolume = cachedListenerVolumeValid;
         effectEndTime = float.NegativeInfinity;
         recoveryStartTime = float.NegativeInfinity;
         SetWhiteoutAlpha(0f);
-
-        if (shouldRestoreListenerVolume)
-        {
-            AudioListener.volume = cachedListenerVolume;
-            cachedListenerVolumeValid = false;
-        }
+        ApplyAudioSuppression(1f);
 
         if (ringingAudioSource != null)
             ringingAudioSource.Stop();
@@ -196,11 +202,40 @@ public class PlayerFlashbangEffect : MonoBehaviour
 
         if (ringingAudioSource != null)
         {
+            ResolveAudioRouting();
             ringingAudioSource.playOnAwake = false;
             ringingAudioSource.loop = true;
-            ringingAudioSource.spatialBlend = 0f;
-            ringingAudioSource.ignoreListenerVolume = true;
+            ringingAudioSource.outputAudioMixerGroup = outputMixerGroup;
+            ringingAudioSource.ignoreListenerVolume = false;
         }
+    }
+
+    private void ResolveAudioRouting()
+    {
+        if (worldSfxManager == null)
+            worldSfxManager = WorldSfxManager.Instance;
+
+        if (outputMixerGroup == null && worldSfxManager != null)
+            outputMixerGroup = worldSfxManager.OutputMixerGroup;
+    }
+
+    private void ResolveManagedAudioControllers()
+    {
+        ResolveAudioRouting();
+
+        if (missionMusicController == null)
+            missionMusicController = FindFirstObjectByType<MissionMusicController>();
+
+        if (gameplayMissionController == null)
+            gameplayMissionController = FindFirstObjectByType<GameplayMissionController>();
+    }
+
+    private void ApplyAudioSuppression(float recoveryProgress)
+    {
+        float volumeMultiplier = Mathf.Clamp01(recoveryProgress);
+        worldSfxManager?.SetExternalVolumeMultiplier(volumeMultiplier);
+        missionMusicController?.SetExternalVolumeMultiplier(volumeMultiplier);
+        gameplayMissionController?.SetExternalCarAudioVolumeMultiplier(volumeMultiplier);
     }
 
     private void SetWhiteoutAlpha(float alpha)

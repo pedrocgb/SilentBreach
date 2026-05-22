@@ -12,6 +12,7 @@ public class ActorHealth : MonoBehaviour
     private float maxHealth = 100f;
 
     private bool isInvincible;
+    private bool externalInvincibleOverride;
     private bool isDead;
     private bool isIncapacitated;
 
@@ -73,7 +74,7 @@ public class ActorHealth : MonoBehaviour
 
     public ActorDamageOutcome ApplyDamage(float damage, ActorDamageContext context)
     {
-        if (damage <= 0f || isInvincible || isDead)
+        if (damage <= 0f || isInvincible || externalInvincibleOverride || isDead)
             return ActorDamageOutcome.None;
 
         if (isIncapacitated)
@@ -118,6 +119,11 @@ public class ActorHealth : MonoBehaviour
     public void Die()
     {
         Die(new ActorDamageContext(null, isLethal: true));
+    }
+
+    public void SetConsoleInvincibleOverride(bool enabled)
+    {
+        externalInvincibleOverride = enabled;
     }
 
     private void Incapacitate(ActorDamageContext context)

@@ -24,15 +24,20 @@ MonoBehaviour:
   equipNoise: 0.05
   equipNoiseDuration: 0.15
   equipNoiseType: 2
+  equipExtremeNoise: 0
   holsterNoise: 0.05
   holsterNoiseDuration: 0.15
   holsterNoiseType: 2
+  holsterExtremeNoise: 0
   startEnabledWhenEquipped: 0
   toggleSfx:
     clips:
     - {fileID: 8300000, guid: 73d31dd6fee164942944a3d3d6963fcb, type: 3}
     volume: 0.5
     pitchRange: {x: 1, y: 1}
+    overrideSpatialBlend: 1
+    spatialBlend: 1
   toggleSfxType: 2
   toggleNoise: 0.08
   toggleNoiseDuration: 0.1
+  toggleExtremeNoise: 0

@@ -242,79 +242,91 @@ MonoBehaviour:
     - _id: 0
       _name: Move Horizontal
       _type: 0
-      _descriptiveName: Horizontal axis
-      _positiveDescriptiveName: Right
-      _negativeDescriptiveName: Left
-      _key: 
-      _positiveKey: Right
-      _negativeKey: Left
+      _descriptiveName: Horizontal movement
+      _positiveDescriptiveName: Move right
+      _negativeDescriptiveName: Move left
+      _key:
+      _positiveKey:
+      _negativeKey:
       _behaviorId: 0
       _userAssignable: 1
       _categoryId: 0
     - _id: 1
       _name: Move Vertical
       _type: 0
-      _descriptiveName: Vertical axis
-      _positiveDescriptiveName: Up
-      _negativeDescriptiveName: Down
-      _key: 
-      _positiveKey: Up
-      _negativeKey: Down
+      _descriptiveName: Vertical movement
+      _positiveDescriptiveName: Move up
+      _negativeDescriptiveName: Move down
+      _key:
+      _positiveKey:
+      _negativeKey:
+      _behaviorId: 0
+      _userAssignable: 1
+      _categoryId: 0
+    - _id: 2
+      _name: Reserved
+      _type: 1
+      _descriptiveName: Reserved action
+      _positiveDescriptiveName:
+      _negativeDescriptiveName:
+      _key:
+      _positiveKey:
+      _negativeKey:
       _behaviorId: 0
       _userAssignable: 1
       _categoryId: 0
     - _id: 3
       _name: Sprint
       _type: 1
-      _descriptiveName: Sprint state
-      _positiveDescriptiveName: 
-      _negativeDescriptiveName: 
-      _key: 
-      _positiveKey: 
-      _negativeKey: 
+      _descriptiveName: Sprint
+      _positiveDescriptiveName:
+      _negativeDescriptiveName:
+      _key:
+      _positiveKey:
+      _negativeKey:
       _behaviorId: 0
       _userAssignable: 1
       _categoryId: 0
     - _id: 4
-      _name: Toggle Speed
+      _name: Toggle Speed MinMax
       _type: 1
-      _descriptiveName: Toggle Speed button
-      _positiveDescriptiveName: 
-      _negativeDescriptiveName: 
-      _key: 
-      _positiveKey: 
-      _negativeKey: 
+      _descriptiveName: Toggle minimum and maximum walk speed
+      _positiveDescriptiveName:
+      _negativeDescriptiveName:
+      _key:
+      _positiveKey:
+      _negativeKey:
       _behaviorId: 0
       _userAssignable: 1
       _categoryId: 0
     - _id: 5
       _name: Mouse Wheel
       _type: 0
-      _descriptiveName: Mouse Wheel
-      _positiveDescriptiveName: Positive
-      _negativeDescriptiveName: Negative
-      _key: 
-      _positiveKey: Positive
-      _negativeKey: Negative
+      _descriptiveName: Mouse wheel axis
+      _positiveDescriptiveName:
+      _negativeDescriptiveName:
+      _key:
+      _positiveKey:
+      _negativeKey:
       _behaviorId: 0
       _userAssignable: 1
       _categoryId: 0
     - _id: 6
       _name: Aim
       _type: 1
-      _descriptiveName: Aim button
-      _positiveDescriptiveName: 
-      _negativeDescriptiveName: 
-      _key: 
-      _positiveKey: 
-      _negativeKey: 
+      _descriptiveName: Aim
+      _positiveDescriptiveName:
+      _negativeDescriptiveName:
+      _key:
+      _positiveKey:
+      _negativeKey:
       _behaviorId: 0
       _userAssignable: 1
       _categoryId: 0
     - _id: 7
       _name: Fire
       _type: 1
-      _descriptiveName: Fire/attack/throw button
+      _descriptiveName: Fire weapon
       _positiveDescriptiveName: 
       _negativeDescriptiveName: 
       _key: 
@@ -326,7 +338,7 @@ MonoBehaviour:
     - _id: 8
       _name: Reload
       _type: 1
-      _descriptiveName: Reload button
+      _descriptiveName: Reload current weapon
       _positiveDescriptiveName: 
       _negativeDescriptiveName: 
       _key: 
@@ -338,7 +350,7 @@ MonoBehaviour:
     - _id: 9
       _name: Cycle Fire Mode
       _type: 1
-      _descriptiveName: Cycle Fire Mode button
+      _descriptiveName: Cycle firearm fire mode
       _positiveDescriptiveName: 
       _negativeDescriptiveName: 
       _key: 
@@ -350,7 +362,7 @@ MonoBehaviour:
     - _id: 10
       _name: Toggle Equipment Panel
       _type: 1
-      _descriptiveName: Toggle Equipment Panel on and off
+      _descriptiveName: Toggle equipment panel
       _positiveDescriptiveName: 
       _negativeDescriptiveName: 
       _key: 
@@ -408,14 +420,50 @@ MonoBehaviour:
       _userAssignable: 1
       _categoryId: 0
     - _id: 15
-      _name: Pick Up
+      _name: Interact
       _type: 1
-      _descriptiveName: Pick up nearby item
+      _descriptiveName: Interact with nearby object
       _positiveDescriptiveName: 
       _negativeDescriptiveName: 
       _key: 
       _positiveKey: 
       _negativeKey: 
+      _behaviorId: 0
+      _userAssignable: 1
+      _categoryId: 0
+    - _id: 16
+      _name: Focus
+      _type: 1
+      _descriptiveName: Enter focus mode
+      _positiveDescriptiveName:
+      _negativeDescriptiveName:
+      _key:
+      _positiveKey:
+      _negativeKey:
+      _behaviorId: 0
+      _userAssignable: 1
+      _categoryId: 0
+    - _id: 17
+      _name: SkipIntro
+      _type: 1
+      _descriptiveName: Skip intro cinematic
+      _positiveDescriptiveName:
+      _negativeDescriptiveName:
+      _key:
+      _positiveKey:
+      _negativeKey:
+      _behaviorId: 0
+      _userAssignable: 1
+      _categoryId: 0
+    - _id: 18
+      _name: ToggleConsole
+      _type: 1
+      _descriptiveName: Toggle gameplay console
+      _positiveDescriptiveName:
+      _negativeDescriptiveName:
+      _key:
+      _positiveKey:
+      _negativeKey:
       _behaviorId: 0
       _userAssignable: 1
       _categoryId: 0
@@ -429,7 +477,7 @@ MonoBehaviour:
     actionCategoryMap:
       list:
       - categoryId: 0
-        actionIds: 000000000100000002000000030000000400000005000000060000000700000008000000090000000a0000000b0000000c0000000d0000000e0000000f000000
+        actionIds: 000000000100000002000000030000000400000005000000060000000700000008000000090000000a0000000b0000000c0000000d0000000e0000000f000000100000001100000012000000
     inputBehaviors:
     - _id: 0
       _name: Default
@@ -646,6 +694,39 @@ MonoBehaviour:
         _modifierKey1: 0
         _modifierKey2: 0
         _modifierKey3: 0
+      - _actionCategoryId: 0
+        _actionId: 16
+        _elementType: 1
+        _elementIdentifierId: -1
+        _axisRange: 0
+        _invert: 0
+        _axisContribution: 0
+        _keyboardKeyCode: 308
+        _modifierKey1: 0
+        _modifierKey2: 0
+        _modifierKey3: 0
+      - _actionCategoryId: 0
+        _actionId: 17
+        _elementType: 1
+        _elementIdentifierId: -1
+        _axisRange: 0
+        _invert: 0
+        _axisContribution: 0
+        _keyboardKeyCode: 27
+        _modifierKey1: 0
+        _modifierKey2: 0
+        _modifierKey3: 0
+      - _actionCategoryId: 0
+        _actionId: 18
+        _elementType: 1
+        _elementIdentifierId: -1
+        _axisRange: 0
+        _invert: 0
+        _axisContribution: 0
+        _keyboardKeyCode: 96
+        _modifierKey1: 0
+        _modifierKey2: 0
+        _modifierKey3: 0
     mouseMaps:
     - id: 0
       categoryId: 0
@@ -703,7 +784,7 @@ MonoBehaviour:
     controllerMapLayoutManagerRuleSets: []
     controllerMapEnablerRuleSets: []
     playerIdCounter: 2
-    actionIdCounter: 16
+    actionIdCounter: 19
     actionCategoryIdCounter: 1
     inputBehaviorIdCounter: 1
     mapCategoryIdCounter: 1

@@ -31,6 +31,7 @@ MonoBehaviour:
   armorPenetration: 5
   staggerDuration: 0.15
   attackReachDistance: 1.15
+  staminaCost: 40
   appliesPushForce: 1
   pushForce: 85
   swingSfx:
@@ -38,11 +39,15 @@ MonoBehaviour:
     - {fileID: 8300000, guid: 30f9a3edf44d3736d9cec81539f8aebd, type: 3}
     volume: 1
     pitchRange: {x: 1, y: 1}
+    overrideSpatialBlend: 1
+    spatialBlend: 1
   defaultHitSfx:
     clips:
     - {fileID: 8300000, guid: a61d221dda6be0c25bd52da1b2fdbc59, type: 3}
     volume: 1
     pitchRange: {x: 1, y: 1}
+    overrideSpatialBlend: 1
+    spatialBlend: 1
   hitSfxByLayer: []
   hitboxSize: {x: 1.5, y: 0.35}
   hitboxOffset: {x: 0.5, y: 0}

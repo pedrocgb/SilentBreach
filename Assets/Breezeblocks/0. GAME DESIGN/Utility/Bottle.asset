@@ -24,13 +24,15 @@ MonoBehaviour:
   equipNoise: 0.15
   equipNoiseDuration: 0.2
   equipNoiseType: 2
+  equipExtremeNoise: 0
   holsterNoise: 0.15
   holsterNoiseDuration: 0.2
   holsterNoiseType: 2
+  holsterExtremeNoise: 0
   behavior: 0
   throwableWorldPrefab: {fileID: 3270342327812866401, guid: 8a34081c86010147ea0b7967dac821d4, type: 3}
   throwablePoolPrewarm: 4
-  maxUses: 1
+  maxUses: 3
   chargeThreshold: 0.8
   minThrowForce: 1.5
   maxThrowForce: 9
@@ -38,14 +40,18 @@ MonoBehaviour:
   maxTravelDistance: 10
   throwSpinSpeed: 1080
   throwAnimationDuration: 0.16
-  impactNoise: 0.65
+  impactNoise: 1
   impactNoiseType: 1
-  impactNoiseCooldown: 0.05
+  impactExtremeNoise: 0
+  impactNoiseCooldown: 0.5
   impactSfx:
-    clips: []
-    volume: 1
+    clips:
+    - {fileID: 8300000, guid: d06ba275e105e6b359e6b19aa71103bb, type: 3}
+    volume: 0.75
     pitchRange: {x: 1, y: 1}
-  resolveEffectPrefab: {fileID: 0}
+    overrideSpatialBlend: 1
+    spatialBlend: 1
+  resolveEffectPrefab: {fileID: 3682032350346914328, guid: bc16c93a54818c0a893f0a56bde61f71, type: 3}
   resolveEffectPoolPrewarm: 2
   directHitDamage: 20
   directHitPenetration: 0
@@ -54,6 +60,13 @@ MonoBehaviour:
   detonationDelay: 3
   detonationNoise: 1
   detonationNoiseType: 0
+  detonationExtremeNoise: 1
+  detonationSfx:
+    clips: []
+    volume: 1
+    pitchRange: {x: 1, y: 1}
+    overrideSpatialBlend: 0
+    spatialBlend: 1
   effectRadius: 3
   effectObstacleMask:
     serializedVersion: 2
@@ -63,3 +76,5 @@ MonoBehaviour:
   flashbangRecoveryThreshold: 4
   flashbangAimlessRotationSpeed: 240
   playerRingingLoopClip: {fileID: 0}
+  overridePlayerRingingSpatialBlend: 0
+  playerRingingSpatialBlend: 0

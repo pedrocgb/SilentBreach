@@ -276,6 +276,44 @@ public class EnemyVisionAI : MonoBehaviour
         externalPerceptionMultiplier = Mathf.Clamp01(multiplier);
     }
 
+    public void ClearVisualDetectionForConsoleCheat(bool resumeDefaultState = true)
+    {
+        currentDetectionValue = 0f;
+        currentTargetVisibility = 0f;
+        targetInRange = false;
+        targetInsideVisionCone = false;
+        hasLineOfSight = !requireLineOfSight || obstacleMask.value == 0;
+        meetsVisibilityThreshold = false;
+        canCurrentlyDetectTarget = false;
+        targetInsideFullDetectionRadius = false;
+        usingFullDetectionRadius = false;
+        canCurrentlySeeFlashlight = false;
+        hasActiveFlashlightStimulus = false;
+        currentTargetDistance = 0f;
+        currentDistanceDetectionMultiplier = 1f;
+        flashlightStimulusHoldUntil = float.NegativeInfinity;
+        hadActiveFlashlightStimulusLastFrame = false;
+        hasLastKnownTargetPosition = false;
+        hasTrackedFlashlightSource = false;
+        hasIssuedFlashlightInvestigation = false;
+        wasFullyDetectedLastFrame = false;
+        lastKnownTargetPosition = Vector2.zero;
+        lastKnownFlashlightSourcePosition = Vector2.zero;
+        ResetFlashlightInvestigationRequestState();
+
+        if (!resumeDefaultState || enemyMovementController == null)
+            return;
+
+        EnemyState currentState = enemyMovementController.CurrentState;
+        if (currentState == EnemyState.Detected ||
+            currentState == EnemyState.Suspicious ||
+            currentState == EnemyState.Searching)
+        {
+            enemyMovementController.ClearExternalInvestigation(resumeDefaultBehavior: false);
+            enemyMovementController.ReturnToStart();
+        }
+    }
+
     private void PerformVisionCheck()
     {
         canCurrentlyDetectTarget = false;
@@ -290,6 +328,9 @@ public class EnemyVisionAI : MonoBehaviour
         currentTargetVisibility = 0f;
         currentTargetDistance = 0f;
         currentDistanceDetectionMultiplier = 1f;
+
+        if (GameplayConsoleCheatState.Invisible)
+            return;
 
         if (!TryResolveTargetReferences())
             return;

@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using Breezeblocks.Missions;
 using Rewired;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -11,6 +12,13 @@ namespace Breezeblocks.WeaponSystem
 [AddComponentMenu("Breezeblocks/Equipment/Player Equipment Controller")]
 public class PlayerEquipmentController : MonoBehaviour
 {
+    private static readonly EquipmentSlotType[] ConsoleSlotPreferenceOrder =
+    {
+        EquipmentSlotType.Primary,
+        EquipmentSlotType.Secondary,
+        EquipmentSlotType.Belt
+    };
+
     [Serializable]
     private sealed class HandEquipmentSlotDefinition
     {
@@ -61,6 +69,12 @@ public class PlayerEquipmentController : MonoBehaviour
 
     [FoldoutGroup("References")]
     [SerializeField] private PlayerMeleeController playerMeleeController;
+
+    [FoldoutGroup("References")]
+    [SerializeField] private PlayerPickupInteractor playerPickupInteractor;
+
+    [FoldoutGroup("References")]
+    [SerializeField] private PlayerFocusController playerFocusController;
 
     [FoldoutGroup("References")]
     [SerializeField] private ArmorLoadout armorLoadout;
@@ -127,6 +141,8 @@ public class PlayerEquipmentController : MonoBehaviour
         playerWeaponController = GetComponent<PlayerWeaponController>();
         playerUtilityController = GetComponent<PlayerUtilityController>();
         playerMeleeController = PlayerMeleeController.EnsureOn(gameObject);
+        playerPickupInteractor = GetComponent<PlayerPickupInteractor>();
+        playerFocusController = GetComponent<PlayerFocusController>();
         armorLoadout = GetComponent<ArmorLoadout>();
     }
 
@@ -142,6 +158,12 @@ public class PlayerEquipmentController : MonoBehaviour
 
         if (armorLoadout == null)
             armorLoadout = GetComponent<ArmorLoadout>();
+
+        if (playerPickupInteractor == null)
+            playerPickupInteractor = GetComponent<PlayerPickupInteractor>();
+
+        if (playerFocusController == null)
+            playerFocusController = GetComponent<PlayerFocusController>();
 
         if (equipmentPanelUI == null)
             equipmentPanelUI = FindSceneObjectIncludingInactive<PlayerEquipmentPanelUI>();
@@ -410,6 +432,13 @@ public class PlayerEquipmentController : MonoBehaviour
 
         if (utilityItem is ThrowableUtilityData throwableData)
         {
+            if (GameplayConsoleCheatState.InfiniteReserveAmmo)
+            {
+                slotState.ReserveAmmo = Mathf.Max(slotState.ReserveAmmo, ResolveInitialThrowableUses(throwableData, -1));
+                NotifyEquipmentChanged();
+                return true;
+            }
+
             int remainingUses = Mathf.Clamp(slotState.ReserveAmmo - 1, 0, throwableData.MaxUses);
             slotState.ReserveAmmo = remainingUses;
             if (remainingUses > 0)
@@ -425,6 +454,17 @@ public class PlayerEquipmentController : MonoBehaviour
         CurrentHeldItem = null;
         NotifyEquipmentChanged();
         return true;
+    }
+
+    public void ForceStoreEquipmentFromConsole(EquipmentItemData item, Action<bool, string> onCompleted = null)
+    {
+        if (item == null)
+        {
+            onCompleted?.Invoke(false, "No equipment asset was provided.");
+            return;
+        }
+
+        StartCoroutine(ForceStoreEquipmentFromConsoleRoutine(item, onCompleted));
     }
 
     private void EquipStartingSlot()
@@ -707,6 +747,51 @@ public class PlayerEquipmentController : MonoBehaviour
         SyncCurrentFirearmStateFromController();
     }
 
+    private IEnumerator ForceStoreEquipmentFromConsoleRoutine(EquipmentItemData item, Action<bool, string> onCompleted)
+    {
+        while (IsSwitchingEquipment || !CanStartEquipmentSwitch())
+            yield return null;
+
+        if (item is ArmorData armorData)
+        {
+            startingArmor = armorData;
+            armorLoadout?.EquipArmor(armorData);
+            NotifyEquipmentChanged();
+            onCompleted?.Invoke(true, $"{armorData.DisplayName} equipped as armor.");
+            yield break;
+        }
+
+        if (!TryResolveConsoleTargetSlot(item, out RuntimeHandSlotState targetSlot))
+        {
+            onCompleted?.Invoke(false, $"{item.DisplayName} does not support a valid player equipment slot.");
+            yield break;
+        }
+
+        suppressWeaponStateSync = true;
+        CacheCurrentFirearmState();
+
+        bool targetSlotWasHeld = CurrentHeldSlot == targetSlot.SlotType && CurrentHeldItem != null;
+        if (targetSlotWasHeld)
+        {
+            NotifyHeldItemHolstering(CurrentHeldItem, ResolveItemHolsterTime(CurrentHeldItem));
+            yield return HolsterActiveControllersRoutine();
+            CurrentHeldSlot = EquipmentSlotType.None;
+            CurrentHeldItem = null;
+        }
+
+        if (!TryResolveConsoleStoredState(item, out ProjectileData projectile, out int loadedAmmo, out int reserveAmmo, out string failureReason))
+        {
+            suppressWeaponStateSync = false;
+            onCompleted?.Invoke(false, failureReason);
+            yield break;
+        }
+
+        AssignSlotState(targetSlot, item, projectile, loadedAmmo, reserveAmmo);
+        suppressWeaponStateSync = false;
+        NotifyEquipmentChanged();
+        onCompleted?.Invoke(true, $"{item.DisplayName} stored in {targetSlot.SlotType}.");
+    }
+
     private RuntimeHandSlotState GetRuntimeSlot(EquipmentSlotType slotType)
     {
         return slotType switch
@@ -786,6 +871,9 @@ public class PlayerEquipmentController : MonoBehaviour
     {
         int defaultReserveAmmo = firearmData != null ? firearmData.DefaultReserveAmmo : 0;
         int resolvedReserveAmmo = requestedReserveAmmo < 0 ? defaultReserveAmmo : requestedReserveAmmo;
+        if (GameplayConsoleCheatState.InfiniteReserveAmmo && firearmData != null)
+            resolvedReserveAmmo = Mathf.Max(resolvedReserveAmmo, Mathf.Max(1, firearmData.AmmoCapacity));
+
         return Mathf.Max(0, resolvedReserveAmmo);
     }
 
@@ -855,6 +943,12 @@ public class PlayerEquipmentController : MonoBehaviour
 
         if (playerMeleeController != null)
             playerMeleeController.SetInputBlocked(panelVisible);
+
+        if (playerPickupInteractor != null)
+            playerPickupInteractor.SetInputBlocked(panelVisible);
+
+        if (playerFocusController != null)
+            playerFocusController.SetInputBlocked(panelVisible);
 
         if (!pauseGameWhilePanelVisible)
             return;
@@ -932,6 +1026,82 @@ public class PlayerEquipmentController : MonoBehaviour
             return;
 
         HeldItemHolstering?.Invoke(item, Mathf.Max(0f, duration));
+    }
+
+    private bool TryResolveConsoleTargetSlot(EquipmentItemData item, out RuntimeHandSlotState targetSlot)
+    {
+        targetSlot = null;
+        if (item == null)
+            return false;
+
+        for (int i = 0; i < ConsoleSlotPreferenceOrder.Length; i++)
+        {
+            EquipmentSlotType slotType = ConsoleSlotPreferenceOrder[i];
+            if (!item.SupportsSlot(slotType))
+                continue;
+
+            RuntimeHandSlotState slotState = GetRuntimeSlot(slotType);
+            if (slotState != null && slotState.Item == null)
+            {
+                targetSlot = slotState;
+                return true;
+            }
+        }
+
+        for (int i = 0; i < ConsoleSlotPreferenceOrder.Length; i++)
+        {
+            EquipmentSlotType slotType = ConsoleSlotPreferenceOrder[i];
+            if (!item.SupportsSlot(slotType))
+                continue;
+
+            RuntimeHandSlotState slotState = GetRuntimeSlot(slotType);
+            if (slotState != null)
+            {
+                targetSlot = slotState;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool TryResolveConsoleStoredState(
+        EquipmentItemData item,
+        out ProjectileData projectile,
+        out int loadedAmmo,
+        out int reserveAmmo,
+        out string failureReason)
+    {
+        projectile = null;
+        loadedAmmo = 0;
+        reserveAmmo = 0;
+        failureReason = null;
+
+        if (item is FirearmData firearmData)
+        {
+            projectile = firearmData.CompatibleProjectiles.Count > 0 ? firearmData.CompatibleProjectiles[0] : null;
+            if (projectile == null)
+            {
+                failureReason = $"{firearmData.DisplayName} has no compatible projectile assigned.";
+                return false;
+            }
+
+            loadedAmmo = ResolveInitialLoadedAmmo(firearmData, -1);
+            reserveAmmo = ResolveInitialReserveAmmo(firearmData, -1);
+            return true;
+        }
+
+        if (item is ThrowableUtilityData throwableData)
+        {
+            reserveAmmo = ResolveInitialThrowableUses(throwableData, -1);
+            return true;
+        }
+
+        if (item is UtilityItemData || item is MeleeWeaponData)
+            return true;
+
+        failureReason = $"{item.DisplayName} is not a supported console-spawnable equipment type.";
+        return false;
     }
 }
 }

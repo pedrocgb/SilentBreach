@@ -184,6 +184,8 @@ public class PlayerUtilityController : MonoBehaviour
                 UpdateAimCameraState();
             }
 
+            MaintainMouseLookWhenNoUtilityIsHeld();
+
             return;
         }
 
@@ -274,6 +276,7 @@ public class PlayerUtilityController : MonoBehaviour
         IsAiming = false;
         ResetThrowableInputState();
         UpdateAimCameraState();
+        MaintainMouseLookWhenNoUtilityIsHeld();
         NotifyUtilityStateChanged();
     }
 
@@ -584,6 +587,21 @@ public class PlayerUtilityController : MonoBehaviour
         throwableChargeStartedAt = 0f;
         ThrowableChargeProgress01 = 0f;
         ThrowableThrowProgress01 = 0f;
+    }
+
+    private void MaintainMouseLookWhenNoUtilityIsHeld()
+    {
+        if (playerVisionLight == null || inputBlocked)
+            return;
+
+        if (playerEquipmentController != null && playerEquipmentController.CurrentHeldItem != null)
+            return;
+
+        float lookSpeed = playerVisionLight.RotationSmoothing;
+        if (actorStaggerController != null)
+            lookSpeed *= actorStaggerController.TurnSpeedMultiplier;
+
+        playerVisionLight.DriveMouseLook(lookSpeed, Time.deltaTime);
     }
 }
 

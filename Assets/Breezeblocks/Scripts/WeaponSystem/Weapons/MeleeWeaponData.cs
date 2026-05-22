@@ -88,6 +88,9 @@ public class MeleeWeaponData : EquipmentItemData
     [FoldoutGroup("Melee/Damage"), MinValue(0f)]
     [SerializeField] private float attackReachDistance = 1.15f;
 
+    [FoldoutGroup("Melee/Handling"), MinValue(0f)]
+    [SerializeField] private float staminaCost;
+
     [FoldoutGroup("Melee/Impact")]
     [SerializeField] private bool appliesPushForce;
 
@@ -165,6 +168,7 @@ public class MeleeWeaponData : EquipmentItemData
     public int ArmorPenetration => armorPenetration;
     public float StaggerDuration => staggerDuration;
     public float AttackReachDistance => attackReachDistance;
+    public float StaminaCost => staminaCost;
     public bool AppliesPushForce => appliesPushForce;
     public float PushForce => pushForce;
     public AudioClipSet SwingSfx => swingSfx;
@@ -221,6 +225,7 @@ public class MeleeWeaponData : EquipmentItemData
         armorPenetration = Mathf.Max(0, armorPenetration);
         staggerDuration = Mathf.Max(0f, staggerDuration);
         attackReachDistance = Mathf.Max(0f, attackReachDistance);
+        staminaCost = Mathf.Max(0f, staminaCost);
         pushForce = Mathf.Max(0f, pushForce);
         swingSfx ??= new AudioClipSet();
         swingSfx.Validate();

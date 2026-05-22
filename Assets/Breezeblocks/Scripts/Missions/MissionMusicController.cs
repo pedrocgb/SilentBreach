@@ -52,9 +52,14 @@ public class MissionMusicController : MonoBehaviour
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public MissionMusicCue CurrentCue => currentCue;
 
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly, ProgressBar(0f, 1f)]
+    public float ExternalVolumeMultiplier => externalVolumeMultiplier;
+
     private Coroutine transitionRoutine;
     private Tween activeFadeTween;
     private MissionMusicCue currentCue;
+    private float currentBaseVolume;
+    private float externalVolumeMultiplier = 1f;
 
     private void Reset()
     {
@@ -89,6 +94,11 @@ public class MissionMusicController : MonoBehaviour
         lurkingVolume = Mathf.Clamp01(lurkingVolume);
         alertedVolume = Mathf.Clamp01(alertedVolume);
         gameOverVolume = Mathf.Clamp01(gameOverVolume);
+    }
+
+    private void Update()
+    {
+        ApplyResolvedSourceVolume();
     }
 
     [Button(ButtonSizes.Medium), FoldoutGroup("Debug")]
@@ -136,7 +146,14 @@ public class MissionMusicController : MonoBehaviour
 
         musicSource.Stop();
         musicSource.clip = null;
-        musicSource.volume = 0f;
+        currentBaseVolume = 0f;
+        ApplyResolvedSourceVolume();
+    }
+
+    public void SetExternalVolumeMultiplier(float multiplier)
+    {
+        externalVolumeMultiplier = Mathf.Clamp01(multiplier);
+        ApplyResolvedSourceVolume();
     }
 
     private void QueueCue(MissionMusicCue cue)
@@ -165,8 +182,8 @@ public class MissionMusicController : MonoBehaviour
         if (musicSource != null && musicSource.isPlaying && musicSource.volume > 0f)
         {
             activeFadeTween = DOTween.To(
-                    () => musicSource.volume,
-                    value => musicSource.volume = Mathf.Clamp01(value),
+                    () => currentBaseVolume,
+                    value => currentBaseVolume = Mathf.Clamp01(value),
                     0f,
                     fadeOutDuration)
                 .SetEase(Ease.InOutSine)
@@ -190,12 +207,13 @@ public class MissionMusicController : MonoBehaviour
         currentCue = cue;
         musicSource.clip = clip;
         musicSource.loop = shouldLoop;
-        musicSource.volume = 0f;
+        currentBaseVolume = 0f;
+        ApplyResolvedSourceVolume();
         musicSource.Play();
 
         activeFadeTween = DOTween.To(
-                () => musicSource.volume,
-                value => musicSource.volume = Mathf.Clamp01(value),
+                () => currentBaseVolume,
+                value => currentBaseVolume = Mathf.Clamp01(value),
                 Mathf.Clamp01(targetVolume),
                 fadeInDuration)
             .SetEase(Ease.InOutSine)
@@ -256,6 +274,15 @@ public class MissionMusicController : MonoBehaviour
         musicSource.outputAudioMixerGroup = outputMixerGroup;
         musicSource.spatialBlend = 0f;
         musicSource.dopplerLevel = 0f;
+        ApplyResolvedSourceVolume();
+    }
+
+    private void ApplyResolvedSourceVolume()
+    {
+        if (musicSource == null)
+            return;
+
+        musicSource.volume = Mathf.Clamp01(currentBaseVolume * externalVolumeMultiplier);
     }
 }
 

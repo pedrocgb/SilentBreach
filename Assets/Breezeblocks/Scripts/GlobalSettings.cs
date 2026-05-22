@@ -10,6 +10,9 @@ public class GlobalSettings : MonoBehaviour
     [FoldoutGroup("Input Modes"), Tooltip("If true, sprint works as toggle (press once). If false, hold to sprint.")]
     [SerializeField] private bool sprintToggleEnabled = false;
 
+    [FoldoutGroup("Input Modes"), Tooltip("If true, focus works as toggle (press once). If false, hold to focus.")]
+    [SerializeField] private bool focusToggleEnabled = false;
+
     [FoldoutGroup("Noise"), MinValue(0f)]
     [Tooltip("How long a firearm shot noise spike lasts.")]
     [SerializeField] private float shotNoiseDuration = 0.1f;
@@ -27,6 +30,7 @@ public class GlobalSettings : MonoBehaviour
     [SerializeField] private float incapacitatedWakeUpDelay = 60f;
 
     public bool SprintToggleEnabled => sprintToggleEnabled;
+    public bool FocusToggleEnabled => focusToggleEnabled;
     public float ShotNoiseDuration => shotNoiseDuration;
     public float EquipNoiseDuration => equipNoiseDuration;
     public float HolsterNoiseDuration => holsterNoiseDuration;
@@ -67,12 +71,28 @@ public class GlobalSettings : MonoBehaviour
         SetSprintToggleEnabled(!sprintToggleEnabled);
     }
 
+    [Button(ButtonSizes.Small)]
+    [FoldoutGroup("Actions")]
+    public void ToggleFocusMode()
+    {
+        SetFocusToggleEnabled(!focusToggleEnabled);
+    }
+
     public void SetSprintToggleEnabled(bool enabled)
     {
         if (sprintToggleEnabled == enabled)
             return;
 
         sprintToggleEnabled = enabled;
+        SettingsChanged?.Invoke();
+    }
+
+    public void SetFocusToggleEnabled(bool enabled)
+    {
+        if (focusToggleEnabled == enabled)
+            return;
+
+        focusToggleEnabled = enabled;
         SettingsChanged?.Invoke();
     }
 }

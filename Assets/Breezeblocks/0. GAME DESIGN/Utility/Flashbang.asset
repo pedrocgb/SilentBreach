@@ -40,24 +40,34 @@ MonoBehaviour:
   maxTravelDistance: 6
   throwSpinSpeed: 700
   throwAnimationDuration: 0.16
-  impactNoise: 0.65
-  impactNoiseType: 1
+  impactNoise: 0.4
+  impactNoiseType: 2
   impactExtremeNoise: 0
   impactNoiseCooldown: 0.05
   impactSfx:
-    clips: []
-    volume: 1
+    clips:
+    - {fileID: 8300000, guid: 8deabce2e9045189988261cc6f58a9ff, type: 3}
+    volume: 0.25
     pitchRange: {x: 1, y: 1}
-  resolveEffectPrefab: {fileID: 0}
+    overrideSpatialBlend: 1
+    spatialBlend: 1
+  resolveEffectPrefab: {fileID: 7633305432426725292, guid: cd91d1037560f480d822b8f3abcc8dd9, type: 3}
   resolveEffectPoolPrewarm: 2
   directHitDamage: 20
   directHitPenetration: 0
   directHitStaggerDuration: 0.1
   detonationMode: 1
   detonationDelay: 3
-  detonationNoise: 1
-  detonationNoiseType: 0
-  detonationExtremeNoise: 0
+  detonationNoise: 0.5
+  detonationNoiseType: 1
+  detonationExtremeNoise: 1
+  detonationSfx:
+    clips:
+    - {fileID: 8300000, guid: ca8c104ed72a42f95a243adafd9a3c0f, type: 3}
+    volume: 0.5
+    pitchRange: {x: 1, y: 1}
+    overrideSpatialBlend: 1
+    spatialBlend: 1
   effectRadius: 3
   effectObstacleMask:
     serializedVersion: 2
@@ -66,4 +76,6 @@ MonoBehaviour:
   flashbangDuration: 8
   flashbangRecoveryThreshold: 4
   flashbangAimlessRotationSpeed: 240
-  playerRingingLoopClip: {fileID: 0}
+  playerRingingLoopClip: {fileID: 8300000, guid: 543993ff5a43eb4818eea98c89c386aa, type: 3}
+  overridePlayerRingingSpatialBlend: 0
+  playerRingingSpatialBlend: 0

@@ -48,36 +48,52 @@ MonoBehaviour:
     - {fileID: 8300000, guid: 5a838afb5cbd57d47934a97f2c199236, type: 3}
     volume: 1
     pitchRange: {x: 1, y: 1}
+    overrideSpatialBlend: 1
+    spatialBlend: 1
   casingDelay: 0.05
   casingSfx:
     clips:
     - {fileID: 8300000, guid: b4d8d06130dacd54682749ce666d53f2, type: 3}
     volume: 0.7
     pitchRange: {x: 1, y: 1}
+    overrideSpatialBlend: 1
+    spatialBlend: 1
   reloadStartSfx:
     clips:
     - {fileID: 8300000, guid: df8f6103f7f0f5a4fa93313979655108, type: 3}
     volume: 0.6
     pitchRange: {x: 1, y: 1}
+    overrideSpatialBlend: 1
+    spatialBlend: 1
   reloadEndSfx:
     clips:
     - {fileID: 8300000, guid: 6c34cc837e8f82c47b27ff65e7530495, type: 3}
     volume: 0.7
     pitchRange: {x: 1, y: 1}
+    overrideSpatialBlend: 1
+    spatialBlend: 1
   reloadTriggerSfx:
     clips:
     - {fileID: 8300000, guid: fc14e3fcb628a244bb48b4524533122f, type: 3}
     volume: 0.7
     pitchRange: {x: 1, y: 1}
+    overrideSpatialBlend: 1
+    spatialBlend: 1
   bulletReloadSfx:
     clips: []
     volume: 1
     pitchRange: {x: 1, y: 1}
+    overrideSpatialBlend: 0
+    spatialBlend: 1
   shootNoise: 1
   shootNoiseType: 0
+  shootExtremeNoise: 1
   equipNoise: 0.25
   equipNoiseType: 1
+  equipExtremeNoise: 0
   holsterNoise: 0.25
   holsterNoiseType: 1
+  holsterExtremeNoise: 0
   reloadNoise: 0.5
   reloadNoiseType: 1
+  reloadExtremeNoise: 0

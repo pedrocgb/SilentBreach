@@ -75,6 +75,9 @@ public class PlayerTopDownMotor2D : MonoBehaviour
     public bool IsSprinting { get; private set; }
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public bool SprintRequested => sprintRequested;
+
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsInputBlocked => inputBlocked;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
@@ -114,6 +117,7 @@ public class PlayerTopDownMotor2D : MonoBehaviour
     private bool speedSelectionLockedExternally;
     private bool sprintBlockedExternally;
     private bool inputBlocked;
+    private bool sprintRequested;
 
     private void Reset()
     {
@@ -162,6 +166,7 @@ public class PlayerTopDownMotor2D : MonoBehaviour
         {
             MoveInput = Vector2.zero;
             IsSprinting = false;
+            sprintRequested = false;
             CurrentTargetSpeed = 0f;
             _targetVelocity = Vector2.zero;
             RefreshUi();
@@ -238,6 +243,7 @@ public class PlayerTopDownMotor2D : MonoBehaviour
         _sprintToggleState = false;
         MoveInput = Vector2.zero;
         IsSprinting = false;
+        sprintRequested = false;
         CurrentTargetSpeed = 0f;
         _targetVelocity = Vector2.zero;
 
@@ -313,18 +319,20 @@ public class PlayerTopDownMotor2D : MonoBehaviour
         if (sprintToggleMode && _player.GetButtonDown(sprintAction))
             _sprintToggleState = !_sprintToggleState;
 
-        bool sprintRequested = sprintToggleMode ? _sprintToggleState : _player.GetButton(sprintAction);
+        bool requestedByInput = sprintToggleMode ? _sprintToggleState : _player.GetButton(sprintAction);
+        sprintRequested = requestedByInput;
+        bool resolvedSprintRequested = requestedByInput;
 
         if (sprintBlockedExternally || hasExternalSpeedOverride)
         {
-            sprintRequested = false;
+            resolvedSprintRequested = false;
             _sprintToggleState = false;
         }
 
-        if (sprintRequested && selectedSpeedLevel < SpeedLevelsCount)
+        if (resolvedSprintRequested && selectedSpeedLevel < SpeedLevelsCount)
             selectedSpeedLevel = SpeedLevelsCount;
 
-        IsSprinting = sprintRequested;
+        IsSprinting = resolvedSprintRequested;
 
         if (!sprintToggleMode)
             _sprintToggleState = false;

@@ -147,6 +147,12 @@ public class AIHearing : MonoBehaviour
 
     private void Update()
     {
+        if (GameplayConsoleCheatState.Lightfooted)
+        {
+            currentAccumulatedDetection = 0f;
+            return;
+        }
+
         if (!enableHearing ||
             currentAccumulatedDetection <= 0f ||
             detectionDecayPerSecond <= 0f ||
@@ -172,6 +178,12 @@ public class AIHearing : MonoBehaviour
 
         if (!enableHearing || enemyMovementController == null)
             return;
+
+        if (GameplayConsoleCheatState.Lightfooted)
+        {
+            currentAccumulatedDetection = 0f;
+            return;
+        }
 
         if (hearingIgnoredBecauseOfVisualDetection)
         {
@@ -274,6 +286,23 @@ public class AIHearing : MonoBehaviour
     public void SetExternalSensitivityMultiplier(float multiplier)
     {
         externalSensitivityMultiplier = Mathf.Clamp01(multiplier);
+    }
+
+    public void ClearAccumulatedDetectionForConsoleCheat(bool resumeDefaultState = true)
+    {
+        currentAccumulatedDetection = 0f;
+        lastHeardNoiseValue = 0f;
+        lastHeardNoisePosition = Vector2.zero;
+        lastNoiseWasObstructed = false;
+        lastObstructionHitCount = 0;
+        lastAccumulationTime = float.NegativeInfinity;
+
+        if (!resumeDefaultState || enemyMovementController == null)
+            return;
+
+        EnemyState currentState = enemyMovementController.CurrentState;
+        if (currentState == EnemyState.Suspicious || currentState == EnemyState.Searching)
+            enemyMovementController.ReturnToStart();
     }
 
     private float CalculateHeardValue(NoiseEvent noiseEvent, float distance, float hearingRange, Vector2 origin)

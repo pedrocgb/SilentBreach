@@ -33,6 +33,9 @@ public class PlayerMeleeController : MonoBehaviour
     [SerializeField] private ActorStaggerController actorStaggerController;
 
     [FoldoutGroup("References")]
+    [SerializeField] private PlayerStaminaController playerStaminaController;
+
+    [FoldoutGroup("References")]
     [SerializeField] private CharacterOrbitHandsAnimator orbitHandsAnimator;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
@@ -129,6 +132,12 @@ public class PlayerMeleeController : MonoBehaviour
 
         if (rewiredPlayer.GetButtonDown(fireAction))
         {
+            if (!CanSpendAttackStamina(EquippedMeleeWeapon))
+            {
+                playerStaminaController?.PlayInsufficientStaminaFeedback();
+                return;
+            }
+
             SetAimState(false);
             busyRoutine = StartCoroutine(AttackRoutine());
         }
@@ -213,6 +222,13 @@ public class PlayerMeleeController : MonoBehaviour
             yield break;
         }
 
+        if (!SpendAttackStamina(meleeWeapon))
+        {
+            playerStaminaController?.PlayInsufficientStaminaFeedback();
+            busyRoutine = null;
+            yield break;
+        }
+
         RefreshDamageSource();
         meleeDamageSource?.BeginSwing();
         meleeDamageSource?.PlaySwingSfx();
@@ -276,6 +292,9 @@ public class PlayerMeleeController : MonoBehaviour
 
         if (actorStaggerController == null)
             actorStaggerController = GetComponent<ActorStaggerController>();
+
+        if (playerStaminaController == null)
+            playerStaminaController = GetComponent<PlayerStaminaController>();
 
         if (orbitHandsAnimator == null)
             orbitHandsAnimator = CharacterOrbitHandsAnimator.EnsureOn(gameObject);
@@ -354,6 +373,30 @@ public class PlayerMeleeController : MonoBehaviour
 
         rewiredPlayer = ReInput.players.GetPlayer(rewiredPlayerId);
         return rewiredPlayer != null;
+    }
+
+    private bool CanSpendAttackStamina(MeleeWeaponData meleeWeapon)
+    {
+        if (meleeWeapon == null)
+            return false;
+
+        float staminaCost = Mathf.Max(0f, meleeWeapon.StaminaCost);
+        if (staminaCost <= 0f || playerStaminaController == null)
+            return true;
+
+        return playerStaminaController.HasStamina(staminaCost);
+    }
+
+    private bool SpendAttackStamina(MeleeWeaponData meleeWeapon)
+    {
+        if (meleeWeapon == null)
+            return false;
+
+        float staminaCost = Mathf.Max(0f, meleeWeapon.StaminaCost);
+        if (staminaCost <= 0f || playerStaminaController == null)
+            return true;
+
+        return playerStaminaController.TrySpendStamina(staminaCost, playFeedbackOnFailure: false);
     }
 }
 }

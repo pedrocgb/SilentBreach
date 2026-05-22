@@ -1,4 +1,5 @@
 using Breezeblocks.WeaponSystem;
+using DG.Tweening;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
@@ -31,6 +32,18 @@ public class PlayerStaminaController : MonoBehaviour
     [FoldoutGroup("UI")]
     [SerializeField] private string staminaTextFormat = "{0:0}/{1:0}";
 
+    [FoldoutGroup("UI")]
+    [SerializeField] private RectTransform staminaFeedbackRoot;
+
+    [FoldoutGroup("UI"), MinValue(0f), SuffixLabel("s", true)]
+    [SerializeField] private float insufficientStaminaShakeDuration = 0.2f;
+
+    [FoldoutGroup("UI"), MinValue(0f)]
+    [SerializeField] private float insufficientStaminaShakeStrength = 18f;
+
+    [FoldoutGroup("UI"), MinValue(1)]
+    [SerializeField] private int insufficientStaminaShakeVibrato = 18;
+
     private float maxStamina = 100f;
 
     private float sprintDrainPerSecond = 20f;
@@ -59,6 +72,9 @@ public class PlayerStaminaController : MonoBehaviour
     public float RegenerationDelayRemaining => Mathf.Max(0f, nextRegenerationAllowedTime - Time.time);
 
     private float nextRegenerationAllowedTime;
+    private Tween insufficientStaminaShakeTween;
+    private Vector2 staminaFeedbackDefaultAnchoredPosition;
+    private bool sprintInsufficientFeedbackActive;
 
     private void Reset()
     {
@@ -66,6 +82,7 @@ public class PlayerStaminaController : MonoBehaviour
         playerWeaponController = GetComponent<PlayerWeaponController>();
         playerUtilityController = GetComponent<PlayerUtilityController>();
         actorStaggerController = GetComponent<ActorStaggerController>();
+        CacheFeedbackRoot();
     }
 
     private void Awake()
@@ -82,6 +99,7 @@ public class PlayerStaminaController : MonoBehaviour
         if (actorStaggerController == null)
             actorStaggerController = GetComponent<ActorStaggerController>();
 
+        CacheFeedbackRoot();
         RestoreStamina();
     }
 
@@ -100,6 +118,11 @@ public class PlayerStaminaController : MonoBehaviour
 
         if (actorStaggerController != null)
             actorStaggerController.StaggerApplied -= HandleStaggerApplied;
+
+        insufficientStaminaShakeTween?.Kill();
+        insufficientStaminaShakeTween = null;
+        sprintInsufficientFeedbackActive = false;
+        ResetFeedbackRootPosition();
     }
 
     private void OnValidate()
@@ -110,11 +133,19 @@ public class PlayerStaminaController : MonoBehaviour
         regenerationDelayAfterSpend = Mathf.Max(0f, regenerationDelayAfterSpend);
         staggerStaminaLossPercent = Mathf.Clamp(staggerStaminaLossPercent, 0f, 100f);
         movementThreshold = Mathf.Max(0f, movementThreshold);
+        insufficientStaminaShakeDuration = Mathf.Max(0f, insufficientStaminaShakeDuration);
+        insufficientStaminaShakeStrength = Mathf.Max(0f, insufficientStaminaShakeStrength);
+        insufficientStaminaShakeVibrato = Mathf.Max(1, insufficientStaminaShakeVibrato);
+        CacheFeedbackRoot();
     }
 
     private void Update()
     {
+        if (GameplayConsoleCheatState.AthleteMode && CurrentStamina < maxStamina)
+            CurrentStamina = maxStamina;
+
         bool consumedStaminaThisFrame = DrainSprintStamina();
+        UpdateSprintInsufficientFeedback();
 
         bool canRegenerate = !consumedStaminaThisFrame && CanRegenerate();
         IsRegenerating = canRegenerate;
@@ -134,18 +165,86 @@ public class PlayerStaminaController : MonoBehaviour
         CurrentStamina = maxStamina;
         nextRegenerationAllowedTime = 0f;
         IsRegenerating = false;
+        sprintInsufficientFeedbackActive = false;
         RefreshUi();
     }
 
     public void SpendStamina(float amount)
     {
+        if (GameplayConsoleCheatState.AthleteMode)
+        {
+            CurrentStamina = maxStamina;
+            nextRegenerationAllowedTime = 0f;
+            IsRegenerating = false;
+            sprintInsufficientFeedbackActive = false;
+            RefreshUi();
+            return;
+        }
+
         if (amount <= 0f || maxStamina <= 0f)
             return;
 
         CurrentStamina = Mathf.Max(0f, CurrentStamina - amount);
         nextRegenerationAllowedTime = Time.time + regenerationDelayAfterSpend;
         IsRegenerating = false;
+        if (CurrentStamina > MinimumThreshold)
+            sprintInsufficientFeedbackActive = false;
         RefreshUi();
+    }
+
+    public bool HasStamina(float amount)
+    {
+        if (amount <= 0f)
+            return true;
+
+        return CurrentStamina + MinimumThreshold >= amount;
+    }
+
+    public bool TrySpendStamina(float amount, bool playFeedbackOnFailure = true)
+    {
+        if (GameplayConsoleCheatState.AthleteMode)
+        {
+            CurrentStamina = maxStamina;
+            nextRegenerationAllowedTime = 0f;
+            IsRegenerating = false;
+            sprintInsufficientFeedbackActive = false;
+            RefreshUi();
+            return true;
+        }
+
+        if (!HasStamina(amount))
+        {
+            if (playFeedbackOnFailure)
+                PlayInsufficientStaminaFeedback();
+
+            return false;
+        }
+
+        SpendStamina(amount);
+        return true;
+    }
+
+    public void PlayInsufficientStaminaFeedback()
+    {
+        if (staminaFeedbackRoot == null || insufficientStaminaShakeDuration <= 0f || insufficientStaminaShakeStrength <= 0f)
+            return;
+
+        insufficientStaminaShakeTween?.Kill();
+        ResetFeedbackRootPosition();
+
+        insufficientStaminaShakeTween = staminaFeedbackRoot.DOShakeAnchorPos(
+                insufficientStaminaShakeDuration,
+                new Vector2(insufficientStaminaShakeStrength, 0f),
+                insufficientStaminaShakeVibrato,
+                90f,
+                snapping: false,
+                fadeOut: true)
+            .SetUpdate(true)
+            .OnComplete(() =>
+            {
+                insufficientStaminaShakeTween = null;
+                ResetFeedbackRootPosition();
+            });
     }
 
     public void ApplySettings(PlayerStaminaSettings settings, bool restoreToFull = false)
@@ -181,6 +280,20 @@ public class PlayerStaminaController : MonoBehaviour
 
         SpendStamina(drain);
         return true;
+    }
+
+    private void UpdateSprintInsufficientFeedback()
+    {
+        bool shouldPlayFeedback = playerMotor != null &&
+                                  playerMotor.SprintRequested &&
+                                  !playerMotor.IsInputBlocked &&
+                                  IsMoving() &&
+                                  IsSprintBlocked;
+
+        if (shouldPlayFeedback && !sprintInsufficientFeedbackActive)
+            PlayInsufficientStaminaFeedback();
+
+        sprintInsufficientFeedbackActive = shouldPlayFeedback;
     }
 
     private bool CanRegenerate()
@@ -232,5 +345,25 @@ public class PlayerStaminaController : MonoBehaviour
 
         if (staminaText != null)
             staminaText.text = string.Format(staminaTextFormat, CurrentStamina, maxStamina);
+    }
+
+    private void CacheFeedbackRoot()
+    {
+        if (staminaFeedbackRoot == null)
+        {
+            if (staminaFillImage != null)
+                staminaFeedbackRoot = staminaFillImage.rectTransform;
+            else if (staminaText != null)
+                staminaFeedbackRoot = staminaText.rectTransform;
+        }
+
+        if (staminaFeedbackRoot != null)
+            staminaFeedbackDefaultAnchoredPosition = staminaFeedbackRoot.anchoredPosition;
+    }
+
+    private void ResetFeedbackRootPosition()
+    {
+        if (staminaFeedbackRoot != null)
+            staminaFeedbackRoot.anchoredPosition = staminaFeedbackDefaultAnchoredPosition;
     }
 }

@@ -30,6 +30,7 @@ public class WorldSfxManager : MonoBehaviour
         public AudioSource Source;
         public AudioLowPassFilter LowPassFilter;
         public float BusyUntil;
+        public float BaseVolume;
     }
 
     public static WorldSfxManager Instance
@@ -114,11 +115,17 @@ public class WorldSfxManager : MonoBehaviour
     [FoldoutGroup("Debug"), ShowInInspector, ReadOnly]
     public int RuntimeSourceCount => runtimeSources.Count;
 
+    public AudioMixerGroup OutputMixerGroup => outputMixerGroup;
+
+    [FoldoutGroup("Debug"), ShowInInspector, ReadOnly, ProgressBar(0f, 1f)]
+    public float ExternalVolumeMultiplier => externalVolumeMultiplier;
+
     private static WorldSfxManager instance;
     private readonly List<RuntimeSource> runtimeSources = new();
     private RaycastHit2D[] occlusionHitBuffer;
     private readonly HashSet<int> uniqueOccluderIds = new();
     private AudioListener cachedAudioListener;
+    private float externalVolumeMultiplier = 1f;
 
     private void Awake()
     {
@@ -148,7 +155,8 @@ public class WorldSfxManager : MonoBehaviour
 
         AudioClip clip = clipSet.GetRandomClip();
         float pitch = clipSet.GetRandomPitch();
-        return PlayClipAt(position, clip, noiseType, clipSet.Volume * Mathf.Max(0f, additionalVolumeMultiplier), pitch, delay);
+        float resolvedSpatialBlend = clipSet.ResolveSpatialBlend(spatialBlend);
+        return PlayClipAt(position, clip, noiseType, clipSet.Volume * Mathf.Max(0f, additionalVolumeMultiplier), pitch, delay, resolvedSpatialBlend);
     }
 
     public bool PlayClipSetAt(Vector3 position, AudioClipSet clipSet, NoiseType noiseType, out float playbackDuration, float additionalVolumeMultiplier = 1f, float delay = 0f)
@@ -160,10 +168,11 @@ public class WorldSfxManager : MonoBehaviour
         AudioClip clip = clipSet.GetRandomClip();
         float pitch = clipSet.GetRandomPitch();
         playbackDuration = clip != null ? clip.length / Mathf.Max(0.01f, pitch) : 0f;
-        return PlayClipAt(position, clip, noiseType, clipSet.Volume * Mathf.Max(0f, additionalVolumeMultiplier), pitch, delay);
+        float resolvedSpatialBlend = clipSet.ResolveSpatialBlend(spatialBlend);
+        return PlayClipAt(position, clip, noiseType, clipSet.Volume * Mathf.Max(0f, additionalVolumeMultiplier), pitch, delay, resolvedSpatialBlend);
     }
 
-    public bool PlayClipAt(Vector3 position, AudioClip clip, NoiseType noiseType, float volume = 1f, float pitch = 1f, float delay = 0f)
+    public bool PlayClipAt(Vector3 position, AudioClip clip, NoiseType noiseType, float volume = 1f, float pitch = 1f, float delay = 0f, float spatialBlendOverride = -1f)
     {
         if (clip == null)
             return false;
@@ -175,10 +184,11 @@ public class WorldSfxManager : MonoBehaviour
         AudioSource source = runtimeSource.Source;
         source.transform.position = position;
         source.clip = clip;
-        source.volume = Mathf.Max(0f, volume);
+        runtimeSource.BaseVolume = Mathf.Max(0f, volume);
+        source.volume = 0f;
         source.pitch = Mathf.Max(0.01f, pitch);
         source.outputAudioMixerGroup = outputMixerGroup;
-        source.spatialBlend = spatialBlend;
+        source.spatialBlend = spatialBlendOverride >= 0f ? Mathf.Clamp01(spatialBlendOverride) : spatialBlend;
         source.minDistance = minDistance;
         source.maxDistance = maxDistance;
         source.rolloffMode = rolloffMode;
@@ -186,12 +196,26 @@ public class WorldSfxManager : MonoBehaviour
         source.spread = spread;
         source.priority = priority;
         source.loop = false;
-        ApplyPlayerOcclusion(runtimeSource, position, noiseType, Mathf.Max(0f, volume));
+        ApplyPlayerOcclusion(runtimeSource, position, noiseType, runtimeSource.BaseVolume);
         source.PlayDelayed(Mathf.Max(0f, delay));
 
         float clipDuration = Mathf.Max(0.01f, clip.length / Mathf.Max(0.01f, source.pitch));
         runtimeSource.BusyUntil = Time.time + Mathf.Max(0f, delay) + clipDuration;
         return true;
+    }
+
+    public void SetExternalVolumeMultiplier(float multiplier)
+    {
+        externalVolumeMultiplier = Mathf.Clamp01(multiplier);
+
+        for (int i = 0; i < runtimeSources.Count; i++)
+        {
+            RuntimeSource runtimeSource = runtimeSources[i];
+            if (runtimeSource?.Source == null)
+                continue;
+
+            ApplyRuntimeSourceVolume(runtimeSource, runtimeSource.BaseVolume);
+        }
     }
 
     private void Prewarm(int targetCount)
@@ -244,7 +268,8 @@ public class WorldSfxManager : MonoBehaviour
         {
             Source = source,
             LowPassFilter = lowPassFilter,
-            BusyUntil = 0f
+            BusyUntil = 0f,
+            BaseVolume = 0f
         };
     }
 
@@ -284,7 +309,7 @@ public class WorldSfxManager : MonoBehaviour
         AudioLowPassFilter lowPassFilter = runtimeSource.LowPassFilter;
         if (!enablePlayerOcclusion)
         {
-            runtimeSource.Source.volume = baseVolume;
+            ApplyRuntimeSourceVolume(runtimeSource, baseVolume);
             if (lowPassFilter != null)
                 lowPassFilter.enabled = false;
             return;
@@ -293,7 +318,7 @@ public class WorldSfxManager : MonoBehaviour
         Transform listenerTransform = ResolveListenerTransform();
         if (listenerTransform == null || occlusionMask.value == 0)
         {
-            runtimeSource.Source.volume = baseVolume;
+            ApplyRuntimeSourceVolume(runtimeSource, baseVolume);
             if (lowPassFilter != null)
                 lowPassFilter.enabled = false;
             return;
@@ -302,7 +327,7 @@ public class WorldSfxManager : MonoBehaviour
         int wallCount = CountBlockingWalls(listenerTransform.position, sourcePosition);
         if (wallCount <= 0)
         {
-            runtimeSource.Source.volume = baseVolume;
+            ApplyRuntimeSourceVolume(runtimeSource, baseVolume);
             if (lowPassFilter != null)
                 lowPassFilter.enabled = false;
             return;
@@ -310,7 +335,7 @@ public class WorldSfxManager : MonoBehaviour
 
         OcclusionSettings settings = ResolveOcclusionSettings(noiseType);
         float occludedVolume = baseVolume * Mathf.Pow(settings.perWallVolumeMultiplier, wallCount);
-        runtimeSource.Source.volume = occludedVolume;
+        ApplyRuntimeSourceVolume(runtimeSource, occludedVolume);
 
         if (lowPassFilter == null)
             return;
@@ -373,6 +398,15 @@ public class WorldSfxManager : MonoBehaviour
             cachedAudioListener = FindFirstObjectByType<AudioListener>();
 
         return cachedAudioListener != null ? cachedAudioListener.transform : null;
+    }
+
+    private void ApplyRuntimeSourceVolume(RuntimeSource runtimeSource, float volume)
+    {
+        if (runtimeSource?.Source == null)
+            return;
+
+        runtimeSource.BaseVolume = Mathf.Max(0f, volume);
+        runtimeSource.Source.volume = Mathf.Max(0f, runtimeSource.BaseVolume) * Mathf.Clamp01(externalVolumeMultiplier);
     }
 }
 }

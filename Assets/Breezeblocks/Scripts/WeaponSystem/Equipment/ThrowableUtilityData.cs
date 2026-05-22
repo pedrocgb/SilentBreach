@@ -100,6 +100,9 @@ public class ThrowableUtilityData : UtilityItemData
     [FoldoutGroup("Throwable/Detonation"), ShowIf(nameof(UsesDetonation))]
     [SerializeField] private bool detonationExtremeNoise = true;
 
+    [FoldoutGroup("Throwable/Detonation"), ShowIf(nameof(UsesDetonation)), LabelText("Detonation SFX"), InlineProperty]
+    [SerializeField] private AudioClipSet detonationSfx = new();
+
     [FoldoutGroup("Throwable/Detonation"), ShowIf(nameof(UsesDetonation)), MinValue(0f)]
     [SerializeField] private float effectRadius = 3f;
 
@@ -120,6 +123,12 @@ public class ThrowableUtilityData : UtilityItemData
 
     [FoldoutGroup("Throwable/Flashbang"), ShowIf(nameof(UsesFlashbang))]
     [SerializeField] private AudioClip playerRingingLoopClip;
+
+    [FoldoutGroup("Throwable/Flashbang"), ShowIf(nameof(UsesFlashbang)), LabelText("Override Ringing Spatial Blend")]
+    [SerializeField] private bool overridePlayerRingingSpatialBlend;
+
+    [FoldoutGroup("Throwable/Flashbang"), ShowIf("@UsesFlashbang && overridePlayerRingingSpatialBlend"), Range(0f, 1f)]
+    [SerializeField] private float playerRingingSpatialBlend;
 
     public override string UtilityTypeName => behavior switch
     {
@@ -156,6 +165,7 @@ public class ThrowableUtilityData : UtilityItemData
     public float DetonationNoise => detonationNoise;
     public NoiseType DetonationNoiseType => detonationNoiseType;
     public bool DetonationExtremeNoise => detonationExtremeNoise;
+    public AudioClipSet DetonationSfx => detonationSfx;
     public float EffectRadius => effectRadius;
     public LayerMask EffectObstacleMask => effectObstacleMask;
     public float ExplosionDamage => explosionDamage;
@@ -163,6 +173,8 @@ public class ThrowableUtilityData : UtilityItemData
     public float FlashbangRecoveryThreshold => flashbangRecoveryThreshold;
     public float FlashbangAimlessRotationSpeed => flashbangAimlessRotationSpeed;
     public AudioClip PlayerRingingLoopClip => playerRingingLoopClip;
+    public bool OverridePlayerRingingSpatialBlend => overridePlayerRingingSpatialBlend;
+    public float PlayerRingingSpatialBlend => Mathf.Clamp01(playerRingingSpatialBlend);
 
     public bool UsesDirectDamage => behavior == ThrowableUtilityBehavior.DirectDamage;
     public bool UsesExplosion => behavior == ThrowableUtilityBehavior.Explosion;
@@ -193,11 +205,14 @@ public class ThrowableUtilityData : UtilityItemData
         directHitStaggerDuration = Mathf.Max(0f, directHitStaggerDuration);
         detonationDelay = Mathf.Max(0f, detonationDelay);
         detonationNoise = Mathf.Max(0f, detonationNoise);
+        detonationSfx ??= new AudioClipSet();
+        detonationSfx.Validate();
         effectRadius = Mathf.Max(0f, effectRadius);
         explosionDamage = Mathf.Max(0f, explosionDamage);
         flashbangDuration = Mathf.Max(0.01f, flashbangDuration);
         flashbangRecoveryThreshold = Mathf.Clamp(flashbangRecoveryThreshold, 0f, flashbangDuration);
         flashbangAimlessRotationSpeed = Mathf.Max(0f, flashbangAimlessRotationSpeed);
+        playerRingingSpatialBlend = Mathf.Clamp01(playerRingingSpatialBlend);
     }
 }
 

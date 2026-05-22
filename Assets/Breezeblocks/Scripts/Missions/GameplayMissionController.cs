@@ -5,6 +5,7 @@ using System.Text;
 using Breezeblocks.HideoutSystem;
 using Breezeblocks.WeaponSystem;
 using DG.Tweening;
+using Rewired;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
@@ -63,6 +64,9 @@ public class GameplayMissionController : MonoBehaviour
 
     [FoldoutGroup("Player")]
     [SerializeField] private PlayerPickupInteractor playerPickupInteractor;
+
+    [FoldoutGroup("Player")]
+    [SerializeField] private PlayerFocusController playerFocusController;
 
     [FoldoutGroup("Player")]
     [SerializeField] private ActorHealth playerHealth;
@@ -208,6 +212,18 @@ public class GameplayMissionController : MonoBehaviour
     [FoldoutGroup("Intro Cinematic"), MinValue(0f), SuffixLabel("s", true)]
     [SerializeField] private float introDoorCloseWait = 0.45f;
 
+    [FoldoutGroup("Intro Cinematic/Rewired"), MinValue(0)]
+    [SerializeField] private int rewiredPlayerId;
+
+    [FoldoutGroup("Intro Cinematic/Rewired")]
+    [SerializeField] private string skipIntroAction = "SkipIntro";
+
+    [FoldoutGroup("Intro Cinematic"), MinValue(0f), SuffixLabel("s", true)]
+    [SerializeField] private float introSkipBlackHoldDuration = 0.5f;
+
+    [FoldoutGroup("Intro Cinematic"), LabelText("Initial Player Facing"), SuffixLabel("deg", true)]
+    [SerializeField] private float introInitialPlayerFacingDegrees;
+
     [FoldoutGroup("Intro Cinematic")]
     [SerializeField] private string openDoorAnimationState = "OpenDoor";
 
@@ -253,6 +269,9 @@ public class GameplayMissionController : MonoBehaviour
     [FoldoutGroup("Escape and Win"), MinValue(0f), SuffixLabel("u/s^2", true)]
     [SerializeField] private float outroDriveDeceleration = 0f;
 
+    [FoldoutGroup("Escape and Win"), LabelText("Win Cinematic Facing"), SuffixLabel("deg", true)]
+    [SerializeField] private float winCinematicFacingDegrees;
+
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public HideoutJobDefinition CurrentJob => currentJob;
 
@@ -267,6 +286,7 @@ public class GameplayMissionController : MonoBehaviour
     private Sequence escapePromptSequence;
     private Sequence timeLimitWarningSequence;
     private Tween carEngineLoopTween;
+    private Tween activeCinematicPlayerMoveTween;
     private HideoutJobDefinition currentJob;
     private Color timeLimitDefaultColor = Color.white;
     private bool gameplayStarted;
@@ -274,6 +294,15 @@ public class GameplayMissionController : MonoBehaviour
     private bool objectivesCompleted;
     private AudioSource carIdleLoopSource;
     private AudioSource carEngineLoopSource;
+    private float carIdleLoopBaseVolume;
+    private float carEngineLoopBaseVolume;
+    private float carAudioExternalVolumeMultiplier = 1f;
+    private Player rewiredPlayer;
+    private Coroutine introRoutine;
+    private Coroutine introSkipRoutine;
+    private bool playerVisionLightDefaultEnabled = true;
+    private bool playerFocusControllerDefaultEnabled = true;
+    private bool playerComponentDefaultStatesCached;
 
     private void Reset()
     {
@@ -283,6 +312,8 @@ public class GameplayMissionController : MonoBehaviour
     private void Awake()
     {
         CacheReferences();
+        GameplayConsoleController.EnsureOn(gameObject);
+        CachePlayerComponentDefaultStates();
         PrepareCarAudio();
         PrepareUiDefaults();
         InitializeJobRuntime();
@@ -293,6 +324,13 @@ public class GameplayMissionController : MonoBehaviour
         {
             missionEscapeTrigger.Bind(this);
             missionEscapeTrigger.SetEscapeEnabled(false);
+        }
+
+        if (playIntroCinematic && CanPlayIntroCinematic())
+        {
+            BlockPlayerControls(true);
+            SetIntroVisionLightActive(false);
+            ApplyPlayerFacingDegrees(introInitialPlayerFacingDegrees);
         }
     }
 
@@ -313,17 +351,25 @@ public class GameplayMissionController : MonoBehaviour
     private void Start()
     {
         if (playIntroCinematic && CanPlayIntroCinematic())
-            StartCoroutine(PlayIntroRoutine());
+        {
+            SetIntroVisionLightActive(false);
+            ApplyPlayerFacingDegrees(introInitialPlayerFacingDegrees);
+            introRoutine = StartCoroutine(PlayIntroRoutine());
+        }
         else
             StartGameplay();
     }
 
     private void Update()
     {
+        if (introRoutine != null && introSkipRoutine == null)
+            TryHandleIntroSkipInput();
+
         if (!missionEnded && gameplayStarted)
             UpdateTimeLimitFailures(Time.deltaTime);
 
         EnsureCarIdleLoopRunning();
+        ApplyCarLoopVolumes();
         RefreshTimeLimitUi();
     }
 
@@ -345,10 +391,18 @@ public class GameplayMissionController : MonoBehaviour
         StopTimeLimitWarningPulse(resetScale: false);
         carEngineLoopTween?.Kill();
         carEngineLoopTween = null;
+        activeCinematicPlayerMoveTween?.Kill();
+        activeCinematicPlayerMoveTween = null;
         if (carIdleLoopSource != null)
             carIdleLoopSource.Stop();
         if (carEngineLoopSource != null)
             carEngineLoopSource.Stop();
+
+        if (playerVisionLight != null)
+            playerVisionLight.enabled = playerVisionLightDefaultEnabled;
+
+        if (playerFocusController != null)
+            playerFocusController.enabled = playerFocusControllerDefaultEnabled;
     }
 
     public void TryHandleEscapeTrigger(GameObject enteringRoot)
@@ -479,6 +533,9 @@ public class GameplayMissionController : MonoBehaviour
         if (playerPickupInteractor == null)
             playerPickupInteractor = playerRoot.GetComponent<PlayerPickupInteractor>();
 
+        if (playerFocusController == null)
+            playerFocusController = playerRoot.GetComponent<PlayerFocusController>();
+
         if (playerHealth == null)
             playerHealth = playerRoot.GetComponent<ActorHealth>();
 
@@ -487,6 +544,18 @@ public class GameplayMissionController : MonoBehaviour
 
         if (missionMusicController == null)
             missionMusicController = FindFirstObjectByType<MissionMusicController>();
+
+        ResolveRewiredPlayer();
+    }
+
+    private void CachePlayerComponentDefaultStates()
+    {
+        if (playerComponentDefaultStatesCached)
+            return;
+
+        playerVisionLightDefaultEnabled = playerVisionLight != null && playerVisionLight.enabled;
+        playerFocusControllerDefaultEnabled = playerFocusController != null && playerFocusController.enabled;
+        playerComponentDefaultStatesCached = true;
     }
 
     private void PrepareUiDefaults()
@@ -558,7 +627,9 @@ public class GameplayMissionController : MonoBehaviour
     private IEnumerator PlayIntroRoutine()
     {
         BlockPlayerControls(true);
-        AttachPlayerToPoint(introCarSeatPoint != null ? introCarSeatPoint : introCarTransform, parentToSeat: true);
+        SetIntroVisionLightActive(false);
+        ApplyPlayerFacingDegrees(introInitialPlayerFacingDegrees);
+        AttachPlayerToPoint(introCarSeatPoint != null ? introCarSeatPoint : introCarTransform, parentToSeat: true, facingDegrees: introInitialPlayerFacingDegrees);
 
         yield return DriveCarToPoint(introCarTransform, introDriveTarget, introDriveSpeed, introDriveAcceleration, introDriveDeceleration, startAtCruiseSpeed: true);
 
@@ -577,6 +648,7 @@ public class GameplayMissionController : MonoBehaviour
         if (introDoorCloseWait > 0f)
             yield return new WaitForSecondsRealtime(introDoorCloseWait);
 
+        introRoutine = null;
         StartGameplay();
     }
 
@@ -585,6 +657,7 @@ public class GameplayMissionController : MonoBehaviour
         gameplayStarted = true;
         SetCollidersEnabled(collidersToEnableAfterGameplayStart, true);
         SetGameObjectsActive(gameObjectsToEnableAfterGameplayStart, true);
+        SetIntroVisionLightActive(true);
         BlockPlayerControls(false);
         RefreshTimeLimitUi();
 
@@ -602,6 +675,7 @@ public class GameplayMissionController : MonoBehaviour
         escapePromptSequence = null;
         StopTimeLimitWarningPulse();
         BlockPlayerControls(true);
+        ApplyPlayerFacingDegrees(winCinematicFacingDegrees);
         SetGameObjectsActive(gameObjectsToEnableAfterGameplayStart, false);
 
         if (introCarTransform == null)
@@ -623,10 +697,10 @@ public class GameplayMissionController : MonoBehaviour
             ? outroCarSeatPoint
             : outroPlayerEntryPoint != null ? outroPlayerEntryPoint : introCarTransform;
         yield return MovePlayerToPoint(boardingSeatTarget, boardingSeatTarget, outroPlayerEntryDuration);
-        AttachPlayerToPoint(outroCarSeatPoint != null ? outroCarSeatPoint : introCarTransform, parentToSeat: true);
+        AttachPlayerToPoint(outroCarSeatPoint != null ? outroCarSeatPoint : introCarTransform, parentToSeat: true, facingDegrees: winCinematicFacingDegrees);
         float carStartDuration = PlayCarStartSfx();
         float carStartSfxEndTime = carStartDuration > 0f ? Time.unscaledTime + carStartDuration : float.NegativeInfinity;
-        ClampPlayerRotationToZero();
+        ApplyPlayerFacingDegrees(winCinematicFacingDegrees);
         SetCollidersEnabled(collidersToEnableAfterGameplayStart, false);
 
         PlayCarAnimation(closeDoorAnimationState);
@@ -659,17 +733,64 @@ public class GameplayMissionController : MonoBehaviour
             screen.SetActive(true);
     }
 
+    private void TryHandleIntroSkipInput()
+    {
+        if (!CanPlayIntroCinematic() || gameplayStarted || missionEnded)
+            return;
+
+        if (rewiredPlayer == null && !ResolveRewiredPlayer())
+            return;
+
+        if (!rewiredPlayer.GetButtonDown(skipIntroAction))
+            return;
+
+        introSkipRoutine = StartCoroutine(SkipIntroRoutine());
+    }
+
+    private IEnumerator SkipIntroRoutine()
+    {
+        if (introRoutine != null)
+        {
+            StopCoroutine(introRoutine);
+            introRoutine = null;
+        }
+
+        activeCinematicPlayerMoveTween?.Kill();
+        activeCinematicPlayerMoveTween = null;
+
+        BlockPlayerControls(true);
+        SetIntroVisionLightActive(false);
+
+        Tween fadeInTween = fadeImageFader != null ? fadeImageFader.FadeIn(screenFadeDuration) : null;
+        if (fadeInTween != null)
+            yield return fadeInTween.WaitForCompletion();
+
+        CompleteIntroInstantly();
+        StartGameplay();
+
+        if (introSkipBlackHoldDuration > 0f)
+            yield return new WaitForSecondsRealtime(introSkipBlackHoldDuration);
+
+        Tween fadeOutTween = fadeImageFader != null ? fadeImageFader.FadeOut(screenFadeDuration) : null;
+        if (fadeOutTween != null)
+            yield return fadeOutTween.WaitForCompletion();
+
+        introSkipRoutine = null;
+    }
+
     private IEnumerator MovePlayerToPoint(Transform targetPoint, Transform facingTarget, float duration)
     {
         if (playerRoot == null || targetPoint == null)
             yield break;
 
-        Tween moveTween = playerRoot.DOMove(targetPoint.position, Mathf.Max(0f, duration))
+        activeCinematicPlayerMoveTween?.Kill();
+        activeCinematicPlayerMoveTween = playerRoot.DOMove(targetPoint.position, Mathf.Max(0f, duration))
             .SetEase(Ease.InOutSine)
             .SetUpdate(true)
             .OnUpdate(() => ForcePlayerFacing(facingTarget != null ? facingTarget.position : targetPoint.position));
 
-        yield return moveTween.WaitForCompletion();
+        yield return activeCinematicPlayerMoveTween.WaitForCompletion();
+        activeCinematicPlayerMoveTween = null;
         ForcePlayerFacing(facingTarget != null ? facingTarget.position : targetPoint.position);
     }
 
@@ -754,7 +875,31 @@ public class GameplayMissionController : MonoBehaviour
         SetCarEngineLoopActive(false);
     }
 
-    private void AttachPlayerToPoint(Transform targetPoint, bool parentToSeat)
+    private void CompleteIntroInstantly()
+    {
+        SetCarEngineLoopActive(false);
+
+        if (introCarTransform != null && introDriveTarget != null)
+            introCarTransform.position = introDriveTarget.position;
+
+        PlayCarAnimation(closeDoorAnimationState, 1f);
+
+        if (playerRoot != null)
+            playerRoot.SetParent(null, true);
+
+        if (playerRoot != null && introPlayerExitPoint != null)
+            playerRoot.position = introPlayerExitPoint.position;
+
+        if (introPlayerFacingTarget != null)
+            ForcePlayerFacing(introPlayerFacingTarget.position);
+        else
+            ApplyPlayerFacingDegrees(introInitialPlayerFacingDegrees);
+
+        if (playerBody != null)
+            playerBody.linearVelocity = Vector2.zero;
+    }
+
+    private void AttachPlayerToPoint(Transform targetPoint, bool parentToSeat, float? facingDegrees = null)
     {
         if (playerRoot == null || targetPoint == null)
             return;
@@ -765,15 +910,20 @@ public class GameplayMissionController : MonoBehaviour
             playerRoot.SetParent(null, true);
 
         playerRoot.position = targetPoint.position;
+        if (facingDegrees.HasValue)
+            ApplyPlayerFacingDegrees(facingDegrees.Value);
     }
 
-    private void ClampPlayerRotationToZero()
+    private void ApplyPlayerFacingDegrees(float facingDegrees)
     {
         if (playerRoot != null)
-            playerRoot.rotation = Quaternion.identity;
+            playerRoot.rotation = Quaternion.Euler(0f, 0f, facingDegrees);
 
         if (playerBody != null)
-            playerBody.rotation = 0f;
+            playerBody.rotation = facingDegrees;
+
+        if (playerVisionLight != null)
+            playerVisionLight.ApplyExternalDirection(RotateUpByDegrees(facingDegrees), 0f, 0f);
     }
 
     private void ForcePlayerFacing(Vector3 worldTarget)
@@ -788,12 +938,13 @@ public class GameplayMissionController : MonoBehaviour
         playerVisionLight.ApplyExternalDirection(direction.normalized, playerVisionLight.RotationSmoothing, Time.unscaledDeltaTime);
     }
 
-    private void PlayCarAnimation(string stateName)
+    private void PlayCarAnimation(string stateName, float normalizedTime = 0f)
     {
         if (introCarAnimator == null || string.IsNullOrWhiteSpace(stateName))
             return;
 
-        introCarAnimator.Play(stateName, 0, 0f);
+        introCarAnimator.Play(stateName, 0, Mathf.Clamp01(normalizedTime));
+        introCarAnimator.Update(0f);
     }
 
     private void PlayCarDoorOpenSfx()
@@ -829,7 +980,9 @@ public class GameplayMissionController : MonoBehaviour
         if (carIdleLoopSource == null || carIdleLoopSource.isPlaying || carIdleLoopSfx == null || !carIdleLoopSfx.HasAnyClip)
             return;
 
-        PlayLoopClipSet(carIdleLoopSource, carIdleLoopSfx, startVolume: true);
+        carIdleLoopBaseVolume = Mathf.Clamp01(carIdleLoopSfx.Volume);
+        PlayLoopClipSet(carIdleLoopSource, carIdleLoopSfx, initialVolume: 0f);
+        ApplyCarLoopVolumes();
     }
 
     private void EnsureCarIdleLoopRunning()
@@ -847,7 +1000,7 @@ public class GameplayMissionController : MonoBehaviour
             return;
         }
 
-        carIdleLoopSource.volume = Mathf.Clamp01(carIdleLoopSfx.Volume);
+        carIdleLoopBaseVolume = Mathf.Clamp01(carIdleLoopSfx.Volume);
     }
 
     private void SetCarEngineLoopActive(bool active)
@@ -866,15 +1019,22 @@ public class GameplayMissionController : MonoBehaviour
         if (active)
         {
             if (!carEngineLoopSource.isPlaying)
-                PlayLoopClipSet(carEngineLoopSource, carEngineLoopSfx, startVolume: false);
+            {
+                carEngineLoopBaseVolume = 0f;
+                PlayLoopClipSet(carEngineLoopSource, carEngineLoopSfx, initialVolume: 0f);
+            }
 
             if (carEngineLoopSource.clip == null)
                 return;
 
             float targetVolume = carEngineLoopSfx != null ? Mathf.Clamp01(carEngineLoopSfx.Volume) : 0f;
             carEngineLoopTween = DOTween.To(
-                    () => carEngineLoopSource.volume,
-                    value => carEngineLoopSource.volume = Mathf.Clamp01(value),
+                    () => carEngineLoopBaseVolume,
+                    value =>
+                    {
+                        carEngineLoopBaseVolume = Mathf.Clamp01(value);
+                        ApplyCarLoopVolumes();
+                    },
                     targetVolume,
                     0.2f)
                 .SetEase(Ease.InOutSine)
@@ -886,8 +1046,12 @@ public class GameplayMissionController : MonoBehaviour
             return;
 
         carEngineLoopTween = DOTween.To(
-                () => carEngineLoopSource.volume,
-                value => carEngineLoopSource.volume = Mathf.Clamp01(value),
+                () => carEngineLoopBaseVolume,
+                value =>
+                {
+                    carEngineLoopBaseVolume = Mathf.Clamp01(value);
+                    ApplyCarLoopVolumes();
+                },
                 0f,
                 0.2f)
             .SetEase(Ease.InOutSine)
@@ -899,7 +1063,15 @@ public class GameplayMissionController : MonoBehaviour
                     carEngineLoopSource.Stop();
                     carEngineLoopSource.clip = null;
                 }
+
+                carEngineLoopBaseVolume = 0f;
             });
+    }
+
+    public void SetExternalCarAudioVolumeMultiplier(float multiplier)
+    {
+        carAudioExternalVolumeMultiplier = Mathf.Clamp01(multiplier);
+        ApplyCarLoopVolumes();
     }
 
     private AudioSource EnsureCarLoopSource(AudioSource existingSource, string objectName, Vector3 localOffset)
@@ -944,7 +1116,7 @@ public class GameplayMissionController : MonoBehaviour
         source.priority = carLoopPriority;
     }
 
-    private static void PlayLoopClipSet(AudioSource source, AudioClipSet clipSet, bool startVolume)
+    private static void PlayLoopClipSet(AudioSource source, AudioClipSet clipSet, float initialVolume)
     {
         if (source == null || clipSet == null || !clipSet.HasAnyClip)
             return;
@@ -955,15 +1127,36 @@ public class GameplayMissionController : MonoBehaviour
 
         source.clip = clip;
         source.pitch = clipSet.GetRandomPitch();
-        source.volume = startVolume ? Mathf.Clamp01(clipSet.Volume) : 0f;
+        source.spatialBlend = clipSet.ResolveSpatialBlend(source.spatialBlend);
+        source.volume = Mathf.Clamp01(initialVolume);
         source.loop = true;
         source.Play();
+    }
+
+    private void ApplyCarLoopVolumes()
+    {
+        float multiplier = Mathf.Clamp01(carAudioExternalVolumeMultiplier);
+
+        if (carIdleLoopSource != null)
+            carIdleLoopSource.volume = Mathf.Clamp01(carIdleLoopBaseVolume * multiplier);
+
+        if (carEngineLoopSource != null)
+            carEngineLoopSource.volume = Mathf.Clamp01(carEngineLoopBaseVolume * multiplier);
     }
 
     private void ResolveWorldSfxManager()
     {
         if (worldSfxManager == null)
             worldSfxManager = WorldSfxManager.Instance;
+    }
+
+    private bool ResolveRewiredPlayer()
+    {
+        if (!ReInput.isReady)
+            return false;
+
+        rewiredPlayer = ReInput.players.GetPlayer(rewiredPlayerId);
+        return rewiredPlayer != null;
     }
 
     private void BlockPlayerControls(bool blocked)
@@ -981,12 +1174,35 @@ public class GameplayMissionController : MonoBehaviour
         playerUtilityController?.SetInputBlocked(blocked);
         playerMeleeController?.SetInputBlocked(blocked);
         playerPickupInteractor?.SetInputBlocked(blocked);
+        if (playerFocusController != null)
+        {
+            if (!blocked)
+                playerFocusController.enabled = playerFocusControllerDefaultEnabled;
+
+            playerFocusController.SetInputBlocked(blocked);
+
+            if (blocked)
+                playerFocusController.enabled = false;
+        }
 
         if (blocked && playerBody != null)
             playerBody.linearVelocity = Vector2.zero;
 
         if (!blocked && playerVisionLight != null)
             playerVisionLight.DriveMouseLook(playerVisionLight.RotationSmoothing, 0f);
+    }
+
+    private void SetIntroVisionLightActive(bool active)
+    {
+        if (playerVisionLight == null)
+            return;
+
+        playerVisionLight.enabled = active && playerVisionLightDefaultEnabled;
+    }
+
+    private static Vector2 RotateUpByDegrees(float degrees)
+    {
+        return (Quaternion.Euler(0f, 0f, degrees) * Vector2.up).normalized;
     }
 
     private void HandleActorKilled(MissionActorEvent actorEvent)

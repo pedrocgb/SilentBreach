@@ -13,8 +13,11 @@ MonoBehaviour:
   m_Name: PokerNightStakeout
   m_EditorClassIdentifier: 
   jobTitle: Noite do Poker
+  jobId: PokerNightStakeout
   jobDescription: "Entre sorrateiramente na sala de p\xF4quer, recupere o livro de
     contabilidade e saia antes que a mesa perceba que foi roubada. "
+  rewardCash: 5000
+  rewardInfluencePoints: 1
   rewardText: "R$ 5000 e 1 ponto de influ\xEAncia"
   objectivesText: '- Encontre e pegue o livro de contabilidade;
 
@@ -30,13 +33,16 @@ MonoBehaviour:
   gameplayFailures:
   - failureType: 3
     displayText: "N\xE3o matar ningu\xE9m."
+    failureScreenMessage: "Assassinato n\xE3o permitido."
     timeLimitSeconds: 300
   - failureType: 5
     displayText: Complete antes que a jogatina acabe.
+    failureScreenMessage: O jogo de poker chegou ao fim.
     timeLimitSeconds: 300
   fixerName: Mara Velvet Quinn
   jobImage: {fileID: 0}
-  questScenePath: Assets/Breezeblocks/Scenes/[2] Poker Scene.unity
+  missionScenePath: Assets/Breezeblocks/Scenes/[2] Poker Scene.unity
+  unlockJobs: []
   shopTitle: Receptador
   shopDescription: 
   shopImage: {fileID: 0}

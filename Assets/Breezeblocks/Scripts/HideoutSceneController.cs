@@ -154,6 +154,7 @@ public sealed class HideoutSceneController : MonoBehaviour
     private PreparedFenceOffer selectedOffer;
     private EquipmentSlotType selectedEquipmentSlot = EquipmentSlotType.None;
     private DetailSelectionSource detailSelectionSource = DetailSelectionSource.None;
+    private int totalConfiguredJobs;
 
     private void Awake()
     {
@@ -165,8 +166,7 @@ public sealed class HideoutSceneController : MonoBehaviour
         ConfigurePlaceholderPanels();
         LoadAvailableJobs();
 
-        if (availableJobs.Count > 0)
-            selectedJob = availableJobs[0];
+        selectedJob = ResolveInitialSelectedJob();
 
         RebuildJobList();
         RefreshJobDetails();
@@ -175,9 +175,16 @@ public sealed class HideoutSceneController : MonoBehaviour
         RefreshDetailPanel();
         ShowView(HideoutView.MainMenu);
 
-        SetMessage(availableJobs.Count > 0
-            ? "Hideout scene is now fully manual. Wire your own buttons and layout in the editor."
-            : "No hideout jobs were found in Resources. Create a Hideout Job asset to populate this screen.");
+        if (HideoutRuntimeSession.TryConsumePendingHideoutMessage(out string pendingMessage))
+            SetMessage(pendingMessage);
+        else
+        {
+            SetMessage(availableJobs.Count > 0
+                ? "Hideout scene is now fully manual. Wire your own buttons and layout in the editor."
+                : totalConfiguredJobs > 0
+                    ? "No jobs are currently available."
+                    : "No hideout jobs were found in Resources. Create a Hideout Job asset to populate this screen.");
+        }
     }
 
     private void OnDestroy()
@@ -256,7 +263,7 @@ public sealed class HideoutSceneController : MonoBehaviour
 
     public void StartQuest()
     {
-        if (selectedJob == null || string.IsNullOrWhiteSpace(selectedJob.QuestScenePath))
+        if (selectedJob == null || string.IsNullOrWhiteSpace(selectedJob.MissionScenePath))
         {
             SetMessage("This job does not have a quest scene configured yet.");
             return;
@@ -265,7 +272,7 @@ public sealed class HideoutSceneController : MonoBehaviour
         PlayerEquipmentRuntimeSession.SetPendingQuestLoadout(BuildRuntimeLoadout());
         HideoutRuntimeSession.SetCurrentJob(selectedJob);
         Time.timeScale = 1f;
-        SceneManager.LoadScene(selectedJob.QuestScenePath);
+        SceneManager.LoadScene(selectedJob.MissionScenePath);
     }
 
     private void InitializeLoadoutSlots()
@@ -349,13 +356,52 @@ public sealed class HideoutSceneController : MonoBehaviour
     {
         availableJobs.Clear();
         HideoutJobDefinition[] jobs = Resources.LoadAll<HideoutJobDefinition>(resourcesSearchPath ?? string.Empty);
+        totalConfiguredJobs = 0;
+        HashSet<string> lockedJobIds = new(StringComparer.OrdinalIgnoreCase);
+
+        for (int i = 0; i < jobs.Length; i++)
+        {
+            HideoutJobDefinition job = jobs[i];
+            if (job == null)
+                continue;
+
+            totalConfiguredJobs++;
+            if (job.UnlockJobs == null)
+                continue;
+
+            for (int unlockIndex = 0; unlockIndex < job.UnlockJobs.Count; unlockIndex++)
+            {
+                HideoutJobDefinition unlockJob = job.UnlockJobs[unlockIndex];
+                if (unlockJob == null || string.IsNullOrWhiteSpace(unlockJob.JobId))
+                    continue;
+
+                lockedJobIds.Add(unlockJob.JobId);
+            }
+        }
+
         Array.Sort(jobs, (left, right) => string.Compare(left != null ? left.JobTitle : string.Empty, right != null ? right.JobTitle : string.Empty, StringComparison.OrdinalIgnoreCase));
 
         for (int i = 0; i < jobs.Length; i++)
         {
-            if (jobs[i] != null)
-                availableJobs.Add(jobs[i]);
+            HideoutJobDefinition job = jobs[i];
+            if (job == null || HideoutRuntimeSession.IsJobCompleted(job))
+                continue;
+
+            bool isBaseJob = !lockedJobIds.Contains(job.JobId);
+            if (!isBaseJob && !HideoutRuntimeSession.IsJobUnlocked(job))
+                continue;
+
+            availableJobs.Add(job);
         }
+    }
+
+    private HideoutJobDefinition ResolveInitialSelectedJob()
+    {
+        HideoutJobDefinition runtimeJob = HideoutRuntimeSession.CurrentJob;
+        if (runtimeJob != null && availableJobs.Contains(runtimeJob))
+            return runtimeJob;
+
+        return availableJobs.Count > 0 ? availableJobs[0] : null;
     }
 
     private void RebuildJobList()
@@ -527,7 +573,7 @@ public sealed class HideoutSceneController : MonoBehaviour
         RefreshDetailPanel();
 
         if (fencePanel.startQuestButton != null)
-            fencePanel.startQuestButton.interactable = selectedJob != null && !string.IsNullOrWhiteSpace(selectedJob.QuestScenePath);
+            fencePanel.startQuestButton.interactable = selectedJob != null && !string.IsNullOrWhiteSpace(selectedJob.MissionScenePath);
     }
 
     private void SelectInitialFenceDetail()
@@ -1045,12 +1091,12 @@ public sealed class HideoutSceneController : MonoBehaviour
             return string.Empty;
 
         if (string.IsNullOrWhiteSpace(job.FixerName))
-            return job.RewardText ?? string.Empty;
+            return job.RewardSummaryText ?? string.Empty;
 
-        if (string.IsNullOrWhiteSpace(job.RewardText))
+        if (string.IsNullOrWhiteSpace(job.RewardSummaryText))
             return job.FixerName;
 
-        return $"{job.FixerName} | {job.RewardText}";
+        return $"{job.FixerName} | {job.RewardSummaryText}";
     }
 
     private static Transform ResolvePreservedTemplate(RectTransform contentRoot, Transform templateTransform)

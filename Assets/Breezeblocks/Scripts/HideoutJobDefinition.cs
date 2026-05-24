@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Breezeblocks.WeaponSystem;
 
 namespace Breezeblocks.HideoutSystem
@@ -67,11 +68,14 @@ public sealed class HideoutJobFailureDefinition
 {
     [SerializeField] private HideoutJobFailureType failureType;
     [SerializeField] private string displayText;
+    [TextArea(2, 4)]
+    [SerializeField] private string failureScreenMessage;
     [ShowIf(nameof(UsesTimeLimit)), MinValue(0.01f), SuffixLabel("s", true)]
     [SerializeField] private float timeLimitSeconds = 300f;
 
     public HideoutJobFailureType FailureType => failureType;
     public string DisplayText => ResolveDisplayText();
+    public string FailureScreenMessage => ResolveFailureScreenMessage();
     public float TimeLimitSeconds => Mathf.Max(0.01f, timeLimitSeconds);
 
     private bool UsesTimeLimit => failureType == HideoutJobFailureType.TimeLimit;
@@ -93,9 +97,27 @@ public sealed class HideoutJobFailureDefinition
         };
     }
 
+    public string ResolveFailureScreenMessage()
+    {
+        if (!string.IsNullOrWhiteSpace(failureScreenMessage))
+            return failureScreenMessage.Trim();
+
+        return failureType switch
+        {
+            HideoutJobFailureType.DontHarmInnocent => "Mission Failed. You were not supposed to harm innocents!",
+            HideoutJobFailureType.DontKillInnocent => "Mission Failed. You were not supposed to kill innocents!",
+            HideoutJobFailureType.DontHarmAnyone => "Mission Failed. You were not supposed to harm anyone!",
+            HideoutJobFailureType.DontKillAnyone => "Mission Failed. You were not supposed to kill anyone!",
+            HideoutJobFailureType.DontBeDetected => "Mission Failed. You were detected!",
+            HideoutJobFailureType.TimeLimit => "Mission Failed. You ran out of time!",
+            _ => "Mission Failed."
+        };
+    }
+
     public void OnValidate()
     {
         displayText = displayText != null ? displayText.Trim() : string.Empty;
+        failureScreenMessage = failureScreenMessage != null ? failureScreenMessage.Trim() : string.Empty;
         timeLimitSeconds = Mathf.Max(0.01f, timeLimitSeconds);
     }
 }
@@ -133,10 +155,19 @@ public sealed class HideoutJobDefinition : ScriptableObject
     [FoldoutGroup("Job")]
     [SerializeField] private string jobTitle;
 
+    [FoldoutGroup("Job")]
+    [SerializeField] private string jobId;
+
     [FoldoutGroup("Job"), TextArea(3, 8)]
     [SerializeField] private string jobDescription;
 
-    [FoldoutGroup("Job")]
+    [FoldoutGroup("Rewards"), MinValue(0)]
+    [SerializeField] private int rewardCash;
+
+    [FoldoutGroup("Rewards"), MinValue(0)]
+    [SerializeField] private int rewardInfluencePoints;
+
+    [FoldoutGroup("Rewards"), TextArea(1, 4)]
     [SerializeField] private string rewardText;
 
     [FoldoutGroup("Job"), TextArea(2, 6)]
@@ -157,8 +188,12 @@ public sealed class HideoutJobDefinition : ScriptableObject
     [FoldoutGroup("Job"), PreviewField(96, ObjectFieldAlignment.Left)]
     [SerializeField] private Sprite jobImage;
 
-    [FoldoutGroup("Job")]
-    [SerializeField] private string questScenePath = "Assets/Breezeblocks/Scenes/[2] Poker Scene.unity";
+    [FoldoutGroup("Gameplay"), LabelText("Mission Scene")]
+    [FormerlySerializedAs("questScenePath")]
+    [SerializeField] private string missionScenePath = "Assets/Breezeblocks/Scenes/[2] Poker Scene.unity";
+
+    [FoldoutGroup("Gameplay"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
+    [SerializeField] private List<HideoutJobDefinition> unlockJobs = new();
 
     [FoldoutGroup("Fence")]
     [SerializeField] private string shopTitle = "The Fence";
@@ -173,8 +208,12 @@ public sealed class HideoutJobDefinition : ScriptableObject
     [SerializeField] private List<HideoutFenceOfferDefinition> fenceOffers = new();
 
     public string JobTitle => string.IsNullOrWhiteSpace(jobTitle) ? name : jobTitle;
+    public string JobId => string.IsNullOrWhiteSpace(jobId) ? name : jobId;
     public string JobDescription => jobDescription ?? string.Empty;
-    public string RewardText => rewardText ?? string.Empty;
+    public int RewardCash => Mathf.Max(0, rewardCash);
+    public int RewardInfluencePoints => Mathf.Max(0, rewardInfluencePoints);
+    public string RewardText => BuildRewardText();
+    public string RewardSummaryText => BuildRewardSummaryText();
     public string ObjectivesText => string.IsNullOrWhiteSpace(objectivesText)
         ? BuildFormattedList(gameplayObjectives, objective => objective?.DisplayText)
         : objectivesText ?? string.Empty;
@@ -183,28 +222,34 @@ public sealed class HideoutJobDefinition : ScriptableObject
         : termsOfFailureText ?? string.Empty;
     public string FixerName => fixerName ?? string.Empty;
     public Sprite JobImage => jobImage;
-    public string QuestScenePath => questScenePath ?? string.Empty;
+    public string MissionScenePath => missionScenePath ?? string.Empty;
+    public string QuestScenePath => MissionScenePath;
     public string ShopTitle => string.IsNullOrWhiteSpace(shopTitle) ? "The Fence" : shopTitle;
     public string ShopDescription => shopDescription ?? string.Empty;
     public Sprite ShopImage => shopImage;
     public IReadOnlyList<HideoutFenceOfferDefinition> FenceOffers => fenceOffers;
     public IReadOnlyList<HideoutJobObjectiveDefinition> GameplayObjectives => gameplayObjectives;
     public IReadOnlyList<HideoutJobFailureDefinition> GameplayFailures => gameplayFailures;
+    public IReadOnlyList<HideoutJobDefinition> UnlockJobs => unlockJobs;
 
     private void OnValidate()
     {
         jobTitle = jobTitle != null ? jobTitle.Trim() : string.Empty;
+        jobId = string.IsNullOrWhiteSpace(jobId) ? name : jobId.Trim();
         jobDescription ??= string.Empty;
+        rewardCash = Mathf.Max(0, rewardCash);
+        rewardInfluencePoints = Mathf.Max(0, rewardInfluencePoints);
         rewardText ??= string.Empty;
         objectivesText ??= string.Empty;
         termsOfFailureText ??= string.Empty;
         fixerName = fixerName != null ? fixerName.Trim() : string.Empty;
-        questScenePath = questScenePath != null ? questScenePath.Trim() : string.Empty;
+        missionScenePath = missionScenePath != null ? missionScenePath.Trim() : string.Empty;
         shopTitle = string.IsNullOrWhiteSpace(shopTitle) ? "The Fence" : shopTitle.Trim();
         shopDescription ??= string.Empty;
         fenceOffers ??= new List<HideoutFenceOfferDefinition>();
         gameplayObjectives ??= new List<HideoutJobObjectiveDefinition>();
         gameplayFailures ??= new List<HideoutJobFailureDefinition>();
+        unlockJobs ??= new List<HideoutJobDefinition>();
 
         for (int i = 0; i < fenceOffers.Count; i++)
         {
@@ -225,6 +270,47 @@ public sealed class HideoutJobDefinition : ScriptableObject
 
         for (int i = 0; i < gameplayFailures.Count; i++)
             gameplayFailures[i]?.OnValidate();
+    }
+
+    private string BuildRewardText()
+    {
+        StringBuilder builder = new();
+
+        if (RewardCash > 0)
+            builder.Append($"- Money: ${RewardCash}");
+
+        if (RewardInfluencePoints > 0)
+        {
+            if (builder.Length > 0)
+                builder.Append('\n');
+
+            builder.Append($"- Influence: +{RewardInfluencePoints}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(rewardText))
+        {
+            if (builder.Length > 0)
+                builder.Append('\n');
+
+            builder.Append(rewardText.Trim());
+        }
+
+        return builder.ToString();
+    }
+
+    private string BuildRewardSummaryText()
+    {
+        List<string> parts = new();
+        if (RewardCash > 0)
+            parts.Add($"${RewardCash}");
+
+        if (RewardInfluencePoints > 0)
+            parts.Add($"Influence +{RewardInfluencePoints}");
+
+        if (parts.Count > 0)
+            return string.Join(" | ", parts);
+
+        return rewardText != null ? rewardText.Trim() : string.Empty;
     }
 
     private static string BuildFormattedList<T>(IReadOnlyList<T> entries, Func<T, string> resolver)

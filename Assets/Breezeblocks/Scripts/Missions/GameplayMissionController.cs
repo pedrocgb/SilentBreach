@@ -10,6 +10,8 @@ using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Audio;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace Breezeblocks.Missions
 {
@@ -167,11 +169,44 @@ public class GameplayMissionController : MonoBehaviour
     [FoldoutGroup("Fade and Screens")]
     [SerializeField] private GameObject questFailScreen;
 
+    [FoldoutGroup("Fade and Screens/Failure")]
+    [SerializeField] private TMP_Text questFailMessageText;
+
+    [FoldoutGroup("Fade and Screens/Failure")]
+    [SerializeField] private Button questFailRetryButton;
+
+    [FoldoutGroup("Fade and Screens/Failure")]
+    [SerializeField] private Button questFailQuitButton;
+
     [FoldoutGroup("Fade and Screens")]
     [SerializeField] private GameObject playerKilledScreen;
 
+    [FoldoutGroup("Fade and Screens/Death")]
+    [SerializeField] private TMP_Text playerKilledMessageText;
+
+    [FoldoutGroup("Fade and Screens/Death"), TextArea(2, 4)]
+    [SerializeField] private string playerKilledMessage = "Game Over.";
+
+    [FoldoutGroup("Fade and Screens/Death")]
+    [SerializeField] private Button playerKilledRetryButton;
+
+    [FoldoutGroup("Fade and Screens/Death")]
+    [SerializeField] private Button playerKilledQuitButton;
+
     [FoldoutGroup("Fade and Screens")]
     [SerializeField] private GameObject gameWinScreen;
+
+    [FoldoutGroup("Fade and Screens/Win")]
+    [SerializeField] private TMP_Text gameWinMessageText;
+
+    [FoldoutGroup("Fade and Screens/Win"), TextArea(2, 4)]
+    [SerializeField] private string missionCompletedMessage = "Mission Complete.";
+
+    [FoldoutGroup("Fade and Screens/Win")]
+    [SerializeField] private Button gameWinContinueButton;
+
+    [FoldoutGroup("Scene Loading"), LabelText("Hideout Scene")]
+    [SerializeField] private string hideoutScenePath = "Assets/Breezeblocks/Scenes/[1] Hideout.unity";
 
     [FoldoutGroup("Intro Cinematic")]
     [SerializeField] private bool playIntroCinematic = true;
@@ -303,6 +338,7 @@ public class GameplayMissionController : MonoBehaviour
     private bool playerVisionLightDefaultEnabled = true;
     private bool playerFocusControllerDefaultEnabled = true;
     private bool playerComponentDefaultStatesCached;
+    private bool sceneTransitionInProgress;
 
     private void Reset()
     {
@@ -340,6 +376,7 @@ public class GameplayMissionController : MonoBehaviour
         MissionRuntimeEvents.ActorIncapacitated += HandleActorIncapacitated;
         MissionRuntimeEvents.ItemPickedUp += HandleItemPickedUp;
         MissionRuntimeEvents.EnemyStateChanged += HandleEnemyStateChanged;
+        RegisterScreenButtonCallbacks();
 
         if (playerHealth != null)
         {
@@ -379,6 +416,7 @@ public class GameplayMissionController : MonoBehaviour
         MissionRuntimeEvents.ActorIncapacitated -= HandleActorIncapacitated;
         MissionRuntimeEvents.ItemPickedUp -= HandleItemPickedUp;
         MissionRuntimeEvents.EnemyStateChanged -= HandleEnemyStateChanged;
+        UnregisterScreenButtonCallbacks();
 
         if (playerHealth != null)
         {
@@ -572,6 +610,15 @@ public class GameplayMissionController : MonoBehaviour
         if (gameWinScreen != null)
             gameWinScreen.SetActive(false);
 
+        if (questFailMessageText != null)
+            questFailMessageText.text = string.Empty;
+
+        if (playerKilledMessageText != null)
+            playerKilledMessageText.text = ResolvePlayerKilledMessage();
+
+        if (gameWinMessageText != null)
+            gameWinMessageText.text = ResolveMissionCompletedMessage();
+
         if (escapeNowText != null)
         {
             escapeNowText.gameObject.SetActive(false);
@@ -680,6 +727,9 @@ public class GameplayMissionController : MonoBehaviour
 
         if (introCarTransform == null)
         {
+            if (gameWinMessageText != null)
+                gameWinMessageText.text = ResolveMissionCompletedMessage();
+
             yield return FadeAndShowScreen(gameWinScreen);
             yield break;
         }
@@ -718,6 +768,9 @@ public class GameplayMissionController : MonoBehaviour
         Tween fadeTween = fadeImageFader != null ? fadeImageFader.FadeIn(screenFadeDuration) : null;
         if (fadeTween != null)
             yield return fadeTween.WaitForCompletion();
+
+        if (gameWinMessageText != null)
+            gameWinMessageText.text = ResolveMissionCompletedMessage();
 
         if (gameWinScreen != null)
             gameWinScreen.SetActive(true);
@@ -1276,8 +1329,7 @@ public class GameplayMissionController : MonoBehaviour
             if (failureState.Definition.FailureType != HideoutJobFailureType.DontBeDetected)
                 continue;
 
-            failureState.Triggered = true;
-            StartCoroutine(HandleMissionFailedRoutine(playerWasKilled: false));
+            TriggerMissionFailure(failureState);
             return;
         }
     }
@@ -1287,7 +1339,7 @@ public class GameplayMissionController : MonoBehaviour
         if (missionEnded)
             return;
 
-        StartCoroutine(HandleMissionFailedRoutine(playerWasKilled: true));
+        StartCoroutine(HandleMissionFailedRoutine(playerWasKilled: true, screenMessage: ResolvePlayerKilledMessage()));
     }
 
     private void HandlePlayerIncapacitated(ActorDamageContext context)
@@ -1295,7 +1347,7 @@ public class GameplayMissionController : MonoBehaviour
         if (missionEnded)
             return;
 
-        StartCoroutine(HandleMissionFailedRoutine(playerWasKilled: true));
+        StartCoroutine(HandleMissionFailedRoutine(playerWasKilled: true, screenMessage: ResolvePlayerKilledMessage()));
     }
 
     private void RegisterObjectiveProgress(MissionActorEvent actorEvent, HideoutJobObjectiveType objectiveType)
@@ -1351,8 +1403,7 @@ public class GameplayMissionController : MonoBehaviour
             if (!shouldTrigger)
                 continue;
 
-            failureState.Triggered = true;
-            StartCoroutine(HandleMissionFailedRoutine(playerWasKilled: false));
+            TriggerMissionFailure(failureState);
             return;
         }
     }
@@ -1480,8 +1531,7 @@ public class GameplayMissionController : MonoBehaviour
             if (state.TimeRemaining > 0f)
                 continue;
 
-            state.Triggered = true;
-            StartCoroutine(HandleMissionFailedRoutine(playerWasKilled: false));
+            TriggerMissionFailure(state);
             return;
         }
     }
@@ -1576,7 +1626,7 @@ public class GameplayMissionController : MonoBehaviour
             timeLimitText.rectTransform.localScale = Vector3.one;
     }
 
-    private IEnumerator HandleMissionFailedRoutine(bool playerWasKilled)
+    private IEnumerator HandleMissionFailedRoutine(bool playerWasKilled, string screenMessage)
     {
         if (missionEnded)
             yield break;
@@ -1588,7 +1638,128 @@ public class GameplayMissionController : MonoBehaviour
         BlockPlayerControls(true);
         missionMusicController?.PlayGameOverMusic();
 
+        if (playerWasKilled)
+        {
+            if (playerKilledMessageText != null)
+                playerKilledMessageText.text = string.IsNullOrWhiteSpace(screenMessage) ? ResolvePlayerKilledMessage() : screenMessage;
+        }
+        else if (questFailMessageText != null)
+            questFailMessageText.text = string.IsNullOrWhiteSpace(screenMessage) ? "Mission Failed." : screenMessage;
+
         yield return FadeAndShowScreen(playerWasKilled ? playerKilledScreen : questFailScreen);
+    }
+
+    private void TriggerMissionFailure(FailureRuntimeState failureState)
+    {
+        if (failureState == null)
+            return;
+
+        failureState.Triggered = true;
+        StartCoroutine(HandleMissionFailedRoutine(playerWasKilled: false, screenMessage: ResolveFailureScreenMessage(failureState.Definition)));
+    }
+
+    private void RegisterScreenButtonCallbacks()
+    {
+        if (questFailRetryButton != null)
+            questFailRetryButton.onClick.AddListener(RetryCurrentMission);
+
+        if (questFailQuitButton != null)
+            questFailQuitButton.onClick.AddListener(QuitToHideout);
+
+        if (playerKilledRetryButton != null)
+            playerKilledRetryButton.onClick.AddListener(RetryCurrentMission);
+
+        if (playerKilledQuitButton != null)
+            playerKilledQuitButton.onClick.AddListener(QuitToHideout);
+
+        if (gameWinContinueButton != null)
+            gameWinContinueButton.onClick.AddListener(ContinueToHideoutAfterWin);
+    }
+
+    private void UnregisterScreenButtonCallbacks()
+    {
+        if (questFailRetryButton != null)
+            questFailRetryButton.onClick.RemoveListener(RetryCurrentMission);
+
+        if (questFailQuitButton != null)
+            questFailQuitButton.onClick.RemoveListener(QuitToHideout);
+
+        if (playerKilledRetryButton != null)
+            playerKilledRetryButton.onClick.RemoveListener(RetryCurrentMission);
+
+        if (playerKilledQuitButton != null)
+            playerKilledQuitButton.onClick.RemoveListener(QuitToHideout);
+
+        if (gameWinContinueButton != null)
+            gameWinContinueButton.onClick.RemoveListener(ContinueToHideoutAfterWin);
+    }
+
+    public void RetryCurrentMission()
+    {
+        if (sceneTransitionInProgress)
+            return;
+
+        Scene activeScene = SceneManager.GetActiveScene();
+        string sceneIdentifier = !string.IsNullOrWhiteSpace(activeScene.path) ? activeScene.path : activeScene.name;
+        if (string.IsNullOrWhiteSpace(sceneIdentifier))
+            return;
+
+        sceneTransitionInProgress = true;
+        StartCoroutine(LoadSceneRoutine(sceneIdentifier, clearCurrentJob: false, completeCurrentJob: false));
+    }
+
+    public void QuitToHideout()
+    {
+        if (sceneTransitionInProgress || string.IsNullOrWhiteSpace(hideoutScenePath))
+            return;
+
+        sceneTransitionInProgress = true;
+        StartCoroutine(LoadSceneRoutine(hideoutScenePath, clearCurrentJob: false, completeCurrentJob: false));
+    }
+
+    public void ContinueToHideoutAfterWin()
+    {
+        if (sceneTransitionInProgress || string.IsNullOrWhiteSpace(hideoutScenePath))
+            return;
+
+        sceneTransitionInProgress = true;
+        StartCoroutine(LoadSceneRoutine(hideoutScenePath, clearCurrentJob: false, completeCurrentJob: true));
+    }
+
+    private IEnumerator LoadSceneRoutine(string sceneIdentifier, bool clearCurrentJob, bool completeCurrentJob)
+    {
+        Time.timeScale = 1f;
+
+        if (completeCurrentJob)
+            HideoutRuntimeSession.CompleteJob(currentJob);
+        else if (clearCurrentJob)
+            HideoutRuntimeSession.ClearCurrentJob();
+
+        if (fadeImageFader != null && fadeImageFader.CurrentAlpha < 0.999f)
+        {
+            Tween fadeTween = fadeImageFader.FadeIn(screenFadeDuration);
+            if (fadeTween != null)
+                yield return fadeTween.WaitForCompletion();
+        }
+        else
+            fadeImageFader?.SetAlphaImmediate(1f);
+
+        SceneManager.LoadScene(sceneIdentifier);
+    }
+
+    private string ResolveFailureScreenMessage(HideoutJobFailureDefinition definition)
+    {
+        return definition != null ? definition.FailureScreenMessage : "Mission Failed.";
+    }
+
+    private string ResolvePlayerKilledMessage()
+    {
+        return string.IsNullOrWhiteSpace(playerKilledMessage) ? "Game Over." : playerKilledMessage.Trim();
+    }
+
+    private string ResolveMissionCompletedMessage()
+    {
+        return string.IsNullOrWhiteSpace(missionCompletedMessage) ? "Mission Complete." : missionCompletedMessage.Trim();
     }
 
     private bool IsPlayerInstigator(GameObject instigatorRoot)

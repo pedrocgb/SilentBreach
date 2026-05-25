@@ -68,6 +68,7 @@ public class ActorStatsInitializer : MonoBehaviour
         MissionActorIdentity.EnsureOn(gameObject);
         ActorIncapacitationController.EnsureOn(gameObject);
         EnemyAiSensesDebugGizmos.EnsureOn(gameObject);
+        EnemyRoomAwareness.EnsureOn(gameObject);
 
         if (TryGetComponent(out ActorHealth health))
             health.ApplySettings(enemyProfile.Health);

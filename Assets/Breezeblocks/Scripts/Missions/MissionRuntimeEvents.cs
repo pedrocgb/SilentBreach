@@ -78,6 +78,11 @@ public static class MissionRuntimeEvents
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void Reset()
     {
+        ResetRuntimeState();
+    }
+
+    public static void ResetRuntimeState()
+    {
         ActorKilled = null;
         ActorIncapacitated = null;
         ItemPickedUp = null;

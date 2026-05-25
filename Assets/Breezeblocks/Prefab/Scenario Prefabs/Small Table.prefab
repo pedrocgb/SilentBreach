@@ -191,7 +191,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5344648161379102639}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Small Table
   m_TagString: Untagged
   m_Icon: {fileID: 0}

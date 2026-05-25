@@ -72,6 +72,11 @@ public static class CombatImpactUtility
 
     public static bool TryApplyUnarmoredExplosionDamage(Collider2D hitCollider, float damage)
     {
+        return TryApplyUnarmoredExplosionDamage(hitCollider, damage, null);
+    }
+
+    public static bool TryApplyUnarmoredExplosionDamage(Collider2D hitCollider, float damage, GameObject instigatorRoot)
+    {
         if (hitCollider == null || damage <= 0f)
             return false;
 
@@ -79,7 +84,32 @@ public static class CombatImpactUtility
         if (health == null)
             return false;
 
-        health.ApplyDamage(damage, new ActorDamageContext(null, isLethal: true));
+        health.ApplyDamage(damage, new ActorDamageContext(instigatorRoot, isLethal: true));
+        return true;
+    }
+
+    public static bool TryApplyExplosionKnockback(Collider2D hitCollider, Vector2 explosionCenter, float force)
+    {
+        if (hitCollider == null || force <= 0f)
+            return false;
+
+        Rigidbody2D body = hitCollider.attachedRigidbody;
+        if (body == null)
+            body = hitCollider.GetComponentInParent<Rigidbody2D>();
+
+        if (body == null)
+            return false;
+
+        Vector2 origin = body.worldCenterOfMass;
+        Vector2 direction = origin - explosionCenter;
+        if (direction.sqrMagnitude <= Mathf.Epsilon)
+        {
+            direction = (Vector2)hitCollider.bounds.center - explosionCenter;
+            if (direction.sqrMagnitude <= Mathf.Epsilon)
+                return false;
+        }
+
+        body.AddForce(direction.normalized * force, ForceMode2D.Impulse);
         return true;
     }
 }

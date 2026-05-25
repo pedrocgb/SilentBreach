@@ -41,7 +41,7 @@ MonoBehaviour:
   aimTime: 2
   equipTime: 0.25
   holsterTime: 0.25
-  screenshakePower: 0
+  screenshakePower: 1
   screenshakeDuration: 0.08
   hideMuzzleFlash: 0
   muzzleFlashSize: 0.75
@@ -53,6 +53,9 @@ MonoBehaviour:
     pitchRange: {x: 1, y: 1}
     overrideSpatialBlend: 1
     spatialBlend: 1
+    overrideDistanceRange: 1
+    minDistance: 1
+    maxDistance: 24
   casingDelay: 0.05
   casingSfx:
     clips:
@@ -61,6 +64,9 @@ MonoBehaviour:
     pitchRange: {x: 1, y: 1}
     overrideSpatialBlend: 1
     spatialBlend: 1
+    overrideDistanceRange: 1
+    minDistance: 1
+    maxDistance: 4
   reloadStartSfx:
     clips:
     - {fileID: 8300000, guid: df8f6103f7f0f5a4fa93313979655108, type: 3}
@@ -68,6 +74,9 @@ MonoBehaviour:
     pitchRange: {x: 1, y: 1}
     overrideSpatialBlend: 1
     spatialBlend: 1
+    overrideDistanceRange: 1
+    minDistance: 1
+    maxDistance: 8
   reloadEndSfx:
     clips:
     - {fileID: 8300000, guid: 6c34cc837e8f82c47b27ff65e7530495, type: 3}
@@ -75,6 +84,9 @@ MonoBehaviour:
     pitchRange: {x: 1, y: 1}
     overrideSpatialBlend: 1
     spatialBlend: 1
+    overrideDistanceRange: 1
+    minDistance: 1
+    maxDistance: 8
   reloadTriggerSfx:
     clips:
     - {fileID: 8300000, guid: fc14e3fcb628a244bb48b4524533122f, type: 3}
@@ -82,12 +94,18 @@ MonoBehaviour:
     pitchRange: {x: 1, y: 1}
     overrideSpatialBlend: 1
     spatialBlend: 1
+    overrideDistanceRange: 1
+    minDistance: 1
+    maxDistance: 8
   bulletReloadSfx:
     clips: []
     volume: 1
     pitchRange: {x: 1, y: 1}
     overrideSpatialBlend: 0
     spatialBlend: 1
+    overrideDistanceRange: 0
+    minDistance: 1.5
+    maxDistance: 24
   shootNoise: 1
   shootNoiseType: 0
   shootExtremeNoise: 1

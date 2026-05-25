@@ -929,6 +929,8 @@ public class PlayerEquipmentController : MonoBehaviour
 
     private void ApplyPanelPresentation(bool panelVisible)
     {
+        bool shouldBlockHandInputs = panelVisible || inputBlocked;
+
         if (dynamicCrosshairUI == null)
             dynamicCrosshairUI = FindSceneObjectIncludingInactive<DynamicCrosshairUI>();
 
@@ -936,19 +938,19 @@ public class PlayerEquipmentController : MonoBehaviour
             dynamicCrosshairUI.SetUiSuppressed(panelVisible && hideCrosshairWhilePanelVisible);
 
         if (playerWeaponController != null)
-            playerWeaponController.SetInputBlocked(panelVisible);
+            playerWeaponController.SetInputBlocked(shouldBlockHandInputs);
 
         if (playerUtilityController != null)
-            playerUtilityController.SetInputBlocked(panelVisible);
+            playerUtilityController.SetInputBlocked(shouldBlockHandInputs);
 
         if (playerMeleeController != null)
-            playerMeleeController.SetInputBlocked(panelVisible);
+            playerMeleeController.SetInputBlocked(shouldBlockHandInputs);
 
         if (playerPickupInteractor != null)
-            playerPickupInteractor.SetInputBlocked(panelVisible);
+            playerPickupInteractor.SetInputBlocked(shouldBlockHandInputs);
 
         if (playerFocusController != null)
-            playerFocusController.SetInputBlocked(panelVisible);
+            playerFocusController.SetInputBlocked(shouldBlockHandInputs);
 
         if (!pauseGameWhilePanelVisible)
             return;

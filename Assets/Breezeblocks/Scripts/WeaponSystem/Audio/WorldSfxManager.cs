@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Audio;
+using UnityEngine.SceneManagement;
 
 namespace Breezeblocks.WeaponSystem
 {
@@ -116,6 +117,9 @@ public class WorldSfxManager : MonoBehaviour
     public int RuntimeSourceCount => runtimeSources.Count;
 
     public AudioMixerGroup OutputMixerGroup => outputMixerGroup;
+    public float DefaultSpatialBlend => spatialBlend;
+    public float DefaultMinDistance => minDistance;
+    public float DefaultMaxDistance => maxDistance;
 
     [FoldoutGroup("Debug"), ShowInInspector, ReadOnly, ProgressBar(0f, 1f)]
     public float ExternalVolumeMultiplier => externalVolumeMultiplier;
@@ -126,6 +130,12 @@ public class WorldSfxManager : MonoBehaviour
     private readonly HashSet<int> uniqueOccluderIds = new();
     private AudioListener cachedAudioListener;
     private float externalVolumeMultiplier = 1f;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStaticState()
+    {
+        instance = null;
+    }
 
     private void Awake()
     {
@@ -143,9 +153,45 @@ public class WorldSfxManager : MonoBehaviour
         Prewarm(initialPoolSize);
     }
 
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += HandleSceneLoaded;
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= HandleSceneLoaded;
+    }
+
     private void OnValidate()
     {
         ValidateSettings();
+    }
+
+    public void ResetRuntimeState()
+    {
+        externalVolumeMultiplier = 1f;
+        cachedAudioListener = null;
+
+        for (int i = 0; i < runtimeSources.Count; i++)
+        {
+            RuntimeSource runtimeSource = runtimeSources[i];
+            if (runtimeSource?.Source == null)
+                continue;
+
+            runtimeSource.Source.Stop();
+            runtimeSource.Source.clip = null;
+            runtimeSource.Source.volume = 0f;
+            runtimeSource.Source.pitch = 1f;
+            runtimeSource.BusyUntil = 0f;
+            runtimeSource.BaseVolume = 0f;
+
+            if (runtimeSource.LowPassFilter != null)
+            {
+                runtimeSource.LowPassFilter.enabled = false;
+                runtimeSource.LowPassFilter.cutoffFrequency = openLowPassCutoff;
+            }
+        }
     }
 
     public bool PlayClipSetAt(Vector3 position, AudioClipSet clipSet, NoiseType noiseType, float additionalVolumeMultiplier = 1f, float delay = 0f)
@@ -156,7 +202,9 @@ public class WorldSfxManager : MonoBehaviour
         AudioClip clip = clipSet.GetRandomClip();
         float pitch = clipSet.GetRandomPitch();
         float resolvedSpatialBlend = clipSet.ResolveSpatialBlend(spatialBlend);
-        return PlayClipAt(position, clip, noiseType, clipSet.Volume * Mathf.Max(0f, additionalVolumeMultiplier), pitch, delay, resolvedSpatialBlend);
+        float resolvedMinDistance = clipSet.ResolveMinDistance(minDistance);
+        float resolvedMaxDistance = clipSet.ResolveMaxDistance(resolvedMinDistance, maxDistance);
+        return PlayClipAt(position, clip, noiseType, clipSet.Volume * Mathf.Max(0f, additionalVolumeMultiplier), pitch, delay, resolvedSpatialBlend, resolvedMinDistance, resolvedMaxDistance);
     }
 
     public bool PlayClipSetAt(Vector3 position, AudioClipSet clipSet, NoiseType noiseType, out float playbackDuration, float additionalVolumeMultiplier = 1f, float delay = 0f)
@@ -169,10 +217,21 @@ public class WorldSfxManager : MonoBehaviour
         float pitch = clipSet.GetRandomPitch();
         playbackDuration = clip != null ? clip.length / Mathf.Max(0.01f, pitch) : 0f;
         float resolvedSpatialBlend = clipSet.ResolveSpatialBlend(spatialBlend);
-        return PlayClipAt(position, clip, noiseType, clipSet.Volume * Mathf.Max(0f, additionalVolumeMultiplier), pitch, delay, resolvedSpatialBlend);
+        float resolvedMinDistance = clipSet.ResolveMinDistance(minDistance);
+        float resolvedMaxDistance = clipSet.ResolveMaxDistance(resolvedMinDistance, maxDistance);
+        return PlayClipAt(position, clip, noiseType, clipSet.Volume * Mathf.Max(0f, additionalVolumeMultiplier), pitch, delay, resolvedSpatialBlend, resolvedMinDistance, resolvedMaxDistance);
     }
 
-    public bool PlayClipAt(Vector3 position, AudioClip clip, NoiseType noiseType, float volume = 1f, float pitch = 1f, float delay = 0f, float spatialBlendOverride = -1f)
+    public bool PlayClipAt(
+        Vector3 position,
+        AudioClip clip,
+        NoiseType noiseType,
+        float volume = 1f,
+        float pitch = 1f,
+        float delay = 0f,
+        float spatialBlendOverride = -1f,
+        float minDistanceOverride = -1f,
+        float maxDistanceOverride = -1f)
     {
         if (clip == null)
             return false;
@@ -189,8 +248,10 @@ public class WorldSfxManager : MonoBehaviour
         source.pitch = Mathf.Max(0.01f, pitch);
         source.outputAudioMixerGroup = outputMixerGroup;
         source.spatialBlend = spatialBlendOverride >= 0f ? Mathf.Clamp01(spatialBlendOverride) : spatialBlend;
-        source.minDistance = minDistance;
-        source.maxDistance = maxDistance;
+        source.minDistance = minDistanceOverride >= 0f ? Mathf.Max(0f, minDistanceOverride) : minDistance;
+        source.maxDistance = maxDistanceOverride >= 0f
+            ? Mathf.Max(source.minDistance, maxDistanceOverride)
+            : Mathf.Max(source.minDistance, maxDistance);
         source.rolloffMode = rolloffMode;
         source.dopplerLevel = dopplerLevel;
         source.spread = spread;
@@ -299,6 +360,11 @@ public class WorldSfxManager : MonoBehaviour
 
         if (occlusionHitBuffer == null || occlusionHitBuffer.Length != maxOcclusionHits)
             occlusionHitBuffer = new RaycastHit2D[maxOcclusionHits];
+    }
+
+    private void HandleSceneLoaded(Scene scene, LoadSceneMode loadMode)
+    {
+        ResetRuntimeState();
     }
 
     private void ApplyPlayerOcclusion(RuntimeSource runtimeSource, Vector3 sourcePosition, NoiseType noiseType, float baseVolume)

@@ -207,6 +207,12 @@ public class PlayerFlashbangEffect : MonoBehaviour
             ringingAudioSource.loop = true;
             ringingAudioSource.outputAudioMixerGroup = outputMixerGroup;
             ringingAudioSource.ignoreListenerVolume = false;
+
+            if (worldSfxManager != null)
+            {
+                ringingAudioSource.minDistance = worldSfxManager.DefaultMinDistance;
+                ringingAudioSource.maxDistance = worldSfxManager.DefaultMaxDistance;
+            }
         }
     }
 

@@ -252,9 +252,6 @@ public class EnemyMovementSettings
     [FoldoutGroup("Patrol"), EnumToggleButtons]
     public EnemyPatrolMode PatrolMode = EnemyPatrolMode.Loop;
 
-    [FoldoutGroup("Organization")]
-    public bool DetachReferencedPointsToWorldOnAwake = true;
-
     [FoldoutGroup("Search or Suspicious")]
     public bool ReturnToStartAfterTemporaryStates = true;
 

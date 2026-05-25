@@ -51,6 +51,9 @@ MonoBehaviour:
     pitchRange: {x: 1, y: 1}
     overrideSpatialBlend: 1
     spatialBlend: 1
+    overrideDistanceRange: 1
+    minDistance: 1
+    maxDistance: 10
   resolveEffectPrefab: {fileID: 3682032350346914328, guid: bc16c93a54818c0a893f0a56bde61f71, type: 3}
   resolveEffectPoolPrewarm: 2
   directHitDamage: 20
@@ -67,6 +70,9 @@ MonoBehaviour:
     pitchRange: {x: 1, y: 1}
     overrideSpatialBlend: 0
     spatialBlend: 1
+    overrideDistanceRange: 0
+    minDistance: 1.5
+    maxDistance: 24
   effectRadius: 3
   effectObstacleMask:
     serializedVersion: 2

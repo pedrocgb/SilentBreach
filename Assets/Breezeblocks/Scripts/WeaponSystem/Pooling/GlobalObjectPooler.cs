@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Breezeblocks.WeaponSystem
 {
@@ -79,6 +80,12 @@ public class GlobalObjectPooler : MonoBehaviour
     private static GlobalObjectPooler _instance;
     private readonly Dictionary<GameObject, RuntimePool> _runtimePools = new();
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStaticState()
+    {
+        _instance = null;
+    }
+
     private void Awake()
     {
         if (_instance != null && _instance != this)
@@ -93,6 +100,16 @@ public class GlobalObjectPooler : MonoBehaviour
             DontDestroyOnLoad(gameObject);
 
         RegisterStartupPools();
+    }
+
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += HandleSceneLoaded;
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= HandleSceneLoaded;
     }
 
     private void OnDestroy()
@@ -173,6 +190,28 @@ public class GlobalObjectPooler : MonoBehaviour
         instance.transform.SetParent(poolContainer, false);
     }
 
+    public void ResetRuntimeState()
+    {
+        foreach (RuntimePool pool in _runtimePools.Values)
+        {
+            if (pool == null)
+                continue;
+
+            for (int i = pool.Instances.Count - 1; i >= 0; i--)
+            {
+                GameObject instance = pool.Instances[i];
+                if (instance == null)
+                {
+                    pool.Instances.RemoveAt(i);
+                    continue;
+                }
+
+                instance.SetActive(false);
+                instance.transform.SetParent(pool.Container, false);
+            }
+        }
+    }
+
     private RuntimePool GetOrCreatePool(GameObject prefab)
     {
         if (prefab == null)
@@ -228,6 +267,11 @@ public class GlobalObjectPooler : MonoBehaviour
         pooledObject.Assign(this, pool.Container);
         pool.Instances.Add(instance);
         return instance;
+    }
+
+    private void HandleSceneLoaded(Scene scene, LoadSceneMode loadMode)
+    {
+        ResetRuntimeState();
     }
 }
 }

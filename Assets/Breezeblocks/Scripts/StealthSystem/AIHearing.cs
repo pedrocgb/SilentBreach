@@ -1,3 +1,4 @@
+using System;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -6,6 +7,8 @@ using UnityEngine;
 [AddComponentMenu("Breezeblocks/Stealth/AI Hearing")]
 public class AIHearing : MonoBehaviour
 {
+    public event Action<NoiseEvent> NoiseReactionTriggered;
+
     private const int MinimumObstructionChecks = 1;
 
     [FoldoutGroup("References")]
@@ -221,6 +224,7 @@ public class AIHearing : MonoBehaviour
         {
             currentAccumulatedDetection = Mathf.Max(currentAccumulatedDetection, hearingThreshold);
             enemyMovementController.ReactToExtremeNoise(noiseEvent.Position);
+            NoiseReactionTriggered?.Invoke(noiseEvent);
 
             if (debugHearing)
             {
@@ -246,6 +250,7 @@ public class AIHearing : MonoBehaviour
 
         enemyCombatantAI?.HandleInvestigativeNoiseHeard(noiseEvent);
         enemyMovementController.HandleHeardNoise(noiseEvent.Position);
+        NoiseReactionTriggered?.Invoke(noiseEvent);
 
         if (debugHearing)
         {

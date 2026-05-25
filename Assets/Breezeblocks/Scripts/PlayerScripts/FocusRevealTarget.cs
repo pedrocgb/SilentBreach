@@ -49,6 +49,23 @@ public class FocusRevealTarget : MonoBehaviour
         }
     }
 
+    public static void ResetRuntimeState()
+    {
+        globalFocusVisible = false;
+
+        for (int i = ActiveTargetsInternal.Count - 1; i >= 0; i--)
+        {
+            FocusRevealTarget target = ActiveTargetsInternal[i];
+            if (target == null)
+            {
+                ActiveTargetsInternal.RemoveAt(i);
+                continue;
+            }
+
+            target.ApplyVisibility(false);
+        }
+    }
+
     private void ApplyVisibility(bool visible)
     {
         for (int i = 0; i < revealRenderers.Count; i++)

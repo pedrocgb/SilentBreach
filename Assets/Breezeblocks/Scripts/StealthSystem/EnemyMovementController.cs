@@ -239,8 +239,6 @@ public class EnemyMovementController : MonoBehaviour
     [ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
     [SerializeField] private List<PatrolPoint> patrolPoints = new();
 
-    private bool detachReferencedPointsToWorldOnAwake = true;
-
     private bool returnToStartAfterTemporaryStates = true;
 
     private bool investigate = true;
@@ -473,7 +471,6 @@ public class EnemyMovementController : MonoBehaviour
     {
         CacheReferences();
         ClampSettings();
-        DetachReferencedPointsToWorld();
         CaptureStartingTransform();
         lastStableFacingDirection = ResolveCurrentFacingDirection();
         ApplyRigidbodyRecommendations();
@@ -1135,7 +1132,6 @@ public class EnemyMovementController : MonoBehaviour
         preferPathSteeringDirection = settings.PreferPathSteeringDirection;
         lockRotationWhenIdle = settings.LockRotationWhenIdle;
         patrolMode = settings.PatrolMode;
-        detachReferencedPointsToWorldOnAwake = settings.DetachReferencedPointsToWorldOnAwake;
         returnToStartAfterTemporaryStates = settings.ReturnToStartAfterTemporaryStates;
         returnToStartSpeedType = settings.ReturnToStartSpeedType;
         enterAlertStateWhenTargetLost = settings.EnterAlertStateWhenTargetLost;
@@ -2420,55 +2416,6 @@ public class EnemyMovementController : MonoBehaviour
 
         if (seeker == null)
             seeker = GetComponent<Seeker>();
-    }
-
-    private void DetachReferencedPointsToWorld()
-    {
-        if (!Application.isPlaying || !detachReferencedPointsToWorldOnAwake)
-            return;
-
-        HashSet<Transform> detachedPoints = new();
-
-        DetachPointIfNeeded(fleePoint, detachedPoints);
-        DetachPointIfNeeded(alertHoldPoint, detachedPoints);
-
-        if (patrolPoints != null)
-        {
-            for (int i = 0; i < patrolPoints.Count; i++)
-                DetachPointIfNeeded(patrolPoints[i]?.Point, detachedPoints);
-        }
-
-        if (itinerarySteps == null)
-            return;
-
-        for (int i = 0; i < itinerarySteps.Count; i++)
-        {
-            EnemyItineraryStep step = itinerarySteps[i];
-            if (step == null)
-                continue;
-
-            DetachPointIfNeeded(step.IdlePoint, detachedPoints);
-
-            if (step.PatrolPoints == null)
-                continue;
-
-            for (int patrolIndex = 0; patrolIndex < step.PatrolPoints.Count; patrolIndex++)
-                DetachPointIfNeeded(step.PatrolPoints[patrolIndex]?.Point, detachedPoints);
-        }
-    }
-
-    private void DetachPointIfNeeded(Transform point, HashSet<Transform> detachedPoints)
-    {
-        if (point == null ||
-            point == transform ||
-            detachedPoints.Contains(point) ||
-            !point.IsChildOf(transform))
-        {
-            return;
-        }
-
-        point.SetParent(null, true);
-        detachedPoints.Add(point);
     }
 
     private void CaptureStartingTransform()

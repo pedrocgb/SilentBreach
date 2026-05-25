@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
+using Breezeblocks;
 using Breezeblocks.HideoutSystem;
 using Breezeblocks.WeaponSystem;
 using DG.Tweening;
@@ -11,6 +12,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Audio;
 using UnityEngine.SceneManagement;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace Breezeblocks.Missions
@@ -205,8 +207,12 @@ public class GameplayMissionController : MonoBehaviour
     [FoldoutGroup("Fade and Screens/Win")]
     [SerializeField] private Button gameWinContinueButton;
 
-    [FoldoutGroup("Scene Loading"), LabelText("Hideout Scene")]
-    [SerializeField] private string hideoutScenePath = "Assets/Breezeblocks/Scenes/[1] Hideout.unity";
+    [FoldoutGroup("Scene Loading"), LabelText("Hideout Scene Build Index"), MinValue(-1)]
+    [SerializeField] private int hideoutSceneBuildIndex = 0;
+
+    [FoldoutGroup("Scene Loading"), LabelText("Hideout Scene Fallback Name")]
+    [FormerlySerializedAs("hideoutScenePath")]
+    [SerializeField] private string hideoutSceneName = "Hideout";
 
     [FoldoutGroup("Intro Cinematic")]
     [SerializeField] private bool playIntroCinematic = true;
@@ -335,10 +341,12 @@ public class GameplayMissionController : MonoBehaviour
     private Player rewiredPlayer;
     private Coroutine introRoutine;
     private Coroutine introSkipRoutine;
+    private Coroutine continuousCarDriveRoutine;
     private bool playerVisionLightDefaultEnabled = true;
     private bool playerFocusControllerDefaultEnabled = true;
     private bool playerComponentDefaultStatesCached;
     private bool sceneTransitionInProgress;
+    private bool suppressCarAudioAutoRestart;
 
     private void Reset()
     {
@@ -348,6 +356,7 @@ public class GameplayMissionController : MonoBehaviour
     private void Awake()
     {
         CacheReferences();
+        ResetSceneScopedRuntimeState();
         GameplayConsoleController.EnsureOn(gameObject);
         CachePlayerComponentDefaultStates();
         PrepareCarAudio();
@@ -431,10 +440,8 @@ public class GameplayMissionController : MonoBehaviour
         carEngineLoopTween = null;
         activeCinematicPlayerMoveTween?.Kill();
         activeCinematicPlayerMoveTween = null;
-        if (carIdleLoopSource != null)
-            carIdleLoopSource.Stop();
-        if (carEngineLoopSource != null)
-            carEngineLoopSource.Stop();
+        StopContinuousCarDrive();
+        StopAllCarAudio(suppressAutoRestart: false);
 
         if (playerVisionLight != null)
             playerVisionLight.enabled = playerVisionLightDefaultEnabled;
@@ -638,6 +645,7 @@ public class GameplayMissionController : MonoBehaviour
 
     private void PrepareCarAudio()
     {
+        suppressCarAudioAutoRestart = false;
         carDoorOpenSfx ??= new AudioClipSet();
         carDoorOpenSfx.Validate();
         carDoorCloseSfx ??= new AudioClipSet();
@@ -682,13 +690,18 @@ public class GameplayMissionController : MonoBehaviour
 
         PlayCarAnimation(openDoorAnimationState);
         PlayCarDoorOpenSfx();
-        if (introDoorOpenWait > 0f)
-            yield return new WaitForSecondsRealtime(introDoorOpenWait);
-
+        float introDoorOpenPhaseDuration = Mathf.Max(introDoorOpenWait, ResolveCarAnimationDuration(openDoorAnimationState));
         if (playerRoot != null)
             playerRoot.SetParent(null, true);
 
-        yield return MovePlayerToPoint(introPlayerExitPoint, introPlayerFacingTarget, introPlayerExitDuration);
+        Tween exitMoveTween = BeginMovePlayerToPoint(introPlayerExitPoint, introPlayerFacingTarget, introPlayerExitDuration);
+        if (introDoorOpenPhaseDuration > 0f)
+            yield return new WaitForSecondsRealtime(introDoorOpenPhaseDuration);
+
+        if (exitMoveTween != null)
+            yield return exitMoveTween.WaitForCompletion();
+
+        ApplyCinematicPlayerFacing(introPlayerExitPoint, introPlayerFacingTarget, null);
 
         PlayCarAnimation(closeDoorAnimationState);
         PlayCarDoorCloseSfx();
@@ -702,6 +715,7 @@ public class GameplayMissionController : MonoBehaviour
     private void StartGameplay()
     {
         gameplayStarted = true;
+        SetEndScreenPointerVisible(false);
         SetCollidersEnabled(collidersToEnableAfterGameplayStart, true);
         SetGameObjectsActive(gameObjectsToEnableAfterGameplayStart, true);
         SetIntroVisionLightActive(true);
@@ -718,11 +732,11 @@ public class GameplayMissionController : MonoBehaviour
             yield break;
 
         missionEnded = true;
+        Time.timeScale = 1f;
         escapePromptSequence?.Kill();
         escapePromptSequence = null;
         StopTimeLimitWarningPulse();
         BlockPlayerControls(true);
-        ApplyPlayerFacingDegrees(winCinematicFacingDegrees);
         SetGameObjectsActive(gameObjectsToEnableAfterGameplayStart, false);
 
         if (introCarTransform == null)
@@ -739,14 +753,20 @@ public class GameplayMissionController : MonoBehaviour
 
         PlayCarAnimation(openDoorAnimationState);
         PlayCarDoorOpenSfx();
-        if (outroDoorOpenWait > 0f)
-            yield return new WaitForSecondsRealtime(outroDoorOpenWait);
-
+        float outroDoorOpenPhaseDuration = Mathf.Max(outroDoorOpenWait, ResolveCarAnimationDuration(openDoorAnimationState));
         SetCollidersEnabled(carCollidersToDisableWhileBoarding, false);
         Transform boardingSeatTarget = outroCarSeatPoint != null
             ? outroCarSeatPoint
             : outroPlayerEntryPoint != null ? outroPlayerEntryPoint : introCarTransform;
-        yield return MovePlayerToPoint(boardingSeatTarget, boardingSeatTarget, outroPlayerEntryDuration);
+        Tween boardingMoveTween = BeginMovePlayerToPoint(boardingSeatTarget, null, outroPlayerEntryDuration, winCinematicFacingDegrees);
+        if (outroDoorOpenPhaseDuration > 0f)
+            yield return new WaitForSecondsRealtime(outroDoorOpenPhaseDuration);
+
+        if (boardingMoveTween != null)
+            yield return boardingMoveTween.WaitForCompletion();
+
+        ApplyCinematicPlayerFacing(boardingSeatTarget, null, winCinematicFacingDegrees);
+        yield return RotatePlayerToFacingDegrees(winCinematicFacingDegrees);
         AttachPlayerToPoint(outroCarSeatPoint != null ? outroCarSeatPoint : introCarTransform, parentToSeat: true, facingDegrees: winCinematicFacingDegrees);
         float carStartDuration = PlayCarStartSfx();
         float carStartSfxEndTime = carStartDuration > 0f ? Time.unscaledTime + carStartDuration : float.NegativeInfinity;
@@ -763,27 +783,29 @@ public class GameplayMissionController : MonoBehaviour
             yield return new WaitForSecondsRealtime(remainingCarStartWait);
 
         if (outroDriveTarget != null)
-            yield return DriveCarToPoint(introCarTransform, outroDriveTarget, outroDriveSpeed, outroDriveAcceleration, outroDriveDeceleration, startAtCruiseSpeed: true);
+            yield return DriveCarToPoint(introCarTransform, outroDriveTarget, outroDriveSpeed, outroDriveAcceleration, outroDriveDeceleration, startAtCruiseSpeed: true, continuePastTarget: true);
 
-        Tween fadeTween = fadeImageFader != null ? fadeImageFader.FadeIn(screenFadeDuration) : null;
-        if (fadeTween != null)
-            yield return fadeTween.WaitForCompletion();
+        yield return FadeOverlayToBlackForScreen();
+        StopAllCarAudio(suppressAutoRestart: true);
+        SetEndScreenPointerVisible(true);
 
         if (gameWinMessageText != null)
             gameWinMessageText.text = ResolveMissionCompletedMessage();
 
         if (gameWinScreen != null)
             gameWinScreen.SetActive(true);
+
+        fadeImageFader?.SetAlphaImmediate(0f);
     }
 
     private IEnumerator FadeAndShowScreen(GameObject screen)
     {
-        Tween fadeTween = fadeImageFader != null ? fadeImageFader.FadeIn(screenFadeDuration) : null;
-        if (fadeTween != null)
-            yield return fadeTween.WaitForCompletion();
+        yield return FadeOverlayToBlackForScreen();
 
         if (screen != null)
             screen.SetActive(true);
+
+        fadeImageFader?.SetAlphaImmediate(0f);
     }
 
     private void TryHandleIntroSkipInput()
@@ -831,23 +853,50 @@ public class GameplayMissionController : MonoBehaviour
         introSkipRoutine = null;
     }
 
-    private IEnumerator MovePlayerToPoint(Transform targetPoint, Transform facingTarget, float duration)
+    private IEnumerator MovePlayerToPoint(Transform targetPoint, Transform facingTarget, float duration, float? facingDegrees = null)
+    {
+        Tween moveTween = BeginMovePlayerToPoint(targetPoint, facingTarget, duration, facingDegrees);
+        if (moveTween == null)
+            yield break;
+
+        yield return moveTween.WaitForCompletion();
+        ApplyCinematicPlayerFacing(targetPoint, facingTarget, facingDegrees);
+    }
+
+    private Tween BeginMovePlayerToPoint(Transform targetPoint, Transform facingTarget, float duration, float? facingDegrees = null)
     {
         if (playerRoot == null || targetPoint == null)
-            yield break;
+            return null;
 
         activeCinematicPlayerMoveTween?.Kill();
         activeCinematicPlayerMoveTween = playerRoot.DOMove(targetPoint.position, Mathf.Max(0f, duration))
             .SetEase(Ease.InOutSine)
             .SetUpdate(true)
-            .OnUpdate(() => ForcePlayerFacing(facingTarget != null ? facingTarget.position : targetPoint.position));
+            .OnUpdate(() => ApplyCinematicPlayerFacing(targetPoint, facingTarget, facingDegrees))
+            .OnComplete(() => activeCinematicPlayerMoveTween = null);
 
-        yield return activeCinematicPlayerMoveTween.WaitForCompletion();
-        activeCinematicPlayerMoveTween = null;
-        ForcePlayerFacing(facingTarget != null ? facingTarget.position : targetPoint.position);
+        return activeCinematicPlayerMoveTween;
     }
 
-    private IEnumerator DriveCarToPoint(Transform carTransform, Transform targetPoint, float driveSpeed, float acceleration, float deceleration, bool startAtCruiseSpeed)
+    private void ApplyCinematicPlayerFacing(Transform targetPoint, Transform facingTarget, float? facingDegrees)
+    {
+        if (facingTarget != null)
+        {
+            ForcePlayerFacing(facingTarget.position);
+            return;
+        }
+
+        if (facingDegrees.HasValue)
+        {
+            SmoothPlayerFacingTowardsDegrees(facingDegrees.Value, Time.unscaledDeltaTime);
+            return;
+        }
+
+        if (targetPoint != null)
+            ForcePlayerFacing(targetPoint.position);
+    }
+
+    private IEnumerator DriveCarToPoint(Transform carTransform, Transform targetPoint, float driveSpeed, float acceleration, float deceleration, bool startAtCruiseSpeed, bool continuePastTarget = false)
     {
         if (carTransform == null || targetPoint == null)
             yield break;
@@ -871,6 +920,8 @@ public class GameplayMissionController : MonoBehaviour
 
         acceleration = Mathf.Max(0f, acceleration);
         deceleration = Mathf.Max(0f, deceleration);
+
+        StopContinuousCarDrive();
 
         Vector2 direction = path / totalDistance;
         float currentSpeed = startAtCruiseSpeed ? maxSpeed : 0f;
@@ -925,7 +976,40 @@ public class GameplayMissionController : MonoBehaviour
         }
 
         carTransform.position = targetPosition;
+        if (continuePastTarget)
+        {
+            continuousCarDriveRoutine = StartCoroutine(ContinueDrivingCarForever(carTransform, direction, Mathf.Max(currentSpeed, maxSpeed > 0f ? maxSpeed : currentSpeed)));
+            yield break;
+        }
+
         SetCarEngineLoopActive(false);
+    }
+
+    private IEnumerator ContinueDrivingCarForever(Transform carTransform, Vector2 direction, float speed)
+    {
+        if (carTransform == null || direction.sqrMagnitude <= 0.0001f || speed <= 0.0001f)
+        {
+            continuousCarDriveRoutine = null;
+            yield break;
+        }
+
+        Vector2 normalizedDirection = direction.normalized;
+        while (carTransform != null)
+        {
+            carTransform.position += (Vector3)(normalizedDirection * (speed * Time.unscaledDeltaTime));
+            yield return null;
+        }
+
+        continuousCarDriveRoutine = null;
+    }
+
+    private void StopContinuousCarDrive()
+    {
+        if (continuousCarDriveRoutine == null)
+            return;
+
+        StopCoroutine(continuousCarDriveRoutine);
+        continuousCarDriveRoutine = null;
     }
 
     private void CompleteIntroInstantly()
@@ -979,6 +1063,42 @@ public class GameplayMissionController : MonoBehaviour
             playerVisionLight.ApplyExternalDirection(RotateUpByDegrees(facingDegrees), 0f, 0f);
     }
 
+    private void SmoothPlayerFacingTowardsDegrees(float facingDegrees, float deltaTime)
+    {
+        if (playerVisionLight == null)
+        {
+            ApplyPlayerFacingDegrees(facingDegrees);
+            return;
+        }
+
+        playerVisionLight.ApplyExternalDirection(RotateUpByDegrees(facingDegrees), playerVisionLight.RotationSmoothing, deltaTime);
+    }
+
+    private IEnumerator RotatePlayerToFacingDegrees(float facingDegrees)
+    {
+        if (playerVisionLight == null)
+        {
+            ApplyPlayerFacingDegrees(facingDegrees);
+            yield break;
+        }
+
+        float timeout = 1.5f;
+        float elapsed = 0f;
+        while (elapsed < timeout)
+        {
+            SmoothPlayerFacingTowardsDegrees(facingDegrees, Time.unscaledDeltaTime);
+            float currentAngle = playerRoot != null ? playerRoot.eulerAngles.z : playerBody != null ? playerBody.rotation : 0f;
+            float delta = Mathf.Abs(Mathf.DeltaAngle(currentAngle, facingDegrees));
+            if (delta <= 0.5f)
+                break;
+
+            elapsed += Time.unscaledDeltaTime;
+            yield return null;
+        }
+
+        ApplyPlayerFacingDegrees(facingDegrees);
+    }
+
     private void ForcePlayerFacing(Vector3 worldTarget)
     {
         if (playerVisionLight == null || playerRoot == null)
@@ -998,6 +1118,34 @@ public class GameplayMissionController : MonoBehaviour
 
         introCarAnimator.Play(stateName, 0, Mathf.Clamp01(normalizedTime));
         introCarAnimator.Update(0f);
+    }
+
+    private float ResolveCarAnimationDuration(string stateName)
+    {
+        if (introCarAnimator == null ||
+            string.IsNullOrWhiteSpace(stateName))
+        {
+            return 0f;
+        }
+
+        AnimatorStateInfo stateInfo = introCarAnimator.GetCurrentAnimatorStateInfo(0);
+        if (stateInfo.length > 0f)
+            return stateInfo.length;
+
+        if (introCarAnimator.runtimeAnimatorController == null)
+            return 0f;
+
+        AnimationClip[] clips = introCarAnimator.runtimeAnimatorController.animationClips;
+        for (int i = 0; i < clips.Length; i++)
+        {
+            AnimationClip clip = clips[i];
+            if (clip == null || !string.Equals(clip.name, stateName, StringComparison.Ordinal))
+                continue;
+
+            return Mathf.Max(0f, clip.length);
+        }
+
+        return 0f;
     }
 
     private void PlayCarDoorOpenSfx()
@@ -1030,8 +1178,14 @@ public class GameplayMissionController : MonoBehaviour
 
     private void StartCarIdleLoopIfNeeded()
     {
-        if (carIdleLoopSource == null || carIdleLoopSource.isPlaying || carIdleLoopSfx == null || !carIdleLoopSfx.HasAnyClip)
+        if (suppressCarAudioAutoRestart ||
+            carIdleLoopSource == null ||
+            carIdleLoopSource.isPlaying ||
+            carIdleLoopSfx == null ||
+            !carIdleLoopSfx.HasAnyClip)
+        {
             return;
+        }
 
         carIdleLoopBaseVolume = Mathf.Clamp01(carIdleLoopSfx.Volume);
         PlayLoopClipSet(carIdleLoopSource, carIdleLoopSfx, initialVolume: 0f);
@@ -1040,8 +1194,13 @@ public class GameplayMissionController : MonoBehaviour
 
     private void EnsureCarIdleLoopRunning()
     {
-        if (introCarTransform == null || carIdleLoopSfx == null || !carIdleLoopSfx.HasAnyClip)
+        if (suppressCarAudioAutoRestart ||
+            introCarTransform == null ||
+            carIdleLoopSfx == null ||
+            !carIdleLoopSfx.HasAnyClip)
+        {
             return;
+        }
 
         carIdleLoopSource = EnsureCarLoopSource(carIdleLoopSource, "Car Idle Loop Source", carIdleLoopLocalOffset);
         if (carIdleLoopSource == null)
@@ -1060,6 +1219,13 @@ public class GameplayMissionController : MonoBehaviour
     {
         if (introCarTransform == null)
             return;
+
+        if (suppressCarAudioAutoRestart)
+        {
+            if (!active)
+                StopAllCarAudio(suppressAutoRestart: true);
+            return;
+        }
 
         EnsureCarIdleLoopRunning();
         carEngineLoopSource = EnsureCarLoopSource(carEngineLoopSource, "Car Engine Loop Source", carEngineLoopLocalOffset);
@@ -1181,6 +1347,8 @@ public class GameplayMissionController : MonoBehaviour
         source.clip = clip;
         source.pitch = clipSet.GetRandomPitch();
         source.spatialBlend = clipSet.ResolveSpatialBlend(source.spatialBlend);
+        source.minDistance = clipSet.ResolveMinDistance(source.minDistance);
+        source.maxDistance = clipSet.ResolveMaxDistance(source.minDistance, source.maxDistance);
         source.volume = Mathf.Clamp01(initialVolume);
         source.loop = true;
         source.Play();
@@ -1195,6 +1363,29 @@ public class GameplayMissionController : MonoBehaviour
 
         if (carEngineLoopSource != null)
             carEngineLoopSource.volume = Mathf.Clamp01(carEngineLoopBaseVolume * multiplier);
+    }
+
+    private void StopAllCarAudio(bool suppressAutoRestart)
+    {
+        suppressCarAudioAutoRestart = suppressAutoRestart;
+
+        carEngineLoopTween?.Kill();
+        carEngineLoopTween = null;
+
+        if (carIdleLoopSource != null)
+        {
+            carIdleLoopSource.Stop();
+            carIdleLoopSource.clip = null;
+        }
+
+        if (carEngineLoopSource != null)
+        {
+            carEngineLoopSource.Stop();
+            carEngineLoopSource.clip = null;
+        }
+
+        carIdleLoopBaseVolume = 0f;
+        carEngineLoopBaseVolume = 0f;
     }
 
     private void ResolveWorldSfxManager()
@@ -1314,10 +1505,15 @@ public class GameplayMissionController : MonoBehaviour
         if (missionEnded || !gameplayStarted)
             return;
 
-        if (stateEvent.NewState == EnemyState.Detected && stateEvent.PreviousState != EnemyState.Detected)
+        bool fullyDetectedNow = stateEvent.Controller != null
+            ? stateEvent.Controller.IsPlayerFullyDetectedState()
+            : IsFullyDetectedEnemyState(stateEvent.NewState);
+        bool wasFullyDetectedBefore = IsFullyDetectedEnemyState(stateEvent.PreviousState);
+
+        if (fullyDetectedNow && !wasFullyDetectedBefore)
             missionMusicController?.PlayAlertedMusic();
 
-        if (stateEvent.NewState != EnemyState.Alert || stateEvent.PreviousState == EnemyState.Alert)
+        if (!fullyDetectedNow || wasFullyDetectedBefore)
             return;
 
         for (int i = 0; i < failureStates.Count; i++)
@@ -1632,10 +1828,12 @@ public class GameplayMissionController : MonoBehaviour
             yield break;
 
         missionEnded = true;
+        Time.timeScale = 1f;
         escapePromptSequence?.Kill();
         escapePromptSequence = null;
         StopTimeLimitWarningPulse();
         BlockPlayerControls(true);
+        SetEndScreenPointerVisible(true);
         missionMusicController?.PlayGameOverMusic();
 
         if (playerWasKilled)
@@ -1694,57 +1892,98 @@ public class GameplayMissionController : MonoBehaviour
             gameWinContinueButton.onClick.RemoveListener(ContinueToHideoutAfterWin);
     }
 
-    public void RetryCurrentMission()
+    private IEnumerator FadeOverlayToBlackForScreen()
     {
-        if (sceneTransitionInProgress)
-            return;
+        if (fadeImageFader == null)
+            yield break;
 
-        Scene activeScene = SceneManager.GetActiveScene();
-        string sceneIdentifier = !string.IsNullOrWhiteSpace(activeScene.path) ? activeScene.path : activeScene.name;
-        if (string.IsNullOrWhiteSpace(sceneIdentifier))
-            return;
-
-        sceneTransitionInProgress = true;
-        StartCoroutine(LoadSceneRoutine(sceneIdentifier, clearCurrentJob: false, completeCurrentJob: false));
-    }
-
-    public void QuitToHideout()
-    {
-        if (sceneTransitionInProgress || string.IsNullOrWhiteSpace(hideoutScenePath))
-            return;
-
-        sceneTransitionInProgress = true;
-        StartCoroutine(LoadSceneRoutine(hideoutScenePath, clearCurrentJob: false, completeCurrentJob: false));
-    }
-
-    public void ContinueToHideoutAfterWin()
-    {
-        if (sceneTransitionInProgress || string.IsNullOrWhiteSpace(hideoutScenePath))
-            return;
-
-        sceneTransitionInProgress = true;
-        StartCoroutine(LoadSceneRoutine(hideoutScenePath, clearCurrentJob: false, completeCurrentJob: true));
-    }
-
-    private IEnumerator LoadSceneRoutine(string sceneIdentifier, bool clearCurrentJob, bool completeCurrentJob)
-    {
-        Time.timeScale = 1f;
-
-        if (completeCurrentJob)
-            HideoutRuntimeSession.CompleteJob(currentJob);
-        else if (clearCurrentJob)
-            HideoutRuntimeSession.ClearCurrentJob();
-
-        if (fadeImageFader != null && fadeImageFader.CurrentAlpha < 0.999f)
+        if (fadeImageFader.CurrentAlpha < 0.999f)
         {
             Tween fadeTween = fadeImageFader.FadeIn(screenFadeDuration);
             if (fadeTween != null)
                 yield return fadeTween.WaitForCompletion();
         }
         else
-            fadeImageFader?.SetAlphaImmediate(1f);
+            fadeImageFader.SetAlphaImmediate(1f);
+    }
 
-        SceneManager.LoadScene(sceneIdentifier);
+    private IEnumerator FadeOverlayOutAndRestore()
+    {
+        if (fadeImageFader == null)
+            yield break;
+
+        if (fadeImageFader.CurrentAlpha > 0.001f)
+        {
+            Tween fadeTween = fadeImageFader.FadeOut(screenFadeDuration);
+            if (fadeTween != null)
+                yield return fadeTween.WaitForCompletion();
+        }
+        else
+            fadeImageFader.SetAlphaImmediate(0f);
+    }
+
+    public void RetryCurrentMission()
+    {
+        if (sceneTransitionInProgress)
+            return;
+
+        Scene activeScene = SceneManager.GetActiveScene();
+        if (!SceneLoadUtility.CanLoadScene(activeScene.buildIndex, activeScene.name))
+            return;
+
+        sceneTransitionInProgress = true;
+        StartCoroutine(LoadSceneRoutine(activeScene.buildIndex, activeScene.name, clearCurrentJob: false, completeCurrentJob: false));
+    }
+
+    public void QuitToHideout()
+    {
+        if (sceneTransitionInProgress || !SceneLoadUtility.IsBuildSceneAvailable(hideoutSceneBuildIndex))
+            return;
+
+        sceneTransitionInProgress = true;
+        StartCoroutine(LoadSceneRoutine(hideoutSceneBuildIndex, string.Empty, clearCurrentJob: false, completeCurrentJob: false));
+    }
+
+    public void ContinueToHideoutAfterWin()
+    {
+        if (sceneTransitionInProgress || !SceneLoadUtility.IsBuildSceneAvailable(hideoutSceneBuildIndex))
+            return;
+
+        sceneTransitionInProgress = true;
+        StartCoroutine(LoadSceneRoutine(hideoutSceneBuildIndex, string.Empty, clearCurrentJob: false, completeCurrentJob: true));
+    }
+
+    private IEnumerator LoadSceneRoutine(int sceneBuildIndex, string fallbackSceneName, bool clearCurrentJob, bool completeCurrentJob)
+    {
+        Time.timeScale = 1f;
+
+        if (!SceneLoadUtility.CanLoadScene(sceneBuildIndex, fallbackSceneName))
+        {
+            sceneTransitionInProgress = false;
+            yield break;
+        }
+
+        if ((questFailScreen != null && questFailScreen.activeInHierarchy) ||
+            (playerKilledScreen != null && playerKilledScreen.activeInHierarchy) ||
+            (gameWinScreen != null && gameWinScreen.activeInHierarchy))
+        {
+            fadeImageFader?.SetAlphaImmediate(0f);
+        }
+
+        yield return FadeOverlayToBlackForScreen();
+
+        if (completeCurrentJob)
+            HideoutRuntimeSession.CompleteJob(currentJob);
+        else if (clearCurrentJob)
+            HideoutRuntimeSession.ClearCurrentJob();
+
+        if (SceneLoadUtility.TryLoadScene(sceneBuildIndex, fallbackSceneName))
+            yield break;
+
+        sceneTransitionInProgress = false;
+        Debug.LogWarning($"Could not load scene. Build Index: {sceneBuildIndex}, Fallback Name: {fallbackSceneName}", this);
+
+        yield return FadeOverlayOutAndRestore();
     }
 
     private string ResolveFailureScreenMessage(HideoutJobFailureDefinition definition)
@@ -1762,9 +2001,35 @@ public class GameplayMissionController : MonoBehaviour
         return string.IsNullOrWhiteSpace(missionCompletedMessage) ? "Mission Complete." : missionCompletedMessage.Trim();
     }
 
+    private void ResetSceneScopedRuntimeState()
+    {
+        Time.timeScale = 1f;
+        MissionRuntimeEvents.ResetRuntimeState();
+        GameplayConsoleCheatState.ResetRuntimeState();
+        FocusRevealTarget.ResetRuntimeState();
+        SetEndScreenPointerVisible(false);
+    }
+
+    private void SetEndScreenPointerVisible(bool visible)
+    {
+        DynamicCrosshairUI dynamicCrosshairUi = FindFirstObjectByType<DynamicCrosshairUI>();
+        if (dynamicCrosshairUi != null)
+            dynamicCrosshairUi.SetUiSuppressed(visible);
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = visible;
+    }
+
     private bool IsPlayerInstigator(GameObject instigatorRoot)
     {
         return IsPlayerRoot(instigatorRoot);
+    }
+
+    private static bool IsFullyDetectedEnemyState(EnemyState state)
+    {
+        return state == EnemyState.Detected ||
+               state == EnemyState.Alert ||
+               state == EnemyState.Fleeing;
     }
 
     private bool IsPlayerRoot(GameObject candidateRoot)

@@ -284,7 +284,7 @@ GameObject:
   - component: {fileID: 3208489194072600456}
   - component: {fileID: 2339630723451731795}
   - component: {fileID: 6507060540482032123}
-  m_Layer: 9
+  m_Layer: 10
   m_Name: Poker Table
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -408,7 +408,7 @@ CircleCollider2D:
   m_CompositeOperation: 0
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
-  m_Radius: 0.75
+  m_Radius: 0.5
 --- !u!1 &6880237826080762010
 GameObject:
   m_ObjectHideFlags: 0

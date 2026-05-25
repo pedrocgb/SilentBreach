@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Breezeblocks.WeaponSystem;
 using Sirenix.OdinInspector;
@@ -11,11 +12,13 @@ namespace Breezeblocks.Missions
 [AddComponentMenu("Breezeblocks/Missions/Light Switch Interactable")]
 public class LightSwitchInteractable : PlayerWorldInteractable
 {
+    public event Action<LightSwitchInteractable, bool> LightStateChanged;
+
     [FoldoutGroup("References")]
     [SerializeField] private WorldSfxManager worldSfxManager;
 
     [FoldoutGroup("Lights"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
-    [SerializeField] private List<Light2D> controlledLights = new();
+    [SerializeField] private List<GameObject> controlledLights = new();
 
     [FoldoutGroup("Lights")]
     [SerializeField] private bool startEnabled = true;
@@ -28,6 +31,8 @@ public class LightSwitchInteractable : PlayerWorldInteractable
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsOn => isOn;
+
+    public IReadOnlyList<GameObject> ControlledLights => controlledLights;
 
     private bool isOn;
 
@@ -47,9 +52,21 @@ public class LightSwitchInteractable : PlayerWorldInteractable
 
     protected override bool Interact(GameObject interactorRoot)
     {
-        isOn = !isOn;
+        return SetLightState(!isOn, playSfx: true, interactorRoot);
+    }
+
+    public bool SetLightState(bool enabled, bool playSfx = true, GameObject interactorRoot = null)
+    {
+        if (isOn == enabled)
+            return false;
+
+        isOn = enabled;
         ApplyLightState();
-        PlayToggleSfx();
+
+        if (playSfx)
+            PlayToggleSfx();
+
+        LightStateChanged?.Invoke(this, isOn);
         return true;
     }
 
@@ -58,7 +75,7 @@ public class LightSwitchInteractable : PlayerWorldInteractable
         for (int i = 0; i < controlledLights.Count; i++)
         {
             if (controlledLights[i] != null)
-                controlledLights[i].enabled = isOn;
+                controlledLights[i].SetActive(isOn);
         }
     }
 

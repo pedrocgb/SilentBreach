@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
+using Breezeblocks;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -188,9 +190,13 @@ public sealed class HideoutJobDefinition : ScriptableObject
     [FoldoutGroup("Job"), PreviewField(96, ObjectFieldAlignment.Left)]
     [SerializeField] private Sprite jobImage;
 
-    [FoldoutGroup("Gameplay"), LabelText("Mission Scene")]
+    [FoldoutGroup("Gameplay"), LabelText("Mission Scene Build Index"), MinValue(-1)]
+    [SerializeField] private int missionSceneBuildIndex = 1;
+
+    [FoldoutGroup("Gameplay"), LabelText("Mission Scene Fallback Name")]
+    [FormerlySerializedAs("missionScenePath")]
     [FormerlySerializedAs("questScenePath")]
-    [SerializeField] private string missionScenePath = "Assets/Breezeblocks/Scenes/[2] Poker Scene.unity";
+    [SerializeField] private string missionSceneName = "Poker Scene";
 
     [FoldoutGroup("Gameplay"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
     [SerializeField] private List<HideoutJobDefinition> unlockJobs = new();
@@ -222,8 +228,11 @@ public sealed class HideoutJobDefinition : ScriptableObject
         : termsOfFailureText ?? string.Empty;
     public string FixerName => fixerName ?? string.Empty;
     public Sprite JobImage => jobImage;
-    public string MissionScenePath => missionScenePath ?? string.Empty;
-    public string QuestScenePath => MissionScenePath;
+    public int MissionSceneBuildIndex => missionSceneBuildIndex;
+    public string MissionSceneName => SceneLoadUtility.SanitizeSceneName(missionSceneName);
+    public bool HasMissionSceneReference => SceneLoadUtility.HasSceneReference(missionSceneBuildIndex, missionSceneName);
+    public string MissionScenePath => MissionSceneName;
+    public string QuestScenePath => MissionSceneName;
     public string ShopTitle => string.IsNullOrWhiteSpace(shopTitle) ? "The Fence" : shopTitle;
     public string ShopDescription => shopDescription ?? string.Empty;
     public Sprite ShopImage => shopImage;
@@ -243,7 +252,8 @@ public sealed class HideoutJobDefinition : ScriptableObject
         objectivesText ??= string.Empty;
         termsOfFailureText ??= string.Empty;
         fixerName = fixerName != null ? fixerName.Trim() : string.Empty;
-        missionScenePath = missionScenePath != null ? missionScenePath.Trim() : string.Empty;
+        missionSceneBuildIndex = Mathf.Max(-1, missionSceneBuildIndex);
+        missionSceneName = NormalizeSceneName(missionSceneName);
         shopTitle = string.IsNullOrWhiteSpace(shopTitle) ? "The Fence" : shopTitle.Trim();
         shopDescription ??= string.Empty;
         fenceOffers ??= new List<HideoutFenceOfferDefinition>();
@@ -311,6 +321,18 @@ public sealed class HideoutJobDefinition : ScriptableObject
             return string.Join(" | ", parts);
 
         return rewardText != null ? rewardText.Trim() : string.Empty;
+    }
+
+    private static string NormalizeSceneName(string rawSceneReference)
+    {
+        if (string.IsNullOrWhiteSpace(rawSceneReference))
+            return string.Empty;
+
+        string trimmed = rawSceneReference.Trim();
+        if (trimmed.Contains("/") || trimmed.Contains("\\") || trimmed.EndsWith(".unity", StringComparison.OrdinalIgnoreCase))
+            return Path.GetFileNameWithoutExtension(trimmed);
+
+        return trimmed;
     }
 
     private static string BuildFormattedList<T>(IReadOnlyList<T> entries, Func<T, string> resolver)

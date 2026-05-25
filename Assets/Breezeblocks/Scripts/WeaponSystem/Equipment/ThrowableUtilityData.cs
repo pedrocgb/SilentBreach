@@ -112,6 +112,12 @@ public class ThrowableUtilityData : UtilityItemData
     [FoldoutGroup("Throwable/Explosion"), ShowIf(nameof(UsesExplosion)), MinValue(0f)]
     [SerializeField] private float explosionDamage = 50f;
 
+    [FoldoutGroup("Throwable/Explosion"), ShowIf(nameof(UsesExplosion))]
+    [SerializeField] private bool applyExplosionKnockback = true;
+
+    [FoldoutGroup("Throwable/Explosion"), ShowIf("@UsesExplosion && applyExplosionKnockback"), MinValue(0f)]
+    [SerializeField] private float explosionKnockbackForce = 8f;
+
     [FoldoutGroup("Throwable/Flashbang"), ShowIf(nameof(UsesFlashbang)), MinValue(0.01f), SuffixLabel("s", true)]
     [SerializeField] private float flashbangDuration = 8f;
 
@@ -169,6 +175,8 @@ public class ThrowableUtilityData : UtilityItemData
     public float EffectRadius => effectRadius;
     public LayerMask EffectObstacleMask => effectObstacleMask;
     public float ExplosionDamage => explosionDamage;
+    public bool ApplyExplosionKnockback => applyExplosionKnockback && explosionKnockbackForce > 0f;
+    public float ExplosionKnockbackForce => Mathf.Max(0f, explosionKnockbackForce);
     public float FlashbangDuration => flashbangDuration;
     public float FlashbangRecoveryThreshold => flashbangRecoveryThreshold;
     public float FlashbangAimlessRotationSpeed => flashbangAimlessRotationSpeed;
@@ -209,6 +217,7 @@ public class ThrowableUtilityData : UtilityItemData
         detonationSfx.Validate();
         effectRadius = Mathf.Max(0f, effectRadius);
         explosionDamage = Mathf.Max(0f, explosionDamage);
+        explosionKnockbackForce = Mathf.Max(0f, explosionKnockbackForce);
         flashbangDuration = Mathf.Max(0.01f, flashbangDuration);
         flashbangRecoveryThreshold = Mathf.Clamp(flashbangRecoveryThreshold, 0f, flashbangDuration);
         flashbangAimlessRotationSpeed = Mathf.Max(0f, flashbangAimlessRotationSpeed);

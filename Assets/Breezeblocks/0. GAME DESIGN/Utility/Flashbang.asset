@@ -37,7 +37,7 @@ MonoBehaviour:
   minThrowForce: 1.5
   maxThrowForce: 8
   minTravelDistance: 0.5
-  maxTravelDistance: 6
+  maxTravelDistance: 12
   throwSpinSpeed: 700
   throwAnimationDuration: 0.16
   impactNoise: 0.4
@@ -51,6 +51,9 @@ MonoBehaviour:
     pitchRange: {x: 1, y: 1}
     overrideSpatialBlend: 1
     spatialBlend: 1
+    overrideDistanceRange: 1
+    minDistance: 1
+    maxDistance: 4
   resolveEffectPrefab: {fileID: 7633305432426725292, guid: cd91d1037560f480d822b8f3abcc8dd9, type: 3}
   resolveEffectPoolPrewarm: 2
   directHitDamage: 20
@@ -68,6 +71,9 @@ MonoBehaviour:
     pitchRange: {x: 1, y: 1}
     overrideSpatialBlend: 1
     spatialBlend: 1
+    overrideDistanceRange: 1
+    minDistance: 1
+    maxDistance: 12
   effectRadius: 3
   effectObstacleMask:
     serializedVersion: 2

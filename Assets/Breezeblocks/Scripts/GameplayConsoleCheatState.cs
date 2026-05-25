@@ -32,6 +32,11 @@ public static class GameplayConsoleCheatState
         StateChanged = null;
     }
 
+    public static void ResetRuntimeState()
+    {
+        ResetState();
+    }
+
     public static void SetGodMode(bool enabled)
     {
         if (GodMode == enabled)

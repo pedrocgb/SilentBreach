@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
+using Breezeblocks;
 using Breezeblocks.WeaponSystem;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace Breezeblocks.HideoutSystem
@@ -263,7 +263,7 @@ public sealed class HideoutSceneController : MonoBehaviour
 
     public void StartQuest()
     {
-        if (selectedJob == null || string.IsNullOrWhiteSpace(selectedJob.MissionScenePath))
+        if (selectedJob == null || !SceneLoadUtility.CanLoadScene(selectedJob.MissionSceneBuildIndex, selectedJob.MissionSceneName))
         {
             SetMessage("This job does not have a quest scene configured yet.");
             return;
@@ -272,7 +272,7 @@ public sealed class HideoutSceneController : MonoBehaviour
         PlayerEquipmentRuntimeSession.SetPendingQuestLoadout(BuildRuntimeLoadout());
         HideoutRuntimeSession.SetCurrentJob(selectedJob);
         Time.timeScale = 1f;
-        SceneManager.LoadScene(selectedJob.MissionScenePath);
+        SceneLoadUtility.TryLoadScene(selectedJob.MissionSceneBuildIndex, selectedJob.MissionSceneName);
     }
 
     private void InitializeLoadoutSlots()
@@ -573,7 +573,7 @@ public sealed class HideoutSceneController : MonoBehaviour
         RefreshDetailPanel();
 
         if (fencePanel.startQuestButton != null)
-            fencePanel.startQuestButton.interactable = selectedJob != null && !string.IsNullOrWhiteSpace(selectedJob.MissionScenePath);
+            fencePanel.startQuestButton.interactable = selectedJob != null && SceneLoadUtility.CanLoadScene(selectedJob.MissionSceneBuildIndex, selectedJob.MissionSceneName);
     }
 
     private void SelectInitialFenceDetail()

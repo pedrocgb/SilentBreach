@@ -1,0 +1,119 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1f228266ec003e4382147ad1699c4ee, type: 3}
+  m_Name: Kar-98
+  m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.WeaponSystem.FirearmData
+  itemDisplayName: Kar 98k
+  itemIcon: {fileID: 4464088399468828612, guid: dcefdf37c5de7263da334df5d25a249e, type: 3}
+  itemDescription: "O ic\xF4nico fuzil alem\xE3o de ferrolho, famoso por ter sido
+    usado como arma padr\xE3o da infantaria da Wehrmacht durante a Segunda Guerra
+    Mundial. Conhecido por sua robustez, confiabilidade e excepcional precis\xE3o
+    em longas dist\xE2ncias, ele utilizava o poderoso cartucho 7,92x57mm Mauser."
+  heldVisualSprite: {fileID: -8051703123925731266, guid: ee12efe9a4100823187856aa82dabb40, type: 3}
+  firearmClass: 9
+  allowedSlots: 1
+  gripType: 1
+  twoHandedFrontHandForwardOffset: 0.14
+  fireRate: 1
+  spread: 3
+  accuracy: 100
+  reloadTime: 1
+  reloadType: 1
+  ammoCapacity: 5
+  defaultReserveAmmo: 10
+  reloadNoiseDuration: 0.2
+  magazineReloadMidSfxNormalizedTime: 0.5
+  compatibleProjectiles:
+  - {fileID: 11400000, guid: 6f00bb3bbeef52346a3b09ed23ec74be, type: 2}
+  fireMode: 17
+  burstCount: 0
+  pelletCount: 0
+  aimSpeed: 440
+  aimPanDistance: 30
+  aimTime: 2
+  equipTime: 0.75
+  holsterTime: 0.55
+  screenshakePower: 8
+  screenshakeDuration: 0.08
+  hideMuzzleFlash: 0
+  muzzleFlashSize: 1
+  muzzleFlashDuration: 0.1
+  shotSfx:
+    clips:
+    - {fileID: 8300000, guid: 77ce9726eaf73274a83928449095c34a, type: 3}
+    volume: 1
+    pitchRange: {x: 1, y: 1}
+    overrideSpatialBlend: 1
+    spatialBlend: 1
+    overrideDistanceRange: 1
+    minDistance: 1
+    maxDistance: 40
+  casingDelay: 0.05
+  casingSfx:
+    clips:
+    - {fileID: 8300000, guid: 77ce9726eaf73274a83928449095c34a, type: 3}
+    volume: 1
+    pitchRange: {x: 1, y: 1}
+    overrideSpatialBlend: 1
+    spatialBlend: 1
+    overrideDistanceRange: 1
+    minDistance: 1
+    maxDistance: 4
+  reloadStartSfx:
+    clips: []
+    volume: 1
+    pitchRange: {x: 1, y: 1}
+    overrideSpatialBlend: 0
+    spatialBlend: 1
+    overrideDistanceRange: 0
+    minDistance: 1.5
+    maxDistance: 24
+  reloadEndSfx:
+    clips: []
+    volume: 1
+    pitchRange: {x: 1, y: 1}
+    overrideSpatialBlend: 0
+    spatialBlend: 1
+    overrideDistanceRange: 0
+    minDistance: 1.5
+    maxDistance: 24
+  reloadTriggerSfx:
+    clips: []
+    volume: 1
+    pitchRange: {x: 1, y: 1}
+    overrideSpatialBlend: 0
+    spatialBlend: 1
+    overrideDistanceRange: 0
+    minDistance: 1.5
+    maxDistance: 24
+  bulletReloadSfx:
+    clips:
+    - {fileID: 8300000, guid: 350c90c278aa9d2439f680b48cebb5c3, type: 3}
+    volume: 1
+    pitchRange: {x: 1, y: 1}
+    overrideSpatialBlend: 1
+    spatialBlend: 1
+    overrideDistanceRange: 1
+    minDistance: 1
+    maxDistance: 8
+  shootNoise: 2
+  shootNoiseType: 0
+  shootExtremeNoise: 1
+  equipNoise: 0.17
+  equipNoiseType: 1
+  equipExtremeNoise: 0
+  holsterNoise: 0.17
+  holsterNoiseType: 1
+  holsterExtremeNoise: 0
+  reloadNoise: 0.3
+  reloadNoiseType: 1
+  reloadExtremeNoise: 0

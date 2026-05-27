@@ -1,0 +1,429 @@
+fileFormatVersion: 2
+guid: f69ad1feab038441cb37acaa8af42233
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 1404253938392143779
+    second: Wenrexa Grenade_0
+  - first:
+      213: 9081037941571094692
+    second: Wenrexa Grenade_1
+  - first:
+      213: -7594876749116871542
+    second: Wenrexa Grenade_2
+  - first:
+      213: 2977319527219830030
+    second: Wenrexa Grenade_3
+  - first:
+      213: -5621941376937312943
+    second: Wenrexa Grenade_4
+  - first:
+      213: 2406283661592607157
+    second: Wenrexa Grenade_5
+  - first:
+      213: -576269329646293991
+    second: Wenrexa Grenade_6
+  - first:
+      213: 343995815861710770
+    second: Wenrexa Grenade_7
+  - first:
+      213: 6177748482786371424
+    second: Wenrexa Grenade_8
+  - first:
+      213: 4298648575679507548
+    second: Wenrexa Grenade_9
+  - first:
+      213: -3396376018303376736
+    second: Wenrexa Grenade_10
+  - first:
+      213: -5202005955394836121
+    second: Wenrexa Grenade_11
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Wenrexa Grenade_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 153
+        width: 81
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3a79e445489ec7310800000000000000
+      internalID: 1404253938392143779
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Grenade_1
+      rect:
+        serializedVersion: 2
+        x: 65
+        y: 170
+        width: 126
+        height: 86
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4a8803bf4e3560e70800000000000000
+      internalID: 9081037941571094692
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Grenade_2
+      rect:
+        serializedVersion: 2
+        x: 17
+        y: 78
+        width: 29
+        height: 74
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a8ce30806d3999690800000000000000
+      internalID: -7594876749116871542
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Grenade_3
+      rect:
+        serializedVersion: 2
+        x: 60
+        y: 113
+        width: 41
+        height: 50
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e0d95c2e550915920800000000000000
+      internalID: 2977319527219830030
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Grenade_4
+      rect:
+        serializedVersion: 2
+        x: 109
+        y: 111
+        width: 45
+        height: 52
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 15db49f9a1adaf1b0800000000000000
+      internalID: -5621941376937312943
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Grenade_5
+      rect:
+        serializedVersion: 2
+        x: 161
+        y: 114
+        width: 46
+        height: 48
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5b9bd0ebd36d46120800000000000000
+      internalID: 2406283661592607157
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Grenade_6
+      rect:
+        serializedVersion: 2
+        x: 53
+        y: 59
+        width: 44
+        height: 44
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 91cea7f091ea008f0800000000000000
+      internalID: -576269329646293991
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Grenade_7
+      rect:
+        serializedVersion: 2
+        x: 109
+        y: 59
+        width: 44
+        height: 44
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2bf68a83f5e16c400800000000000000
+      internalID: 343995815861710770
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Grenade_8
+      rect:
+        serializedVersion: 2
+        x: 166
+        y: 62
+        width: 45
+        height: 42
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 067a0349385cbb550800000000000000
+      internalID: 6177748482786371424
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Grenade_9
+      rect:
+        serializedVersion: 2
+        x: 65
+        y: 4
+        width: 49
+        height: 47
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c5cad97ba1ed7ab30800000000000000
+      internalID: 4298648575679507548
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Grenade_10
+      rect:
+        serializedVersion: 2
+        x: 112
+        y: 0
+        width: 38
+        height: 51
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0a22f519106add0d0800000000000000
+      internalID: -3396376018303376736
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Grenade_11
+      rect:
+        serializedVersion: 2
+        x: 148
+        y: 1
+        width: 55
+        height: 50
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 769693d1523cec7b0800000000000000
+      internalID: -5202005955394836121
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Wenrexa Grenade_0: 1404253938392143779
+      Wenrexa Grenade_1: 9081037941571094692
+      Wenrexa Grenade_10: -3396376018303376736
+      Wenrexa Grenade_11: -5202005955394836121
+      Wenrexa Grenade_2: -7594876749116871542
+      Wenrexa Grenade_3: 2977319527219830030
+      Wenrexa Grenade_4: -5621941376937312943
+      Wenrexa Grenade_5: 2406283661592607157
+      Wenrexa Grenade_6: -576269329646293991
+      Wenrexa Grenade_7: 343995815861710770
+      Wenrexa Grenade_8: 6177748482786371424
+      Wenrexa Grenade_9: 4298648575679507548
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

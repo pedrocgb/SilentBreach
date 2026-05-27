@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Glock
   m_EditorClassIdentifier: Assembly-CSharp::FirearmData
   itemDisplayName: Glock
-  itemIcon: {fileID: -8635745744451227967, guid: bb17164f42feeda43b3ffc39f0ab066b, type: 3}
+  itemIcon: {fileID: 6236557453034510034, guid: a546e2bb4f5f7cc1a99b7d9bc511c989, type: 3}
   itemDescription: "Recognized for extreme reliability, simplicity, and durability,
     they feature a signature short-recoil operating system and a \"Safe Action\"
     system\u2014three independent, passive mechanical safeties that disengage when
@@ -38,6 +38,7 @@ MonoBehaviour:
   burstCount: 0
   pelletCount: 0
   aimSpeed: 700
+  aimPanDistance: 22
   aimTime: 2
   equipTime: 0.25
   holsterTime: 0.25

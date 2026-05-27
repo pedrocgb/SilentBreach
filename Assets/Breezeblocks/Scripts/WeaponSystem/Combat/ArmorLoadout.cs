@@ -40,8 +40,14 @@ public class ArmorLoadout : MonoBehaviour
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool HasArmor => startingArmor != null && CurrentArmorValue > 0f;
 
-    public float RotationPenaltyPercent => HasArmor ? startingArmor.RotationPenalty : 0f;
-    public float MovementNoiseMultiplier => HasArmor ? 1f + (startingArmor.MovementNoiseModifierPercent / 100f) : 1f;
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public bool HasEquippedArmor => startingArmor != null;
+
+    public float RotationPenaltyPercent => HasEquippedArmor ? startingArmor.RotationPenalty : 0f;
+    public float RotationSpeedMultiplier => 1f - Mathf.Clamp01(RotationPenaltyPercent / 100f);
+    public float MovementNoiseMultiplier => HasEquippedArmor ? 1f + (startingArmor.MovementNoiseModifierPercent / 100f) : 1f;
+    public float MovementSpeedPenaltyPercent => HasEquippedArmor ? startingArmor.MovementSpeedPenaltyPercent : 0f;
+    public float MovementSpeedMultiplier => 1f - Mathf.Clamp01(MovementSpeedPenaltyPercent / 100f);
 
     public event Action ArmorChanged;
 

@@ -1,3 +1,4 @@
+using System;
 using Breezeblocks.WeaponSystem;
 using DG.Tweening;
 using Sirenix.OdinInspector;
@@ -70,6 +71,8 @@ public class PlayerStaminaController : MonoBehaviour
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly, SuffixLabel("s", true)]
     public float RegenerationDelayRemaining => Mathf.Max(0f, nextRegenerationAllowedTime - Time.time);
+
+    public event Action<float> StaminaSpent;
 
     private float nextRegenerationAllowedTime;
     private Tween insufficientStaminaShakeTween;
@@ -184,11 +187,15 @@ public class PlayerStaminaController : MonoBehaviour
         if (amount <= 0f || maxStamina <= 0f)
             return;
 
-        CurrentStamina = Mathf.Max(0f, CurrentStamina - amount);
+        float clampedAmount = Mathf.Max(0f, amount);
+        float actualSpent = Mathf.Min(CurrentStamina, clampedAmount);
+        CurrentStamina = Mathf.Max(0f, CurrentStamina - clampedAmount);
         nextRegenerationAllowedTime = Time.time + regenerationDelayAfterSpend;
         IsRegenerating = false;
         if (CurrentStamina > MinimumThreshold)
             sprintInsufficientFeedbackActive = false;
+        if (actualSpent > 0f)
+            StaminaSpent?.Invoke(actualSpent);
         RefreshUi();
     }
 

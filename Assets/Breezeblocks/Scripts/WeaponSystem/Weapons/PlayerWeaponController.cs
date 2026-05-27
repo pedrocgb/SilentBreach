@@ -169,6 +169,7 @@ public class PlayerWeaponController : MonoBehaviour
     public bool IsInputBlocked => inputBlocked;
 
     public event Action WeaponStateChanged;
+    public event Action WeaponFired;
 
     private Player _player;
     private Camera _mainCamera;
@@ -452,12 +453,6 @@ public class PlayerWeaponController : MonoBehaviour
         if (EquippedFirearm == null || !_player.GetButtonDown(reloadAction))
             return;
 
-        if (EquippedFirearm.ReloadStyle == ReloadType.BulletPerBullet && IsReloading)
-        {
-            CancelBulletPerBulletReload();
-            return;
-        }
-
         if (IsReloading || CurrentProjectile == null)
             return;
 
@@ -510,30 +505,22 @@ public class PlayerWeaponController : MonoBehaviour
 
     private IEnumerator BulletPerBulletReloadRoutine()
     {
-        bool loadedAnyRound = false;
         EmitNoiseSpike(EquippedFirearm.ReloadNoise, EquippedFirearm.ReloadNoiseDuration, EquippedFirearm.ReloadNoiseType, EquippedFirearm.ReloadExtremeNoise);
+        yield return new WaitForSeconds(EquippedFirearm.ReloadTime);
 
-        while (EquippedFirearm != null &&
-               CurrentProjectile != null &&
-               currentLoadedAmmo < CurrentAmmoCapacity &&
-               HasReserveAmmo)
+        if (EquippedFirearm != null &&
+            CurrentProjectile != null &&
+            currentLoadedAmmo < CurrentAmmoCapacity &&
+            HasReserveAmmo)
         {
-            yield return new WaitForSeconds(EquippedFirearm.ReloadTime);
-
-            if (!HasReserveAmmo || currentLoadedAmmo >= CurrentAmmoCapacity)
-                break;
-
             currentLoadedAmmo++;
             if (!GameplayConsoleCheatState.InfiniteReserveAmmo)
                 currentReserveAmmo--;
 
-            loadedAnyRound = true;
             PlayBulletReloadSfx();
+            EmitNoiseSpike(EquippedFirearm.ReloadNoise, EquippedFirearm.ReloadNoiseDuration, EquippedFirearm.ReloadNoiseType, EquippedFirearm.ReloadExtremeNoise);
             NotifyWeaponStateChanged();
         }
-
-        if (loadedAnyRound && EquippedFirearm != null)
-            EmitNoiseSpike(EquippedFirearm.ReloadNoise, EquippedFirearm.ReloadNoiseDuration, EquippedFirearm.ReloadNoiseType, EquippedFirearm.ReloadExtremeNoise);
 
         _reloadRoutine = null;
         NotifyWeaponStateChanged();
@@ -635,6 +622,7 @@ public class PlayerWeaponController : MonoBehaviour
         ApplyScreenshake();
         PlayShotSequenceSfx();
         NotifyWeaponStateChanged();
+        WeaponFired?.Invoke();
         return true;
     }
 
@@ -763,7 +751,7 @@ public class PlayerWeaponController : MonoBehaviour
             return;
 
         aimCamera.SetFollowTarget(transform);
-        aimCamera.SetAimState(IsAiming, CurrentProjectile != null ? CurrentProjectile.Range : 0f);
+        aimCamera.SetAimState(IsAiming, EquippedFirearm.AimPanDistance);
     }
 
     private bool IsStandingStill()
@@ -777,9 +765,12 @@ public class PlayerWeaponController : MonoBehaviour
     private float GetEffectiveLookSpeed()
     {
         float speed = IsAiming && EquippedFirearm != null ? EquippedFirearm.AimSpeed : lookRotationSpeed;
-        float rotationPenaltyPercent = armorLoadout != null ? armorLoadout.RotationPenaltyPercent : 0f;
         float staggerMultiplier = actorStaggerController != null ? actorStaggerController.TurnSpeedMultiplier : 1f;
-        return speed * (1f - Mathf.Clamp01(rotationPenaltyPercent / 100f)) * staggerMultiplier;
+        float effectiveSpeed = speed * staggerMultiplier;
+        if (playerVisionLight == null && armorLoadout != null)
+            effectiveSpeed *= armorLoadout.RotationSpeedMultiplier;
+
+        return effectiveSpeed;
     }
 
     private Vector2 ResolveMouseDirection()

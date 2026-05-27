@@ -1,6 +1,7 @@
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
+using Breezeblocks.WeaponSystem;
 
 [ExecuteAlways]
 [RequireComponent(typeof(Light2D))]
@@ -52,6 +53,7 @@ public class PlayerVisionLight : MonoBehaviour
 
     private Light2D _light2D;
     private Camera _cam;
+    private ArmorLoadout _armorLoadout;
     private bool _externallyDrivenThisFrame;
     private bool _inputBlocked;
     private bool _medusaVisionOverride;
@@ -94,7 +96,6 @@ public class PlayerVisionLight : MonoBehaviour
         minViewRadius = Mathf.Max(0f, minViewRadius);
         maxViewRadius = Mathf.Max(minViewRadius, maxViewRadius);
         rotationSmoothing = Mathf.Max(0f, rotationSmoothing);
-
         if (!Application.isPlaying)
         {
             ApplyShapeIfChanged(force: true);
@@ -150,8 +151,7 @@ public class PlayerVisionLight : MonoBehaviour
             return FacingDirection;
 
         lookAtMouse = true;
-        RotationSmoothing = smoothing;
-        UpdateRotation(deltaTime);
+        UpdateRotation(deltaTime, smoothing);
         _externallyDrivenThisFrame = true;
         return FacingDirection;
     }
@@ -162,9 +162,8 @@ public class PlayerVisionLight : MonoBehaviour
             return;
 
         lookAtMouse = false;
-        RotationSmoothing = smoothing;
         externalDirection = dir.normalized;
-        UpdateRotation(deltaTime);
+        UpdateRotation(deltaTime, smoothing);
         _externallyDrivenThisFrame = true;
     }
 
@@ -220,6 +219,9 @@ public class PlayerVisionLight : MonoBehaviour
 
         if (_cam == null)
             _cam = Camera.main;
+
+        if (_armorLoadout == null)
+            _armorLoadout = GetComponentInParent<ArmorLoadout>();
     }
 
     private void CacheDefaultAngles()
@@ -235,23 +237,31 @@ public class PlayerVisionLight : MonoBehaviour
         _defaultAnglesCached = true;
     }
 
-    private void UpdateRotation(float deltaTime)
+    private void UpdateRotation(float deltaTime, float? requestedSmoothing = null)
     {
         if (!ResolveDirection(allowMouseWhenNotPlaying: false, out var dir))
             return;
 
         float targetAngle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg + rotationOffset;
+        float effectiveRotationSmoothing = GetEffectiveRotationSmoothing(requestedSmoothing);
 
-        if (rotationSmoothing <= 0f)
+        if (effectiveRotationSmoothing <= 0f)
         {
             transform.rotation = Quaternion.Euler(0f, 0f, targetAngle);
             return;
         }
 
         float currentAngle = transform.eulerAngles.z;
-        float maxDelta = rotationSmoothing * deltaTime;
+        float maxDelta = effectiveRotationSmoothing * deltaTime;
         float newAngle = Mathf.MoveTowardsAngle(currentAngle, targetAngle, maxDelta);
         transform.rotation = Quaternion.Euler(0f, 0f, newAngle);
+    }
+
+    private float GetEffectiveRotationSmoothing(float? requestedSmoothing = null)
+    {
+        float multiplier = _armorLoadout != null ? _armorLoadout.RotationSpeedMultiplier : 1f;
+        float baseSmoothing = requestedSmoothing ?? rotationSmoothing;
+        return Mathf.Max(0f, baseSmoothing) * multiplier;
     }
 
     private void ApplyRotationImmediate()

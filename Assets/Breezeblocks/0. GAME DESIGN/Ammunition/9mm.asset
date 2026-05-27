@@ -14,5 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ProjectileData
   penetration: 1
   damage: 8
+  isLethal: 1
   range: 20
-  staggerDuration: 1
+  staggerDuration: 0.35

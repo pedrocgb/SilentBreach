@@ -1,0 +1,377 @@
+fileFormatVersion: 2
+guid: 0156735fff13a55c3a614002826a4280
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -8809359399278500874
+    second: Wenrexa Ammunition Box 1_0
+  - first:
+      213: -6526014545916206348
+    second: Wenrexa Ammunition Box 1_1
+  - first:
+      213: 3308106792806669566
+    second: Wenrexa Ammunition Box 1_2
+  - first:
+      213: 8056023011473721059
+    second: Wenrexa Ammunition Box 1_3
+  - first:
+      213: -5056702275118846954
+    second: Wenrexa Ammunition Box 1_4
+  - first:
+      213: -1777397076382892505
+    second: Wenrexa Ammunition Box 1_5
+  - first:
+      213: -6076860264394181192
+    second: Wenrexa Ammunition Box 1_6
+  - first:
+      213: 3426743709690436584
+    second: Wenrexa Ammunition Box 1_7
+  - first:
+      213: 4335706209623389108
+    second: Wenrexa Ammunition Box 1_8
+  - first:
+      213: -4464735213553863178
+    second: Wenrexa Ammunition Box 1_9
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Wenrexa Ammunition Box 1_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 162
+        width: 255
+        height: 23
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6f3a143ec4edeb580800000000000000
+      internalID: -8809359399278500874
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Ammunition Box 1_1
+      rect:
+        serializedVersion: 2
+        x: 72
+        y: 180
+        width: 116
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4f2e1a7c850fe65a0800000000000000
+      internalID: -6526014545916206348
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Ammunition Box 1_2
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 152
+        width: 214
+        height: 22
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: efc5c48d991c8ed20800000000000000
+      internalID: 3308106792806669566
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Ammunition Box 1_3
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 207
+        height: 158
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3e6834d0f3ebccf60800000000000000
+      internalID: 8056023011473721059
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Ammunition Box 1_4
+      rect:
+        serializedVersion: 2
+        x: 4
+        y: 136
+        width: 203
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 61ca1a4821cf2d9b0800000000000000
+      internalID: -5056702275118846954
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Ammunition Box 1_5
+      rect:
+        serializedVersion: 2
+        x: 215
+        y: 145
+        width: 41
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 72e316da6ca6557e0800000000000000
+      internalID: -1777397076382892505
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Ammunition Box 1_6
+      rect:
+        serializedVersion: 2
+        x: 248
+        y: 143
+        width: 8
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8b5391f39c7aaaba0800000000000000
+      internalID: -6076860264394181192
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Ammunition Box 1_7
+      rect:
+        serializedVersion: 2
+        x: 205
+        y: 0
+        width: 48
+        height: 150
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8eb17609f3d3e8f20800000000000000
+      internalID: 3426743709690436584
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Ammunition Box 1_8
+      rect:
+        serializedVersion: 2
+        x: 214
+        y: 106
+        width: 9
+        height: 45
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4b3be0b73d58b2c30800000000000000
+      internalID: 4335706209623389108
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Ammunition Box 1_9
+      rect:
+        serializedVersion: 2
+        x: 215
+        y: 59
+        width: 39
+        height: 90
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6f5b1fb7af21a02c0800000000000000
+      internalID: -4464735213553863178
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Wenrexa Ammunition Box 1_0: -8809359399278500874
+      Wenrexa Ammunition Box 1_1: -6526014545916206348
+      Wenrexa Ammunition Box 1_2: 3308106792806669566
+      Wenrexa Ammunition Box 1_3: 8056023011473721059
+      Wenrexa Ammunition Box 1_4: -5056702275118846954
+      Wenrexa Ammunition Box 1_5: -1777397076382892505
+      Wenrexa Ammunition Box 1_6: -6076860264394181192
+      Wenrexa Ammunition Box 1_7: 3426743709690436584
+      Wenrexa Ammunition Box 1_8: 4335706209623389108
+      Wenrexa Ammunition Box 1_9: -4464735213553863178
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

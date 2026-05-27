@@ -1,3 +1,5 @@
+using System;
+using Breezeblocks.WeaponSystem;
 using Rewired;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -49,6 +51,9 @@ public class PlayerTopDownMotor2D : MonoBehaviour
     [FoldoutGroup("Physics"), Tooltip("Optional override. If empty, uses Rigidbody2D on this object.")]
     [SerializeField] private Rigidbody2D movementBody;
 
+    [FoldoutGroup("Physics"), Tooltip("Optional override. If empty, uses ArmorLoadout on this object.")]
+    [SerializeField] private ArmorLoadout armorLoadout;
+
     private bool forceZeroGravity = true;
 
     private bool freezeRotationZ = true;
@@ -90,13 +95,13 @@ public class PlayerTopDownMotor2D : MonoBehaviour
     public float CurrentTargetSpeed { get; private set; }
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
-    public float MinWalkSpeed => walkSpeedLevels[0];
+    public float MinWalkSpeed => walkSpeedLevels[0] * GetArmorMovementSpeedMultiplier();
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
-    public float MaxWalkSpeed => walkSpeedLevels[SpeedLevelsCount - 1];
+    public float MaxWalkSpeed => walkSpeedLevels[SpeedLevelsCount - 1] * GetArmorMovementSpeedMultiplier();
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
-    public float MaxSprintSpeed => MaxWalkSpeed * sprintSpeedMultiplier;
+    public float MaxSprintSpeed => walkSpeedLevels[SpeedLevelsCount - 1] * sprintSpeedMultiplier * GetArmorMovementSpeedMultiplier();
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public float CurrentMotionRatio => CurrentTargetSpeed <= 0f
@@ -108,6 +113,8 @@ public class PlayerTopDownMotor2D : MonoBehaviour
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsSpeedSelectionLocked => speedSelectionLockedExternally || hasExternalSpeedOverride;
+
+    public event Action<int> ManualSpeedLevelChanged;
 
     private Player _player;
     private Vector2 _targetVelocity;
@@ -122,6 +129,8 @@ public class PlayerTopDownMotor2D : MonoBehaviour
     private void Reset()
     {
         movementBody = GetComponent<Rigidbody2D>();
+        if (armorLoadout == null)
+            armorLoadout = GetComponent<ArmorLoadout>();
         EnsureCoverUser();
         EnsureSpeedArrays();
         ApplyPhysicsDefaults();
@@ -131,6 +140,9 @@ public class PlayerTopDownMotor2D : MonoBehaviour
     {
         if (movementBody == null)
             movementBody = GetComponent<Rigidbody2D>();
+
+        if (armorLoadout == null)
+            armorLoadout = GetComponent<ArmorLoadout>();
 
         EnsureCoverUser();
         EnsureSpeedArrays();
@@ -289,6 +301,7 @@ public class PlayerTopDownMotor2D : MonoBehaviour
         if (IsSpeedSelectionLocked)
             return;
 
+        int previousSpeedLevel = selectedSpeedLevel;
         float scroll = _player.GetAxis(mouseWheelAxisAction);
         if (scroll > MinScrollDelta)
             selectedSpeedLevel = Mathf.Min(SpeedLevelsCount, selectedSpeedLevel + 1);
@@ -299,6 +312,9 @@ public class PlayerTopDownMotor2D : MonoBehaviour
         {
             selectedSpeedLevel = selectedSpeedLevel <= 1 ? SpeedLevelsCount : 1;
         }
+
+        if (selectedSpeedLevel != previousSpeedLevel)
+            ManualSpeedLevelChanged?.Invoke(selectedSpeedLevel);
     }
 
     private float GetTargetSpeed(int levelIndex)
@@ -306,10 +322,11 @@ public class PlayerTopDownMotor2D : MonoBehaviour
         if (hasExternalSpeedOverride)
             return externalSpeedOverride;
 
+        float armorSpeedMultiplier = GetArmorMovementSpeedMultiplier();
         if (IsSprinting)
-            return walkSpeedLevels[SpeedLevelsCount - 1] * sprintSpeedMultiplier;
+            return walkSpeedLevels[SpeedLevelsCount - 1] * sprintSpeedMultiplier * armorSpeedMultiplier;
 
-        return walkSpeedLevels[levelIndex];
+        return walkSpeedLevels[levelIndex] * armorSpeedMultiplier;
     }
 
     private void UpdateSprintState()
@@ -411,7 +428,7 @@ public class PlayerTopDownMotor2D : MonoBehaviour
 
     private float CalculateVelocityFill()
     {
-        float minSpeed = walkSpeedLevels[0];
+        float minSpeed = MinWalkSpeed;
         float maxSpeed = MaxSprintSpeed;
         if (maxSpeed <= minSpeed)
             return 0f;
@@ -423,5 +440,10 @@ public class PlayerTopDownMotor2D : MonoBehaviour
             return EffectiveSpeedLevel / (float)SpeedLevelsCount;
 
         return Mathf.InverseLerp(minSpeed, maxSpeed, CurrentTargetSpeed);
+    }
+
+    private float GetArmorMovementSpeedMultiplier()
+    {
+        return armorLoadout != null ? armorLoadout.MovementSpeedMultiplier : 1f;
     }
 }

@@ -68,12 +68,25 @@ public readonly struct EnemyStateChangedEvent
     public EnemyState NewState { get; }
 }
 
+public readonly struct EnemyVisualDetectionEvent
+{
+    public EnemyVisualDetectionEvent(EnemyVisionAI visionAI, EnemyMovementController controller)
+    {
+        VisionAI = visionAI;
+        Controller = controller;
+    }
+
+    public EnemyVisionAI VisionAI { get; }
+    public EnemyMovementController Controller { get; }
+}
+
 public static class MissionRuntimeEvents
 {
     public static event Action<MissionActorEvent> ActorKilled;
     public static event Action<MissionActorEvent> ActorIncapacitated;
     public static event Action<MissionPickupEvent> ItemPickedUp;
     public static event Action<EnemyStateChangedEvent> EnemyStateChanged;
+    public static event Action<EnemyVisualDetectionEvent> EnemyPlayerFullyDetected;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void Reset()
@@ -87,6 +100,7 @@ public static class MissionRuntimeEvents
         ActorIncapacitated = null;
         ItemPickedUp = null;
         EnemyStateChanged = null;
+        EnemyPlayerFullyDetected = null;
     }
 
     public static void RaiseActorKilled(ActorHealth actorHealth, GameObject instigatorRoot)
@@ -115,6 +129,11 @@ public static class MissionRuntimeEvents
     public static void RaiseEnemyStateChanged(EnemyMovementController controller, EnemyState previousState, EnemyState newState)
     {
         EnemyStateChanged?.Invoke(new EnemyStateChangedEvent(controller, previousState, newState));
+    }
+
+    public static void RaiseEnemyPlayerFullyDetected(EnemyVisionAI visionAI, EnemyMovementController controller)
+    {
+        EnemyPlayerFullyDetected?.Invoke(new EnemyVisualDetectionEvent(visionAI, controller));
     }
 }
 

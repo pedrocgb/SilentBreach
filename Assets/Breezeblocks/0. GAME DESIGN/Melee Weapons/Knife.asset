@@ -13,14 +13,14 @@ MonoBehaviour:
   m_Name: Knife
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.WeaponSystem.MeleeWeaponData
   itemDisplayName: Knife
-  itemIcon: {fileID: -8779120279628979471, guid: bb17164f42feeda43b3ffc39f0ab066b, type: 3}
+  itemIcon: {fileID: -96875036770906992, guid: a546e2bb4f5f7cc1a99b7d9bc511c989, type: 3}
   itemDescription: 
   heldVisualSprite: {fileID: -1754120301, guid: 1ba5138f30967444dbf5be57280e6ffc, type: 3}
   allowedSlots: 7
   gripType: 0
   equipTime: 0.15
   holsterTime: 0.1
-  aimPanDistance: 16
+  aimPanDistance: 22
   aimRotationSpeed: 720
   attackAnimationDuration: 0.35
   attackSwingDuration: 0.18
@@ -40,12 +40,18 @@ MonoBehaviour:
     pitchRange: {x: 1, y: 1}
     overrideSpatialBlend: 1
     spatialBlend: 1
+    overrideDistanceRange: 0
+    minDistance: 1.5
+    maxDistance: 24
   defaultHitSfx:
     clips: []
     volume: 1
     pitchRange: {x: 1, y: 1}
     overrideSpatialBlend: 1
     spatialBlend: 1
+    overrideDistanceRange: 0
+    minDistance: 1.5
+    maxDistance: 24
   hitSfxByLayer:
   - targetLayers:
       serializedVersion: 2
@@ -57,6 +63,9 @@ MonoBehaviour:
       pitchRange: {x: 1, y: 1}
       overrideSpatialBlend: 0
       spatialBlend: 1
+      overrideDistanceRange: 0
+      minDistance: 1.5
+      maxDistance: 24
   hitboxSize: {x: 0.6, y: 0.2}
   hitboxOffset: {x: 0.3, y: 0}
   attackNoise: 0.2

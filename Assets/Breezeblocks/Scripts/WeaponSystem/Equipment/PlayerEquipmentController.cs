@@ -61,6 +61,9 @@ public class PlayerEquipmentController : MonoBehaviour
     [FoldoutGroup("Rewired")]
     [SerializeField] private string toggleEquipmentPanelAction = "Toggle Equipment Panel";
 
+    [FoldoutGroup("Rewired")]
+    [SerializeField] private string aimAction = "Aim";
+
     [FoldoutGroup("References")]
     [SerializeField] private PlayerWeaponController playerWeaponController;
 
@@ -84,6 +87,15 @@ public class PlayerEquipmentController : MonoBehaviour
 
     [FoldoutGroup("References")]
     [SerializeField] private DynamicCrosshairUI dynamicCrosshairUI;
+
+    [FoldoutGroup("References")]
+    [SerializeField] private PlayerVisionLight playerVisionLight;
+
+    [FoldoutGroup("References")]
+    [SerializeField] private PlayerAimCamera2D aimCamera;
+
+    [FoldoutGroup("References")]
+    [SerializeField] private ActorStaggerController actorStaggerController;
 
     [FoldoutGroup("Starting Equipment/Hand Slots"), LabelText("Primary")]
     [SerializeField] private HandEquipmentSlotDefinition primaryEquipment = new();
@@ -121,6 +133,12 @@ public class PlayerEquipmentController : MonoBehaviour
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsInputBlocked => inputBlocked;
 
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public bool IsUnarmedAiming { get; private set; }
+
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public float CurrentUnarmedAimPanDistance => IsUnarmedAiming ? unarmedAimPanDistance : 0f;
+
     public ArmorData EquippedArmorItem => startingArmor;
 
     public event Action EquipmentChanged;
@@ -135,6 +153,8 @@ public class PlayerEquipmentController : MonoBehaviour
     private RuntimeHandSlotState beltRuntime;
     private float cachedTimeScaleBeforePanel = 1f;
     private bool inputBlocked;
+    private float unarmedAimRotationSpeed = 720f;
+    private float unarmedAimPanDistance;
 
     private void Reset()
     {
@@ -144,6 +164,10 @@ public class PlayerEquipmentController : MonoBehaviour
         playerPickupInteractor = GetComponent<PlayerPickupInteractor>();
         playerFocusController = GetComponent<PlayerFocusController>();
         armorLoadout = GetComponent<ArmorLoadout>();
+        playerVisionLight = GetComponentInChildren<PlayerVisionLight>();
+        if (Camera.main != null)
+            aimCamera = Camera.main.GetComponent<PlayerAimCamera2D>();
+        actorStaggerController = GetComponent<ActorStaggerController>();
     }
 
     private void Awake()
@@ -170,6 +194,18 @@ public class PlayerEquipmentController : MonoBehaviour
 
         if (dynamicCrosshairUI == null)
             dynamicCrosshairUI = FindSceneObjectIncludingInactive<DynamicCrosshairUI>();
+
+        if (playerVisionLight == null)
+            playerVisionLight = GetComponentInChildren<PlayerVisionLight>();
+
+        if (aimCamera == null && Camera.main != null)
+            aimCamera = Camera.main.GetComponent<PlayerAimCamera2D>();
+
+        if (aimCamera == null)
+            aimCamera = FindFirstObjectByType<PlayerAimCamera2D>();
+
+        if (actorStaggerController == null)
+            actorStaggerController = GetComponent<ActorStaggerController>();
 
         InitializeRuntimeSlots();
         ResolveRewiredPlayer();
@@ -217,7 +253,12 @@ public class PlayerEquipmentController : MonoBehaviour
             return;
 
         if (inputBlocked)
+        {
+            SetUnarmedAimState(false);
             return;
+        }
+
+        UpdateUnarmedAimState();
 
         if (rewiredPlayer.GetButtonDown(toggleEquipmentPanelAction))
             ToggleEquipmentPanel();
@@ -318,6 +359,8 @@ public class PlayerEquipmentController : MonoBehaviour
         if (!blocked)
             return;
 
+        SetUnarmedAimState(false);
+
         if (equipmentPanelUI != null && equipmentPanelUI.IsVisible)
             equipmentPanelUI.SetVisible(false);
 
@@ -337,6 +380,26 @@ public class PlayerEquipmentController : MonoBehaviour
         loadedAmmo = slotState.LoadedAmmo;
         reserveAmmo = slotState.ReserveAmmo;
         return true;
+    }
+
+    public void ApplyUnarmedAimSettings(float rotationSpeed, float panDistance)
+    {
+        unarmedAimRotationSpeed = Mathf.Max(0f, rotationSpeed);
+        unarmedAimPanDistance = Mathf.Max(0f, panDistance);
+        UpdateUnarmedAimCameraState();
+    }
+
+    public bool TryGetRuntimeFirearmProjectile(EquipmentSlotType slotType, out ProjectileData projectile)
+    {
+        RuntimeHandSlotState slotState = GetRuntimeSlot(slotType);
+        if (slotState == null || slotState.Item is not FirearmData)
+        {
+            projectile = null;
+            return false;
+        }
+
+        projectile = slotState.FirearmProjectile;
+        return projectile != null;
     }
 
     public bool TryGetRuntimeThrowableState(EquipmentSlotType slotType, out int remainingUses, out int maxUses)
@@ -896,6 +959,56 @@ public class PlayerEquipmentController : MonoBehaviour
     private void NotifyEquipmentChanged()
     {
         EquipmentChanged?.Invoke();
+    }
+
+    private void UpdateUnarmedAimState()
+    {
+        if (CurrentHeldItem != null)
+        {
+            if (IsUnarmedAiming)
+                SetUnarmedAimState(false);
+
+            return;
+        }
+
+        bool canUnarmedAim =
+            !IsSwitchingEquipment &&
+            !IsEquipmentPanelVisible &&
+            rewiredPlayer != null &&
+            rewiredPlayer.GetButton(aimAction);
+
+        SetUnarmedAimState(canUnarmedAim);
+
+        if (playerVisionLight == null)
+            return;
+
+        float lookSpeed = IsUnarmedAiming ? unarmedAimRotationSpeed : playerVisionLight.RotationSmoothing;
+        if (actorStaggerController != null)
+            lookSpeed *= actorStaggerController.TurnSpeedMultiplier;
+
+        playerVisionLight.DriveMouseLook(lookSpeed, Time.deltaTime);
+    }
+
+    private void SetUnarmedAimState(bool aiming)
+    {
+        if (IsUnarmedAiming == aiming)
+        {
+            UpdateUnarmedAimCameraState();
+            return;
+        }
+
+        IsUnarmedAiming = aiming;
+        UpdateUnarmedAimCameraState();
+        NotifyEquipmentChanged();
+    }
+
+    private void UpdateUnarmedAimCameraState()
+    {
+        if (aimCamera == null)
+            return;
+
+        aimCamera.SetFollowTarget(transform);
+        aimCamera.SetAimState(IsUnarmedAiming, IsUnarmedAiming ? unarmedAimPanDistance : 0f);
     }
 
     private EquipmentItemData ResolveDefinitionItem(EquipmentSlotType slotType)

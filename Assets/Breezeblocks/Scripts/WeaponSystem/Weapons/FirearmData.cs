@@ -106,10 +106,13 @@ public class FirearmData : EquipmentItemData
     [FoldoutGroup("Firearm/Handling"), ShowIf(nameof(UsesPumpMode)), MinValue(1)]
     [SerializeField] private int pelletCount = 8;
 
-    [FoldoutGroup("Firearm/Handling"), MinValue(0f)]
+    [FoldoutGroup("Firearm/Aiming"), MinValue(0f)]
     [SerializeField] private float aimSpeed = 720f;
 
-    [FoldoutGroup("Firearm/Handling"), MinValue(0f)]
+    [FoldoutGroup("Firearm/Aiming"), MinValue(0f)]
+    [SerializeField] private float aimPanDistance = 0f;
+
+    [FoldoutGroup("Firearm/Aiming"), MinValue(0f)]
     [SerializeField] private float aimTime = 1f;
 
     [FoldoutGroup("Firearm/Handling"), MinValue(0f)]
@@ -212,6 +215,7 @@ public class FirearmData : EquipmentItemData
     public int BurstCount => burstCount;
     public int PelletCount => pelletCount;
     public float AimSpeed => aimSpeed;
+    public float AimPanDistance => aimPanDistance;
     public float AimTime => aimTime;
     public float EquipTime => equipTime;
     public float HolsterTime => holsterTime;
@@ -274,6 +278,7 @@ public class FirearmData : EquipmentItemData
         reloadNoiseDuration = Mathf.Max(0f, reloadNoiseDuration);
         magazineReloadMidSfxNormalizedTime = Mathf.Clamp01(magazineReloadMidSfxNormalizedTime);
         aimSpeed = Mathf.Max(0f, aimSpeed);
+        aimPanDistance = Mathf.Max(0f, aimPanDistance);
         aimTime = Mathf.Max(0f, aimTime);
         equipTime = Mathf.Max(0f, equipTime);
         holsterTime = Mathf.Max(0f, holsterTime);

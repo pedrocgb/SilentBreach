@@ -13,13 +13,13 @@ MonoBehaviour:
   m_Name: Flashlight
   m_EditorClassIdentifier: Assembly-CSharp::FlashlightUtilityData
   itemDisplayName: Flashlight
-  itemIcon: {fileID: 3184228364265915780, guid: bb17164f42feeda43b3ffc39f0ab066b, type: 3}
+  itemIcon: {fileID: -5634727919168234485, guid: a546e2bb4f5f7cc1a99b7d9bc511c989, type: 3}
   itemDescription: A small, portable, battery-powered electric lamp used for illumination.
   heldVisualSprite: {fileID: -2638390803197812687, guid: fa6a6ce2231a6a64d87a2b9d6ee561e2, type: 3}
   allowedSlots: 7
   equipTime: 0.2
   holsterTime: 0.2
-  aimPanDistance: 16
+  aimPanDistance: 22
   aimRotationSpeed: 720
   equipNoise: 0.05
   equipNoiseDuration: 0.15

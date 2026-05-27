@@ -68,13 +68,15 @@ MonoBehaviour:
     InnerAngleFraction: 0.3
     LookAtMouse: 1
     RotationSmoothing: 720
+    UnarmedAimRotationSpeed: 720
+    UnarmedAimPanDistance: 22
     RotationOffset: -90
     VisionLevel01: 1
     ExternalDirection: {x: 1, y: 0}
   Stamina:
     MaxStamina: 100
-    SprintDrainPerSecond: 20
-    RegenerationPerSecond: 32
-    RegenerationDelayAfterSpend: 1
+    SprintDrainPerSecond: 28
+    RegenerationPerSecond: 44
+    RegenerationDelayAfterSpend: 1.5
     StaggerStaminaLossPercent: 12
     MovementThreshold: 0.05

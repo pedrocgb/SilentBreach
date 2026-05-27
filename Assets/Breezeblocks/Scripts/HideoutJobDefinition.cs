@@ -24,8 +24,17 @@ public enum HideoutJobFailureType
     DontKillInnocent,
     DontHarmAnyone,
     DontKillAnyone,
+    DontAlert,
     DontBeDetected,
     TimeLimit
+}
+
+public enum HideoutJobLevel
+{
+    Easy,
+    Medium,
+    Hard,
+    Insane
 }
 
 [Serializable]
@@ -93,6 +102,7 @@ public sealed class HideoutJobFailureDefinition
             HideoutJobFailureType.DontKillInnocent => "Do not kill innocents",
             HideoutJobFailureType.DontHarmAnyone => "Do not harm anyone",
             HideoutJobFailureType.DontKillAnyone => "Do not kill anyone",
+            HideoutJobFailureType.DontAlert => "Do not alert anyone",
             HideoutJobFailureType.DontBeDetected => "Do not be detected",
             HideoutJobFailureType.TimeLimit => $"Finish within {TimeLimitSeconds:0.#} seconds",
             _ => "Unknown failure condition"
@@ -110,6 +120,7 @@ public sealed class HideoutJobFailureDefinition
             HideoutJobFailureType.DontKillInnocent => "Mission Failed. You were not supposed to kill innocents!",
             HideoutJobFailureType.DontHarmAnyone => "Mission Failed. You were not supposed to harm anyone!",
             HideoutJobFailureType.DontKillAnyone => "Mission Failed. You were not supposed to kill anyone!",
+            HideoutJobFailureType.DontAlert => "Mission Failed. You alerted someone!",
             HideoutJobFailureType.DontBeDetected => "Mission Failed. You were detected!",
             HideoutJobFailureType.TimeLimit => "Mission Failed. You ran out of time!",
             _ => "Mission Failed."
@@ -162,6 +173,9 @@ public sealed class HideoutJobDefinition : ScriptableObject
 
     [FoldoutGroup("Job"), TextArea(3, 8)]
     [SerializeField] private string jobDescription;
+
+    [FoldoutGroup("Job")]
+    [SerializeField] private HideoutJobLevel jobLevel = HideoutJobLevel.Easy;
 
     [FoldoutGroup("Rewards"), MinValue(0)]
     [SerializeField] private int rewardCash;
@@ -216,6 +230,7 @@ public sealed class HideoutJobDefinition : ScriptableObject
     public string JobTitle => string.IsNullOrWhiteSpace(jobTitle) ? name : jobTitle;
     public string JobId => string.IsNullOrWhiteSpace(jobId) ? name : jobId;
     public string JobDescription => jobDescription ?? string.Empty;
+    public HideoutJobLevel JobLevel => jobLevel;
     public int RewardCash => Mathf.Max(0, rewardCash);
     public int RewardInfluencePoints => Mathf.Max(0, rewardInfluencePoints);
     public string RewardText => BuildRewardText();

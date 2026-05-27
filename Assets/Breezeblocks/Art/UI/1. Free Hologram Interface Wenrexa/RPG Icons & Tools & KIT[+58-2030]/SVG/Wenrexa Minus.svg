@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #fff;
+        fill-rule: evenodd;
+      }
+    </style>
+  </defs>
+  <path id="Wenrexa_Plus" data-name="Wenrexa Plus" class="cls-1" d="M237.031,165.144H213.816V99.955h23.215a19,19,0,0,1,19,19v27.189A19,19,0,0,1,237.031,165.144ZM50.845,99.955H205.124v65.189H50.845V99.955Zm-8.692,65.189H18.969a19,19,0,0,1-19-19V118.955a19,19,0,0,1,19-19H42.153v65.189Z"/>
+</svg>

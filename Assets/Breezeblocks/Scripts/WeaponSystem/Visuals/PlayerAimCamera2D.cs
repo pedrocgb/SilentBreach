@@ -188,11 +188,19 @@ public class PlayerAimCamera2D : MonoBehaviour
             : desiredWorldOffset;
 
         Vector3 desiredComposerOffset = _baseComposerOffset + desiredLocalOffset;
-        positionComposer.TargetOffset = Vector3.SmoothDamp(
-            positionComposer.TargetOffset,
-            desiredComposerOffset,
-            ref _composerVelocity,
-            ResolveActiveSmoothTime());
+        if (UsesExactPointerFollowAim())
+        {
+            _composerVelocity = Vector3.zero;
+            positionComposer.TargetOffset = desiredComposerOffset;
+        }
+        else
+        {
+            positionComposer.TargetOffset = Vector3.SmoothDamp(
+                positionComposer.TargetOffset,
+                desiredComposerOffset,
+                ref _composerVelocity,
+                ResolveActiveSmoothTime());
+        }
 
         return true;
     }
@@ -203,7 +211,15 @@ public class PlayerAimCamera2D : MonoBehaviour
             return;
 
         Vector3 desiredPosition = followTarget.position + followOffset + CalculateAimPanOffset() + CalculateScreenshakeOffset();
-        transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref _fallbackVelocity, ResolveActiveSmoothTime());
+        if (UsesExactPointerFollowAim())
+        {
+            _fallbackVelocity = Vector3.zero;
+            transform.position = desiredPosition;
+        }
+        else
+        {
+            transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref _fallbackVelocity, ResolveActiveSmoothTime());
+        }
     }
 
     private Vector3 CalculateAimPanOffset()
@@ -222,30 +238,27 @@ public class PlayerAimCamera2D : MonoBehaviour
         if (followTarget == null || targetCamera == null)
             return Vector3.zero;
 
-        Vector3 targetPosition = followTarget.position;
-        float depth = Mathf.Abs(targetCamera.transform.position.z - targetPosition.z);
-        Vector3 mouseScreen = Input.mousePosition;
-        mouseScreen.z = depth;
-
-        Vector3 mouseWorld = targetCamera.ScreenToWorldPoint(mouseScreen);
-        Vector2 offset = (Vector2)(mouseWorld - targetPosition);
         float maxDistance = MaxAimPanDistance * panDistanceMultiplier;
-
         if (maxDistance <= 0f)
             return Vector3.zero;
 
-        float deadZoneDistance = Mathf.Clamp01(pointerFollowDeadZoneRatio) * maxDistance;
-        float offsetMagnitude = offset.magnitude;
-        if (offsetMagnitude <= deadZoneDistance)
-            return Vector3.zero;
+        Vector3 targetScreen = targetCamera.WorldToScreenPoint(followTarget.position);
+        Vector2 screenDelta = (Vector2)Input.mousePosition - new Vector2(targetScreen.x, targetScreen.y);
 
-        offset = Vector2.ClampMagnitude(offset, maxDistance);
-        offsetMagnitude = offset.magnitude;
+        if (targetCamera.orthographic)
+        {
+            float unitsPerPixelY = (targetCamera.orthographicSize * 2f) / Mathf.Max(1f, Screen.height);
+            float unitsPerPixelX = unitsPerPixelY * targetCamera.aspect;
+            Vector2 worldOffset = new Vector2(screenDelta.x * unitsPerPixelX, screenDelta.y * unitsPerPixelY);
+            worldOffset = Vector2.ClampMagnitude(worldOffset, maxDistance);
+            return new Vector3(worldOffset.x, worldOffset.y, 0f);
+        }
 
-        float remainingDistance = Mathf.Max(0.0001f, maxDistance - deadZoneDistance);
-        float normalizedDistance = Mathf.Clamp01((offsetMagnitude - deadZoneDistance) / remainingDistance);
-        Vector2 adjustedOffset = offset.normalized * (normalizedDistance * maxDistance);
-        return new Vector3(adjustedOffset.x, adjustedOffset.y, 0f);
+        float depth = Mathf.Abs(targetCamera.transform.position.z - followTarget.position.z);
+        Vector3 targetWorldOnScreenPlane = targetCamera.ScreenToWorldPoint(new Vector3(targetScreen.x, targetScreen.y, depth));
+        Vector3 mouseWorld = targetCamera.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, depth));
+        Vector2 perspectiveOffset = Vector2.ClampMagnitude((Vector2)(mouseWorld - targetWorldOnScreenPlane), maxDistance);
+        return new Vector3(perspectiveOffset.x, perspectiveOffset.y, 0f);
     }
 
     private Vector3 CalculateEdgePanOffset()
@@ -339,6 +352,11 @@ public class PlayerAimCamera2D : MonoBehaviour
             return 0f;
 
         return Mathf.Clamp01(remainingTime / shakeDuration);
+    }
+
+    private bool UsesExactPointerFollowAim()
+    {
+        return IsAiming && aimPanMode == AimCameraPanMode.PointerFollow;
     }
 
     private bool UsesEdgePanMode => aimPanMode == AimCameraPanMode.EdgePan;

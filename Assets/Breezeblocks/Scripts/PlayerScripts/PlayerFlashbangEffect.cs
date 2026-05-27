@@ -239,9 +239,24 @@ public class PlayerFlashbangEffect : MonoBehaviour
     private void ApplyAudioSuppression(float recoveryProgress)
     {
         float volumeMultiplier = Mathf.Clamp01(recoveryProgress);
-        worldSfxManager?.SetExternalVolumeMultiplier(volumeMultiplier);
-        missionMusicController?.SetExternalVolumeMultiplier(volumeMultiplier);
-        gameplayMissionController?.SetExternalCarAudioVolumeMultiplier(volumeMultiplier);
+
+        if (worldSfxManager == null)
+            worldSfxManager = WorldSfxManager.Instance;
+
+        if (missionMusicController == null)
+            missionMusicController = FindFirstObjectByType<MissionMusicController>();
+
+        if (gameplayMissionController == null)
+            gameplayMissionController = FindFirstObjectByType<GameplayMissionController>();
+
+        if (worldSfxManager != null)
+            worldSfxManager.SetExternalVolumeMultiplier(volumeMultiplier);
+
+        if (missionMusicController != null)
+            missionMusicController.SetExternalVolumeMultiplier(volumeMultiplier);
+
+        if (gameplayMissionController != null)
+            gameplayMissionController.SetExternalCarAudioVolumeMultiplier(volumeMultiplier);
     }
 
     private void SetWhiteoutAlpha(float alpha)

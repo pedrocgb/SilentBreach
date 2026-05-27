@@ -1,0 +1,377 @@
+fileFormatVersion: 2
+guid: f45f5b4d604520fe9b17b724c5613c3b
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -8974268545017110270
+    second: Wenrexa Box Gear Wheel_0
+  - first:
+      213: 5021477478049620470
+    second: Wenrexa Box Gear Wheel_1
+  - first:
+      213: 1743129850728587054
+    second: Wenrexa Box Gear Wheel_2
+  - first:
+      213: 4273747839019855797
+    second: Wenrexa Box Gear Wheel_3
+  - first:
+      213: 956267653373386098
+    second: Wenrexa Box Gear Wheel_4
+  - first:
+      213: -3980380689174179311
+    second: Wenrexa Box Gear Wheel_5
+  - first:
+      213: 1776302601547120419
+    second: Wenrexa Box Gear Wheel_6
+  - first:
+      213: -8683695290243272890
+    second: Wenrexa Box Gear Wheel_7
+  - first:
+      213: 8507808271933389357
+    second: Wenrexa Box Gear Wheel_8
+  - first:
+      213: -8386784222527685126
+    second: Wenrexa Box Gear Wheel_9
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Wenrexa Box Gear Wheel_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 163
+        width: 255
+        height: 23
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2012b475e4ef47380800000000000000
+      internalID: -8974268545017110270
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Box Gear Wheel_1
+      rect:
+        serializedVersion: 2
+        x: 71
+        y: 181
+        width: 117
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6f1a5ce492fdfa540800000000000000
+      internalID: 5021477478049620470
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Box Gear Wheel_2
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 153
+        width: 214
+        height: 22
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e2f9e0e1d57d03810800000000000000
+      internalID: 1743129850728587054
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Box Gear Wheel_3
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 207
+        height: 159
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5bf2f5c24076f4b30800000000000000
+      internalID: 4273747839019855797
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Box Gear Wheel_4
+      rect:
+        serializedVersion: 2
+        x: 4
+        y: 136
+        width: 203
+        height: 27
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 27d548d3d58554d00800000000000000
+      internalID: 956267653373386098
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Box Gear Wheel_5
+      rect:
+        serializedVersion: 2
+        x: 215
+        y: 146
+        width: 41
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 112d2f62ad8d2c8c0800000000000000
+      internalID: -3980380689174179311
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Box Gear Wheel_6
+      rect:
+        serializedVersion: 2
+        x: 248
+        y: 144
+        width: 8
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 32f71da0ec1b6a810800000000000000
+      internalID: 1776302601547120419
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Box Gear Wheel_7
+      rect:
+        serializedVersion: 2
+        x: 205
+        y: 0
+        width: 48
+        height: 151
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 64f215744215d7780800000000000000
+      internalID: -8683695290243272890
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Box Gear Wheel_8
+      rect:
+        serializedVersion: 2
+        x: 214
+        y: 107
+        width: 9
+        height: 45
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d2a38b90c8ec11670800000000000000
+      internalID: 8507808271933389357
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wenrexa Box Gear Wheel_9
+      rect:
+        serializedVersion: 2
+        x: 215
+        y: 59
+        width: 39
+        height: 91
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: afdf2684f282c9b80800000000000000
+      internalID: -8386784222527685126
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Wenrexa Box Gear Wheel_0: -8974268545017110270
+      Wenrexa Box Gear Wheel_1: 5021477478049620470
+      Wenrexa Box Gear Wheel_2: 1743129850728587054
+      Wenrexa Box Gear Wheel_3: 4273747839019855797
+      Wenrexa Box Gear Wheel_4: 956267653373386098
+      Wenrexa Box Gear Wheel_5: -3980380689174179311
+      Wenrexa Box Gear Wheel_6: 1776302601547120419
+      Wenrexa Box Gear Wheel_7: -8683695290243272890
+      Wenrexa Box Gear Wheel_8: 8507808271933389357
+      Wenrexa Box Gear Wheel_9: -8386784222527685126
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

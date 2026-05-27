@@ -61,6 +61,9 @@ public class ActorStatsInitializer : MonoBehaviour
 
         if (TryGetComponent(out PlayerStaminaController staminaController))
             staminaController.ApplySettings(playerProfile.Stamina);
+
+        if (TryGetComponent(out PlayerEquipmentController equipmentController))
+            equipmentController.ApplyUnarmedAimSettings(playerProfile.VisionLight.UnarmedAimRotationSpeed, playerProfile.VisionLight.UnarmedAimPanDistance);
     }
 
     private void ApplyEnemyProfile()

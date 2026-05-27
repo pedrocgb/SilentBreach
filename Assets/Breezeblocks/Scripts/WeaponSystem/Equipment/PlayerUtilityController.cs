@@ -92,6 +92,7 @@ public class PlayerUtilityController : MonoBehaviour
     public float FlashlightOuterAngle => flashlightLight != null ? flashlightLight.pointLightOuterAngle : 0f;
 
     public event Action UtilityStateChanged;
+    public event Action UtilityActivated;
 
     private Player rewiredPlayer;
     private Coroutine busyRoutine;
@@ -178,7 +179,8 @@ public class PlayerUtilityController : MonoBehaviour
 
         if (EquippedUtility == null)
         {
-            if (IsAiming)
+            bool unarmedAimActive = playerEquipmentController != null && playerEquipmentController.IsUnarmedAiming;
+            if (IsAiming && !unarmedAimActive)
             {
                 IsAiming = false;
                 UpdateAimCameraState();
@@ -385,6 +387,7 @@ public class PlayerUtilityController : MonoBehaviour
         throwableChargeStartedAt = Time.time;
         ThrowableChargeProgress01 = 0f;
         NotifyUtilityStateChanged();
+        UtilityActivated?.Invoke();
     }
 
     private void CancelThrowableCharge()
@@ -513,7 +516,10 @@ public class PlayerUtilityController : MonoBehaviour
         }
 
         if (previousState != IsFlashlightOn)
+        {
             NotifyUtilityStateChanged();
+            UtilityActivated?.Invoke();
+        }
 
         if (!playSfx)
             return;
@@ -596,6 +602,17 @@ public class PlayerUtilityController : MonoBehaviour
 
         if (playerEquipmentController != null && playerEquipmentController.CurrentHeldItem != null)
             return;
+
+        if (playerEquipmentController != null && playerEquipmentController.IsUnarmedAiming)
+        {
+            if (aimCamera != null)
+            {
+                aimCamera.SetFollowTarget(transform);
+                aimCamera.SetAimState(true, playerEquipmentController.CurrentUnarmedAimPanDistance);
+            }
+
+            return;
+        }
 
         float lookSpeed = playerVisionLight.RotationSmoothing;
         if (actorStaggerController != null)

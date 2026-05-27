@@ -1,3 +1,4 @@
+using Breezeblocks.Missions;
 using Breezeblocks.WeaponSystem;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -407,8 +408,12 @@ public class EnemyVisionAI : MonoBehaviour
         bool combatOwnsTemporaryStates = enemyCombatantAI != null && enemyCombatantAI.IsDrafted;
         bool alertState = enemyMovementController.CurrentState == EnemyState.Alert;
         bool fullyDetected = IsFullyVisuallyDetected;
+
         if (fullyDetected)
         {
+            if (!wasFullyDetectedLastFrame)
+                MissionRuntimeEvents.RaiseEnemyPlayerFullyDetected(this, enemyMovementController);
+
             enemyMovementController.ClearExternalInvestigation(resumeDefaultBehavior: false);
             if (alertState)
                 enemyMovementController.UpdateAlertVisualTarget(targetTransform, lastKnownTargetPosition);

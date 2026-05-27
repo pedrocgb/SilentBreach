@@ -1,3 +1,4 @@
+using System;
 using DG.Tweening;
 using Rewired;
 using Sirenix.OdinInspector;
@@ -54,6 +55,8 @@ public class PlayerFocusController : MonoBehaviour
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly, ProgressBar(0f, 1f)]
     public float CurrentFocusNormalized => maxFocusSeconds <= 0f ? 0f : Mathf.Clamp01(CurrentFocusSeconds / maxFocusSeconds);
+
+    public event Action<float> FocusSpent;
 
     private Player rewiredPlayer;
     private VolumeProfile runtimeProfile;
@@ -129,7 +132,13 @@ public class PlayerFocusController : MonoBehaviour
         {
             SetFocusActive(true);
             if (!GameplayConsoleCheatState.FocusMode)
+            {
+                float previousFocusSeconds = CurrentFocusSeconds;
                 CurrentFocusSeconds = Mathf.Max(0f, CurrentFocusSeconds - Time.deltaTime);
+                float spentFocus = Mathf.Max(0f, previousFocusSeconds - CurrentFocusSeconds);
+                if (spentFocus > 0f)
+                    FocusSpent?.Invoke(spentFocus);
+            }
 
             nextRegenerationAllowedTime = Time.time + regenerationDelayAfterUse;
 

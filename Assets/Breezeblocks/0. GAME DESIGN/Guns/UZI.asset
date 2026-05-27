@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: UZI
   m_EditorClassIdentifier: Assembly-CSharp::FirearmData
   itemDisplayName: UZI
-  itemIcon: {fileID: -2250274026386350685, guid: bb17164f42feeda43b3ffc39f0ab066b, type: 3}
+  itemIcon: {fileID: -3654258832551492893, guid: a546e2bb4f5f7cc1a99b7d9bc511c989, type: 3}
   itemDescription: 
   heldVisualSprite: {fileID: 2562568060712908168, guid: f12396bacd3bc6a479defb3a188bcc04, type: 3}
   firearmClass: 2
@@ -35,6 +35,7 @@ MonoBehaviour:
   burstCount: 0
   pelletCount: 0
   aimSpeed: 600
+  aimPanDistance: 22
   aimTime: 1
   equipTime: 1
   holsterTime: 1

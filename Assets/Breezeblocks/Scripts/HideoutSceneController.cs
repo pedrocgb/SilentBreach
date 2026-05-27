@@ -53,6 +53,7 @@ public sealed class HideoutSceneController : MonoBehaviour
         public HideoutJobListItemUI jobListItemPrefab;
         public TMP_Text emptyStateText;
         public TMP_Text jobNameText;
+        public TMP_Text jobLevelText;
         public TMP_Text jobDescriptionText;
         public TMP_Text jobRewardText;
         public TMP_Text jobObjectivesText;
@@ -483,9 +484,14 @@ public sealed class HideoutSceneController : MonoBehaviour
 
     private void RefreshJobDetails()
     {
+        EquipmentContextUiSettings uiSettings = GlobalSettings.Instance != null
+            ? GlobalSettings.Instance.EquipmentContextUi
+            : new EquipmentContextUiSettings();
+
         if (selectedJob == null)
         {
             SetText(jobsPanel.jobNameText, "No Job Selected");
+            SetText(jobsPanel.jobLevelText, string.Empty);
             SetText(jobsPanel.jobDescriptionText, "Select a contract to see the full brief.");
             SetText(jobsPanel.jobRewardText, string.Empty);
             SetText(jobsPanel.jobObjectivesText, string.Empty);
@@ -500,6 +506,9 @@ public sealed class HideoutSceneController : MonoBehaviour
         }
 
         SetText(jobsPanel.jobNameText, selectedJob.JobTitle);
+        SetText(
+            jobsPanel.jobLevelText,
+            $"{uiSettings.JobLevelPrefix}{uiSettings.GetJobLevelText(selectedJob.JobLevel)}");
         SetText(jobsPanel.jobDescriptionText, selectedJob.JobDescription);
         SetText(jobsPanel.jobRewardText, selectedJob.RewardText);
         SetText(jobsPanel.jobObjectivesText, selectedJob.ObjectivesText);

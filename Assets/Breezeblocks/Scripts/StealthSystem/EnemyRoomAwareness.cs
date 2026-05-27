@@ -34,12 +34,6 @@ public class EnemyRoomAwareness : MonoBehaviour
     [FoldoutGroup("Room Awareness"), MinValue(0f), SuffixLabel("deg/s", true)]
     [SerializeField] private float lookAroundRotationSpeed = 420f;
 
-    [FoldoutGroup("Room Awareness"), SuffixLabel("deg", true)]
-    [SerializeField] private float lookAroundMinAngle = -70f;
-
-    [FoldoutGroup("Room Awareness"), SuffixLabel("deg", true)]
-    [SerializeField] private float lookAroundMaxAngle = 70f;
-
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool RoomAwareness => roomAwareness;
 
@@ -116,9 +110,6 @@ public class EnemyRoomAwareness : MonoBehaviour
         lookAroundDurationAfterTurningLightsOn = Mathf.Max(0f, lookAroundDurationAfterTurningLightsOn);
         lookAroundTurnInterval = Mathf.Max(MinimumInterval, lookAroundTurnInterval);
         lookAroundRotationSpeed = Mathf.Max(0f, lookAroundRotationSpeed);
-
-        if (lookAroundMaxAngle < lookAroundMinAngle)
-            lookAroundMaxAngle = lookAroundMinAngle;
     }
 
     private void Update()
@@ -275,7 +266,9 @@ public class EnemyRoomAwareness : MonoBehaviour
 
     private IEnumerator LookAroundAfterTurningLightsOn(EnemyRoomZone room)
     {
-        Vector2 baseDirection = enemyMovementController.CurrentFacingDirection;
+        Vector2 baseDirection = room != null
+            ? room.ResolveLookAroundBaseDirection(transform.position)
+            : enemyMovementController.CurrentFacingDirection;
         if (baseDirection.sqrMagnitude <= MinimumDirectionSqr)
             baseDirection = transform.up;
 
@@ -290,7 +283,12 @@ public class EnemyRoomAwareness : MonoBehaviour
 
             if (Time.time >= nextTurnTime)
             {
-                float angle = Random.Range(lookAroundMinAngle, lookAroundMaxAngle);
+                float minAngle = room != null ? room.LookAroundMinAngle : -70f;
+                float maxAngle = room != null ? room.LookAroundMaxAngle : 70f;
+                if (maxAngle < minAngle)
+                    maxAngle = minAngle;
+
+                float angle = Random.Range(minAngle, maxAngle);
                 enemyMovementController.SetExternalFacingDirection(Rotate(baseDirection.normalized, angle));
                 nextTurnTime = Time.time + lookAroundTurnInterval;
             }

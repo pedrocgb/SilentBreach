@@ -158,6 +158,12 @@ public class PlayerVisionLightSettings
     [FoldoutGroup("Orientation"), MinValue(0f)]
     public float RotationSmoothing = 720f;
 
+    [FoldoutGroup("Orientation"), MinValue(0f)]
+    public float UnarmedAimRotationSpeed = 720f;
+
+    [FoldoutGroup("Orientation"), MinValue(0f)]
+    public float UnarmedAimPanDistance = 0f;
+
     [FoldoutGroup("Orientation")]
     public float RotationOffset = -90f;
 

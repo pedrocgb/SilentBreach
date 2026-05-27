@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8301423284334155622}
   - component: {fileID: 7802478619545771595}
+  - component: {fileID: 5734817164496771584}
   m_Layer: 0
   m_Name: Light Switch Focus
   m_TagString: Untagged
@@ -58,7 +59,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
+  - {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -91,6 +92,20 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!114 &5734817164496771584
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 435821620533300970}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 26cef5d6e15804057a71558bc27fcc10, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.Missions.ActorWorldUiFixedRotation
+  captureCurrentWorldRotationOnEnable: 0
+  fixedWorldEulerAngles: {x: 0, y: 0, z: 0}
 --- !u!1 &4817707982159236920
 GameObject:
   m_ObjectHideFlags: 0
@@ -255,6 +270,11 @@ MonoBehaviour:
     - {fileID: 8300000, guid: 4ea256a28f9c1718689ed3777d5aeb30, type: 3}
     volume: 1
     pitchRange: {x: 1, y: 1}
+    overrideSpatialBlend: 0
+    spatialBlend: 1
+    overrideDistanceRange: 0
+    minDistance: 1.5
+    maxDistance: 24
   toggleSfxType: 2
 --- !u!58 &6016279077746117022
 CircleCollider2D:

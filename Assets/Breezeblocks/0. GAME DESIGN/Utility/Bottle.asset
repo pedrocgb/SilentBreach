@@ -19,7 +19,7 @@ MonoBehaviour:
   allowedSlots: 4
   equipTime: 0.2
   holsterTime: 0.2
-  aimPanDistance: 16
+  aimPanDistance: 22
   aimRotationSpeed: 720
   equipNoise: 0.15
   equipNoiseDuration: 0.2
@@ -78,6 +78,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 0
   explosionDamage: 50
+  applyExplosionKnockback: 1
+  explosionKnockbackForce: 8
   flashbangDuration: 8
   flashbangRecoveryThreshold: 4
   flashbangAimlessRotationSpeed: 240

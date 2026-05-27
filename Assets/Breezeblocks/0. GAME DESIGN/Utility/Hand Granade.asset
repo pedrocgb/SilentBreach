@@ -13,13 +13,13 @@ MonoBehaviour:
   m_Name: Hand Granade
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.WeaponSystem.ThrowableUtilityData
   itemDisplayName: "Granada de M\xE3o"
-  itemIcon: {fileID: -46752245755344152, guid: 04e3034c8f5ede97990ade37b5e08423, type: 3}
+  itemIcon: {fileID: 4615937952201669464, guid: a546e2bb4f5f7cc1a99b7d9bc511c989, type: 3}
   itemDescription: 
   heldVisualSprite: {fileID: -4217829173625703574, guid: c64ffc7784d1b116a9498ef7a6770ad0, type: 3}
   allowedSlots: 4
   equipTime: 0.2
   holsterTime: 0.2
-  aimPanDistance: 16
+  aimPanDistance: 22
   aimRotationSpeed: 720
   equipNoise: 0
   equipNoiseDuration: 0
@@ -79,6 +79,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   explosionDamage: 50
+  applyExplosionKnockback: 1
+  explosionKnockbackForce: 40
   flashbangDuration: 8
   flashbangRecoveryThreshold: 4
   flashbangAimlessRotationSpeed: 240

@@ -35,18 +35,18 @@ MonoBehaviour:
     displayText: "N\xE3o mate ningu\xE9m."
     failureScreenMessage: "Assassinato n\xE3o era permitido. Voc\xEA falhou..."
     timeLimitSeconds: 300
-  - failureType: 5
-    displayText: Complete antes que a jogatina acabe.
-    failureScreenMessage: "O jogo chegou ao fim, voc\xEA perdeu a chance de roubar
-      o livro de contabilidade."
-    timeLimitSeconds: 300
   - failureType: 2
     displayText: "N\xE3o machuque ningu\xE9m."
     failureScreenMessage: "Ferir pessoas n\xE3o era permitido. Voc\xEA falhou..."
     timeLimitSeconds: 300
-  - failureType: 4
+  - failureType: 5
     displayText: "N\xE3o seja detectado!"
     failureScreenMessage: "Voc\xEA foi detactado..."
+    timeLimitSeconds: 300
+  - failureType: 6
+    displayText: Finalize o trabalho antes do tempo.
+    failureScreenMessage: "O jogo de poker chegou ao fim, voc\xEA perdeu a chance
+      de roubar o livro de contabilidade."
     timeLimitSeconds: 300
   fixerName: Mara Velvet Quinn
   jobImage: {fileID: 0}

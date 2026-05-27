@@ -38,10 +38,13 @@ public class WorldSfxManager : MonoBehaviour
     {
         get
         {
+            if (isShuttingDown)
+                return null;
+
             if (instance == null)
             {
                 instance = FindFirstObjectByType<WorldSfxManager>();
-                if (instance == null)
+                if (instance == null && Application.isPlaying)
                 {
                     GameObject managerObject = new("World SFX Manager");
                     instance = managerObject.AddComponent<WorldSfxManager>();
@@ -125,6 +128,7 @@ public class WorldSfxManager : MonoBehaviour
     public float ExternalVolumeMultiplier => externalVolumeMultiplier;
 
     private static WorldSfxManager instance;
+    private static bool isShuttingDown;
     private readonly List<RuntimeSource> runtimeSources = new();
     private RaycastHit2D[] occlusionHitBuffer;
     private readonly HashSet<int> uniqueOccluderIds = new();
@@ -135,6 +139,7 @@ public class WorldSfxManager : MonoBehaviour
     private static void ResetStaticState()
     {
         instance = null;
+        isShuttingDown = false;
     }
 
     private void Awake()
@@ -161,6 +166,20 @@ public class WorldSfxManager : MonoBehaviour
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= HandleSceneLoaded;
+    }
+
+    private void OnDestroy()
+    {
+        if (instance == this)
+            instance = null;
+
+        if (!Application.isPlaying)
+            isShuttingDown = true;
+    }
+
+    private void OnApplicationQuit()
+    {
+        isShuttingDown = true;
     }
 
     private void OnValidate()

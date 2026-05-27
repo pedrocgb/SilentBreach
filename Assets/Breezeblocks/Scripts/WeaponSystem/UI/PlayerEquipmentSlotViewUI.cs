@@ -81,6 +81,7 @@ public class PlayerEquipmentSlotViewUI : MonoBehaviour, IPointerEnterHandler, IP
             canvasGroup = gameObject.AddComponent<CanvasGroup>();
 
         CacheRootCanvas();
+        ResolveOptionalReferences();
     }
 
     private void OnDisable()
@@ -127,11 +128,13 @@ public class PlayerEquipmentSlotViewUI : MonoBehaviour, IPointerEnterHandler, IP
             canvasGroup = gameObject.AddComponent<CanvasGroup>();
 
         CacheRootCanvas();
+        ResolveOptionalReferences();
     }
 
     public void Refresh(EquipmentItemData item, bool isSelected, string slotLabel, string hotkeyLabel)
     {
         displayedItem = item;
+        ResolveOptionalReferences();
 
         if (slotLabelText != null)
             slotLabelText.text = slotLabel;
@@ -255,6 +258,64 @@ public class PlayerEquipmentSlotViewUI : MonoBehaviour, IPointerEnterHandler, IP
     {
         Canvas parentCanvas = GetComponentInParent<Canvas>();
         rootCanvas = parentCanvas != null ? parentCanvas.rootCanvas : null;
+    }
+
+    private void ResolveOptionalReferences()
+    {
+        if (selectedHighlight == null)
+            selectedHighlight = FindIndicatorSibling("Selected");
+    }
+
+    private GameObject FindIndicatorSibling(string keyword)
+    {
+        if (TryFindIndicatorInRoot(transform.parent, keyword, out GameObject indicator))
+            return indicator;
+
+        return TryFindIndicatorInRoot(transform.parent != null ? transform.parent.parent : null, keyword, out indicator)
+            ? indicator
+            : null;
+    }
+
+    private bool TryFindIndicatorInRoot(Transform searchRoot, string keyword, out GameObject indicator)
+    {
+        indicator = null;
+        if (searchRoot == null)
+            return false;
+
+        string slotName = ResolveSlotSearchName();
+        for (int i = 0; i < searchRoot.childCount; i++)
+        {
+            Transform child = searchRoot.GetChild(i);
+            if (child == null || child == transform)
+                continue;
+
+            string childName = child.name;
+            if (childName.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) < 0)
+                continue;
+
+            bool slotMatches =
+                childName.IndexOf(slotName, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                (slotType == EquipmentSlotType.Belt && childName.IndexOf("Utility", StringComparison.OrdinalIgnoreCase) >= 0);
+            if (!slotMatches)
+                continue;
+
+            indicator = child.gameObject;
+            return true;
+        }
+
+        return false;
+    }
+
+    private string ResolveSlotSearchName()
+    {
+        return slotType switch
+        {
+            EquipmentSlotType.Primary => "Primary",
+            EquipmentSlotType.Secondary => "Secondary",
+            EquipmentSlotType.Belt => "Belt",
+            EquipmentSlotType.Armor => "Armor",
+            _ => string.Empty
+        };
     }
 
     private void RestoreAfterDrag()

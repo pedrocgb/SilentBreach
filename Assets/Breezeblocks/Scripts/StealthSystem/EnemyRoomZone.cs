@@ -20,6 +20,12 @@ public class EnemyRoomZone : MonoBehaviour
     [FoldoutGroup("Lights"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
     [SerializeField] private List<GameObject> roomLights = new();
 
+    [FoldoutGroup("Look Around"), SuffixLabel("deg", true)]
+    [SerializeField] private float lookAroundMinAngle = -70f;
+
+    [FoldoutGroup("Look Around"), SuffixLabel("deg", true)]
+    [SerializeField] private float lookAroundMaxAngle = 70f;
+
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool AreLightsOn => areLightsOn;
 
@@ -27,6 +33,8 @@ public class EnemyRoomZone : MonoBehaviour
 
     public LightSwitchInteractable LightSwitch => lightSwitch;
     public Vector2 SwitchPosition => lightSwitch != null ? (Vector2)lightSwitch.transform.position : (Vector2)transform.position;
+    public float LookAroundMinAngle => lookAroundMinAngle;
+    public float LookAroundMaxAngle => lookAroundMaxAngle;
     public static IReadOnlyList<EnemyRoomZone> ActiveZones => ActiveZonesInternal;
 
     private bool areLightsOn = true;
@@ -67,6 +75,9 @@ public class EnemyRoomZone : MonoBehaviour
         CacheReferences();
         if (roomLights == null)
             roomLights = new List<GameObject>();
+
+        if (lookAroundMaxAngle < lookAroundMinAngle)
+            lookAroundMaxAngle = lookAroundMinAngle;
     }
 
     private void Update()
@@ -115,6 +126,21 @@ public class EnemyRoomZone : MonoBehaviour
         }
 
         return bestMatch;
+    }
+
+    public Vector2 ResolveLookAroundBaseDirection(Vector2 fallbackOrigin)
+    {
+        Vector2 switchPosition = SwitchPosition;
+        Vector2 roomCenter = roomCollider != null ? roomCollider.bounds.center : transform.position;
+        Vector2 basis = roomCenter - switchPosition;
+
+        if (basis.sqrMagnitude <= Mathf.Epsilon)
+            basis = roomCenter - fallbackOrigin;
+
+        if (basis.sqrMagnitude <= Mathf.Epsilon)
+            basis = transform.up;
+
+        return basis.normalized;
     }
 
     private void CacheReferences()

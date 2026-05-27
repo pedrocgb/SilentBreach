@@ -78,14 +78,16 @@ public class PlayerEquipmentHotbarUI : MonoBehaviour
 
     private static string ResolveSlotLabel(EquipmentSlotType slotType)
     {
-        return slotType switch
-        {
-            EquipmentSlotType.Primary => "Primary",
-            EquipmentSlotType.Secondary => "Secondary",
-            EquipmentSlotType.Belt => "Belt",
-            EquipmentSlotType.Armor => "Armor",
-            _ => string.Empty
-        };
+        return GlobalSettings.Instance != null
+            ? GlobalSettings.Instance.EquipmentContextUi.GetSlotDisplayName(slotType)
+            : slotType switch
+            {
+                EquipmentSlotType.Primary => "Primary",
+                EquipmentSlotType.Secondary => "Secondary",
+                EquipmentSlotType.Belt => "Belt",
+                EquipmentSlotType.Armor => "Armor",
+                _ => string.Empty
+            };
     }
 
     private static string ResolveHotkeyLabel(EquipmentSlotType slotType)

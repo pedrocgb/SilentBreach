@@ -27,6 +27,7 @@ public class GameplayMissionController : MonoBehaviour
     {
         public HideoutJobObjectiveDefinition Definition;
         public int CompletedCount;
+        public MissionStatusEntryUI EntryView;
         public readonly HashSet<int> CountedSourceIds = new();
 
         public int RequiredCount => Definition != null ? Definition.RequiredCount : 1;
@@ -40,6 +41,7 @@ public class GameplayMissionController : MonoBehaviour
         public HideoutJobFailureDefinition Definition;
         public float TimeRemaining;
         public bool Triggered;
+        public MissionStatusEntryUI EntryView;
     }
 
     [FoldoutGroup("Player")]
@@ -77,6 +79,9 @@ public class GameplayMissionController : MonoBehaviour
 
     [FoldoutGroup("Music")]
     [SerializeField] private MissionMusicController missionMusicController;
+
+    [FoldoutGroup("UI")]
+    [SerializeField] private GameplayHudController gameplayHudController;
 
     [FoldoutGroup("Car Audio")]
     [SerializeField] private WorldSfxManager worldSfxManager;
@@ -146,6 +151,27 @@ public class GameplayMissionController : MonoBehaviour
 
     [FoldoutGroup("Job UI")]
     [SerializeField] private TMP_Text timeLimitText;
+
+    [FoldoutGroup("Job UI")]
+    [SerializeField] GameObject timerContent;
+
+        [FoldoutGroup("Job UI/List"), SerializeField]
+    private RectTransform missionStatusContentRoot;
+
+    [FoldoutGroup("Job UI/List"), AssetsOnly]
+    [SerializeField] private MissionStatusEntryUI objectiveStatusEntryPrefab;
+
+    [FoldoutGroup("Job UI/List"), AssetsOnly]
+    [SerializeField] private MissionStatusEntryUI failureStatusEntryPrefab;
+
+    [FoldoutGroup("Job UI/List"), SerializeField, MinValue(0f), SuffixLabel("s", true)]
+    private float missionStatusEntryFadeDuration = 0.2f;
+
+    [FoldoutGroup("Job UI/List"), SerializeField, MinValue(0f), SuffixLabel("s", true)]
+    private float missionStatusEntrySpawnInterval = 0.2f;
+
+    [FoldoutGroup("Job UI/List")]
+    [SerializeField] private GlobalObjectPooler globalObjectPooler;
 
     [FoldoutGroup("Job UI"), MinValue(0f), SuffixLabel("s", true)]
     [SerializeField] private float timeLimitWarningThresholdSeconds = 30f;
@@ -328,6 +354,7 @@ public class GameplayMissionController : MonoBehaviour
     private Sequence timeLimitWarningSequence;
     private Tween carEngineLoopTween;
     private Tween activeCinematicPlayerMoveTween;
+    private Coroutine missionStatusEntryBuildRoutine;
     private HideoutJobDefinition currentJob;
     private Color timeLimitDefaultColor = Color.white;
     private bool gameplayStarted;
@@ -347,6 +374,12 @@ public class GameplayMissionController : MonoBehaviour
     private bool playerComponentDefaultStatesCached;
     private bool sceneTransitionInProgress;
     private bool suppressCarAudioAutoRestart;
+    private readonly List<MissionStatusEntryUI> activeMissionStatusEntries = new();
+
+    private bool UseMissionStatusEntryList =>
+        missionStatusContentRoot != null &&
+        objectiveStatusEntryPrefab != null &&
+        failureStatusEntryPrefab != null;
 
     private void Reset()
     {
@@ -385,6 +418,7 @@ public class GameplayMissionController : MonoBehaviour
         MissionRuntimeEvents.ActorIncapacitated += HandleActorIncapacitated;
         MissionRuntimeEvents.ItemPickedUp += HandleItemPickedUp;
         MissionRuntimeEvents.EnemyStateChanged += HandleEnemyStateChanged;
+        MissionRuntimeEvents.EnemyPlayerFullyDetected += HandleEnemyPlayerFullyDetected;
         RegisterScreenButtonCallbacks();
 
         if (playerHealth != null)
@@ -404,6 +438,8 @@ public class GameplayMissionController : MonoBehaviour
         }
         else
             StartGameplay();
+
+        RestartMissionStatusEntryBuild();
     }
 
     private void Update()
@@ -425,6 +461,7 @@ public class GameplayMissionController : MonoBehaviour
         MissionRuntimeEvents.ActorIncapacitated -= HandleActorIncapacitated;
         MissionRuntimeEvents.ItemPickedUp -= HandleItemPickedUp;
         MissionRuntimeEvents.EnemyStateChanged -= HandleEnemyStateChanged;
+        MissionRuntimeEvents.EnemyPlayerFullyDetected -= HandleEnemyPlayerFullyDetected;
         UnregisterScreenButtonCallbacks();
 
         if (playerHealth != null)
@@ -440,8 +477,14 @@ public class GameplayMissionController : MonoBehaviour
         carEngineLoopTween = null;
         activeCinematicPlayerMoveTween?.Kill();
         activeCinematicPlayerMoveTween = null;
+        if (missionStatusEntryBuildRoutine != null)
+        {
+            StopCoroutine(missionStatusEntryBuildRoutine);
+            missionStatusEntryBuildRoutine = null;
+        }
         StopContinuousCarDrive();
         StopAllCarAudio(suppressAutoRestart: false);
+        ClearMissionStatusEntries();
 
         if (playerVisionLight != null)
             playerVisionLight.enabled = playerVisionLightDefaultEnabled;
@@ -590,6 +633,12 @@ public class GameplayMissionController : MonoBehaviour
         if (missionMusicController == null)
             missionMusicController = FindFirstObjectByType<MissionMusicController>();
 
+        if (gameplayHudController == null)
+            gameplayHudController = FindFirstObjectByType<GameplayHudController>();
+
+        if (globalObjectPooler == null)
+            globalObjectPooler = GlobalObjectPooler.Instance;
+
         ResolveRewiredPlayer();
     }
 
@@ -607,6 +656,9 @@ public class GameplayMissionController : MonoBehaviour
     {
         if (fadeImageFader != null)
             fadeImageFader.SetAlphaImmediate(0f);
+
+        RegisterMissionStatusEntryPrefabs();
+        ClearMissionStatusEntries();
 
         if (questFailScreen != null)
             questFailScreen.SetActive(false);
@@ -633,13 +685,22 @@ public class GameplayMissionController : MonoBehaviour
             escapeNowText.rectTransform.localScale = Vector3.one;
         }
 
-        if (timeLimitText != null)
+        if (timerContent != null)
         {
+            timerContent.SetActive(false);
             timeLimitDefaultColor = timeLimitText.color;
-            timeLimitText.gameObject.SetActive(false);
             timeLimitText.text = string.Empty;
             timeLimitText.color = timeLimitDefaultColor;
             timeLimitText.rectTransform.localScale = Vector3.one;
+        }
+
+        if (UseMissionStatusEntryList)
+        {
+            if (jobObjectivesText != null)
+                jobObjectivesText.text = string.Empty;
+
+            if (jobFailureText != null)
+                jobFailureText.text = string.Empty;
         }
     }
 
@@ -720,6 +781,7 @@ public class GameplayMissionController : MonoBehaviour
         SetGameObjectsActive(gameObjectsToEnableAfterGameplayStart, true);
         SetIntroVisionLightActive(true);
         BlockPlayerControls(false);
+        gameplayHudController?.HandleGameplayStarted();
         RefreshTimeLimitUi();
 
         if (objectivesCompleted)
@@ -1505,16 +1567,32 @@ public class GameplayMissionController : MonoBehaviour
         if (missionEnded || !gameplayStarted)
             return;
 
-        bool fullyDetectedNow = stateEvent.Controller != null
-            ? stateEvent.Controller.IsPlayerFullyDetectedState()
-            : IsFullyDetectedEnemyState(stateEvent.NewState);
-        bool wasFullyDetectedBefore = IsFullyDetectedEnemyState(stateEvent.PreviousState);
+        bool enteredAlertState = stateEvent.NewState == EnemyState.Alert && stateEvent.PreviousState != EnemyState.Alert;
+        if (enteredAlertState)
+        {
+            for (int i = 0; i < failureStates.Count; i++)
+            {
+                FailureRuntimeState failureState = failureStates[i];
+                if (failureState == null || failureState.Triggered || failureState.Definition == null)
+                    continue;
 
-        if (fullyDetectedNow && !wasFullyDetectedBefore)
-            missionMusicController?.PlayAlertedMusic();
+                if (failureState.Definition.FailureType != HideoutJobFailureType.DontAlert)
+                    continue;
 
-        if (!fullyDetectedNow || wasFullyDetectedBefore)
+                TriggerMissionFailure(failureState);
+                return;
+            }
+        }
+
+    }
+
+    private void HandleEnemyPlayerFullyDetected(EnemyVisualDetectionEvent detectionEvent)
+    {
+        if (missionEnded || !gameplayStarted)
             return;
+
+        if (TryResolveMissionMusicController())
+            missionMusicController.PlayAlertedMusic();
 
         for (int i = 0; i < failureStates.Count; i++)
         {
@@ -1657,11 +1735,190 @@ public class GameplayMissionController : MonoBehaviour
         if (jobNameText != null)
             jobNameText.text = currentJob != null ? currentJob.JobTitle : string.Empty;
 
+        if (UseMissionStatusEntryList)
+        {
+            if (jobObjectivesText != null)
+                jobObjectivesText.text = string.Empty;
+
+            if (jobFailureText != null)
+                jobFailureText.text = string.Empty;
+
+            RefreshMissionStatusEntriesFromStates();
+            return;
+        }
+
         if (jobObjectivesText != null)
             jobObjectivesText.text = BuildObjectiveText();
 
         if (jobFailureText != null)
             jobFailureText.text = BuildFailureText();
+    }
+
+    private void RegisterMissionStatusEntryPrefabs()
+    {
+        if (globalObjectPooler == null)
+            globalObjectPooler = GlobalObjectPooler.Instance;
+
+        if (globalObjectPooler == null)
+            return;
+
+        if (objectiveStatusEntryPrefab != null)
+            globalObjectPooler.RegisterPrefab(objectiveStatusEntryPrefab.gameObject);
+
+        if (failureStatusEntryPrefab != null)
+            globalObjectPooler.RegisterPrefab(failureStatusEntryPrefab.gameObject);
+    }
+
+    private void RestartMissionStatusEntryBuild()
+    {
+        if (missionStatusEntryBuildRoutine != null)
+        {
+            StopCoroutine(missionStatusEntryBuildRoutine);
+            missionStatusEntryBuildRoutine = null;
+        }
+
+        ClearMissionStatusEntries();
+
+        if (!UseMissionStatusEntryList || !isActiveAndEnabled)
+            return;
+
+        missionStatusEntryBuildRoutine = StartCoroutine(BuildMissionStatusEntriesRoutine());
+    }
+
+    private IEnumerator BuildMissionStatusEntriesRoutine()
+    {
+        bool spawnedAnyObjectives = false;
+        for (int i = 0; i < objectiveStates.Count; i++)
+        {
+            ObjectiveRuntimeState state = objectiveStates[i];
+            if (state == null || state.Definition == null)
+                continue;
+
+            spawnedAnyObjectives = true;
+            state.EntryView = SpawnMissionStatusEntry(
+                objectiveStatusEntryPrefab,
+                BuildObjectiveLine(state, applyStrikethrough: false),
+                state.IsComplete);
+
+            yield return WaitForMissionStatusEntry(state.EntryView);
+        }
+
+        if (!spawnedAnyObjectives && currentJob != null && !string.IsNullOrWhiteSpace(currentJob.ObjectivesText))
+            yield return WaitForMissionStatusEntry(SpawnMissionStatusEntry(objectiveStatusEntryPrefab, currentJob.ObjectivesText, useStrikethrough: false));
+
+        bool spawnedAnyFailures = false;
+        for (int i = 0; i < failureStates.Count; i++)
+        {
+            FailureRuntimeState state = failureStates[i];
+            if (state == null || state.Definition == null)
+                continue;
+
+            spawnedAnyFailures = true;
+            state.EntryView = SpawnMissionStatusEntry(
+                failureStatusEntryPrefab,
+                state.Definition.DisplayText,
+                useStrikethrough: false);
+
+            yield return WaitForMissionStatusEntry(state.EntryView);
+        }
+
+        if (!spawnedAnyFailures && currentJob != null && !string.IsNullOrWhiteSpace(currentJob.TermsOfFailureText))
+            yield return WaitForMissionStatusEntry(SpawnMissionStatusEntry(failureStatusEntryPrefab, currentJob.TermsOfFailureText, useStrikethrough: false));
+
+        missionStatusEntryBuildRoutine = null;
+    }
+
+    private IEnumerator WaitForMissionStatusEntry(MissionStatusEntryUI entryView)
+    {
+        Tween fadeTween = entryView != null
+            ? entryView.PlayFadeIn(missionStatusEntryFadeDuration)
+            : null;
+
+        if (fadeTween != null)
+            yield return fadeTween.WaitForCompletion();
+
+        if (missionStatusEntrySpawnInterval > 0f)
+            yield return new WaitForSecondsRealtime(missionStatusEntrySpawnInterval);
+    }
+
+    private MissionStatusEntryUI SpawnMissionStatusEntry(MissionStatusEntryUI prefab, string text, bool useStrikethrough)
+    {
+        if (prefab == null || missionStatusContentRoot == null)
+            return null;
+
+        MissionStatusEntryUI entryView = null;
+        if (globalObjectPooler != null)
+            entryView = globalObjectPooler.Spawn(prefab, Vector3.zero, Quaternion.identity, missionStatusContentRoot);
+
+        if (entryView == null)
+            entryView = Instantiate(prefab, missionStatusContentRoot);
+
+        if (entryView == null)
+            return null;
+
+        entryView.transform.SetParent(missionStatusContentRoot, false);
+        entryView.transform.SetAsLastSibling();
+        entryView.PrepareForDisplay();
+        entryView.SetText(text, useStrikethrough);
+        activeMissionStatusEntries.Add(entryView);
+        return entryView;
+    }
+
+    private void ClearMissionStatusEntries()
+    {
+        for (int i = 0; i < activeMissionStatusEntries.Count; i++)
+        {
+            MissionStatusEntryUI entryView = activeMissionStatusEntries[i];
+            if (entryView == null)
+                continue;
+
+            GlobalPooledObject pooledObject = entryView.GetComponent<GlobalPooledObject>();
+            if (pooledObject != null)
+            {
+                pooledObject.ReturnToPool();
+                continue;
+            }
+
+            Destroy(entryView.gameObject);
+        }
+
+        activeMissionStatusEntries.Clear();
+
+        for (int i = 0; i < objectiveStates.Count; i++)
+        {
+            if (objectiveStates[i] != null)
+                objectiveStates[i].EntryView = null;
+        }
+
+        for (int i = 0; i < failureStates.Count; i++)
+        {
+            if (failureStates[i] != null)
+                failureStates[i].EntryView = null;
+        }
+    }
+
+    private void RefreshMissionStatusEntriesFromStates()
+    {
+        if (!UseMissionStatusEntryList)
+            return;
+
+        for (int i = 0; i < objectiveStates.Count; i++)
+        {
+            ObjectiveRuntimeState state = objectiveStates[i];
+            if (state?.EntryView == null)
+                continue;
+
+            state.EntryView.SetText(BuildObjectiveLine(state, applyStrikethrough: false), state.IsComplete);
+        }
+
+        for (int i = 0; i < failureStates.Count; i++)
+        {
+            FailureRuntimeState state = failureStates[i];
+            if (state?.EntryView == null || state.Definition == null)
+                continue;
+
+            state.EntryView.SetText(state.Definition.DisplayText, useStrikethrough: false);
+        }
     }
 
     private string BuildObjectiveText()
@@ -1679,12 +1936,7 @@ public class GameplayMissionController : MonoBehaviour
             if (builder.Length > 0)
                 builder.Append('\n');
 
-            string line = state.DisplayText;
-            if (state.RequiredCount > 1)
-                line = $"{line} ({Mathf.Min(state.CompletedCount, state.RequiredCount)}/{state.RequiredCount})";
-
-            if (state.IsComplete)
-                line = $"<s>{line}</s>";
+            string line = BuildObjectiveLine(state, applyStrikethrough: true);
 
             builder.Append("- ");
             builder.Append(line);
@@ -1715,6 +1967,21 @@ public class GameplayMissionController : MonoBehaviour
         return builder.ToString();
     }
 
+    private string BuildObjectiveLine(ObjectiveRuntimeState state, bool applyStrikethrough)
+    {
+        if (state == null || state.Definition == null)
+            return string.Empty;
+
+        string line = state.DisplayText;
+        if (state.RequiredCount > 1)
+            line = $"{line} ({Mathf.Min(state.CompletedCount, state.RequiredCount)}/{state.RequiredCount})";
+
+        if (applyStrikethrough && state.IsComplete)
+            line = $"<s>{line}</s>";
+
+        return line;
+    }
+
     private void UpdateTimeLimitFailures(float deltaTime)
     {
         for (int i = 0; i < failureStates.Count; i++)
@@ -1734,20 +2001,20 @@ public class GameplayMissionController : MonoBehaviour
 
     private void RefreshTimeLimitUi()
     {
-        if (timeLimitText == null)
+        if (timerContent == null)
             return;
 
         FailureRuntimeState activeTimeLimit = GetActiveTimeLimitFailure();
         if (activeTimeLimit == null)
         {
-            timeLimitText.gameObject.SetActive(false);
+            timerContent.gameObject.SetActive(false);
             timeLimitText.text = string.Empty;
             timeLimitText.color = timeLimitDefaultColor;
             StopTimeLimitWarningPulse();
             return;
         }
 
-        timeLimitText.gameObject.SetActive(true);
+        timerContent.gameObject.SetActive(true);
         float remainingTime = Mathf.Max(0f, activeTimeLimit.TimeRemaining);
         timeLimitText.text = FormatTimeLimitText(remainingTime);
 
@@ -1802,7 +2069,7 @@ public class GameplayMissionController : MonoBehaviour
 
     private void StartTimeLimitWarningPulse()
     {
-        if (timeLimitText == null || timeLimitWarningSequence != null)
+        if (timerContent == null || timeLimitWarningSequence != null)
             return;
 
         timeLimitText.rectTransform.localScale = Vector3.one;
@@ -1834,7 +2101,8 @@ public class GameplayMissionController : MonoBehaviour
         StopTimeLimitWarningPulse();
         BlockPlayerControls(true);
         SetEndScreenPointerVisible(true);
-        missionMusicController?.PlayGameOverMusic();
+        if (TryResolveMissionMusicController())
+            missionMusicController.PlayGameOverMusic();
 
         if (playerWasKilled)
         {
@@ -2025,18 +2293,22 @@ public class GameplayMissionController : MonoBehaviour
         return IsPlayerRoot(instigatorRoot);
     }
 
-    private static bool IsFullyDetectedEnemyState(EnemyState state)
-    {
-        return state == EnemyState.Detected ||
-               state == EnemyState.Alert ||
-               state == EnemyState.Fleeing;
-    }
-
     private bool IsPlayerRoot(GameObject candidateRoot)
     {
         return candidateRoot != null &&
                playerRoot != null &&
                candidateRoot.transform.root == playerRoot.root;
+    }
+
+    private bool TryResolveMissionMusicController()
+    {
+        if (missionMusicController == null)
+            missionMusicController = GetComponent<MissionMusicController>();
+
+        if (missionMusicController == null)
+            missionMusicController = FindFirstObjectByType<MissionMusicController>();
+
+        return missionMusicController != null;
     }
 
     private static bool MatchesReferenceId(string expectedId, string actualId)

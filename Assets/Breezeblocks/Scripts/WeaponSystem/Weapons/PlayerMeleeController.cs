@@ -57,6 +57,7 @@ public class PlayerMeleeController : MonoBehaviour
     public bool IsInputBlocked => inputBlocked;
 
     public event Action MeleeStateChanged;
+    public event Action AttackStarted;
 
     public static PlayerMeleeController EnsureOn(GameObject actorRoot)
     {
@@ -237,6 +238,7 @@ public class PlayerMeleeController : MonoBehaviour
         IsAttacking = true;
         AttackProgress01 = 0f;
         NotifyMeleeStateChanged();
+        AttackStarted?.Invoke();
 
         bool damageWindowActive = false;
         float duration = Mathf.Max(0.01f, meleeWeapon.AttackAnimationDuration);

@@ -1,11 +1,19 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 using Breezeblocks;
 using Breezeblocks.WeaponSystem;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace Breezeblocks.HideoutSystem
 {
@@ -20,7 +28,8 @@ public sealed class HideoutSceneController : MonoBehaviour
         Jobs,
         Fence,
         Perks,
-        Contacts
+        Contacts,
+        Settings
     }
 
     private enum DetailSelectionSource
@@ -64,6 +73,13 @@ public sealed class HideoutSceneController : MonoBehaviour
     }
 
     [Serializable]
+    private sealed class SellButtonReference
+    {
+        public EquipmentSlotType slotType = EquipmentSlotType.None;
+        public Button button;
+    }
+
+    [Serializable]
     private sealed class FencePanelReferences
     {
         public GameObject root;
@@ -73,18 +89,20 @@ public sealed class HideoutSceneController : MonoBehaviour
         public RectTransform shopListContent;
         public HideoutFenceOfferItemUI shopOfferItemPrefab;
         public TMP_Text emptyStateText;
-        public TMP_Text detailTitleText;
-        public TMP_Text detailSourceText;
-        public TMP_Text detailDescriptionText;
-        public TMP_Text detailStatsText;
-        public TMP_Text detailValueText;
-        public Image detailImage;
-        public TMP_Text sellValueText;
+
+        [Title("Context")]
+        public PlayerEquipmentPanelUI contextPanel;
+
+        [Title("Actions")]
         public Button sellButton;
         public Button startQuestButton;
 
+        [Title("Equipment")]
         [ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
         public List<PlayerEquipmentSlotViewUI> slotViews = new();
+
+        [ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
+        public List<SellButtonReference> slotSellButtons = new();
     }
 
     [Serializable]
@@ -124,8 +142,26 @@ public sealed class HideoutSceneController : MonoBehaviour
     [FoldoutGroup("Defaults"), MinValue(0)]
     [SerializeField] private int startingInfluencePoints = 3;
 
-    [FoldoutGroup("Defaults")]
+    [FoldoutGroup("Jobs"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
+    [SerializeField] private List<HideoutJobDefinition> startingJobs = new();
+
+    [FoldoutGroup("Jobs")]
     [SerializeField] private string resourcesSearchPath = string.Empty;
+
+    [FoldoutGroup("Transitions"), MinValue(0f)]
+    [SerializeField] private float panelFadeDuration = 0.22f;
+
+    [FoldoutGroup("Transitions")]
+    [SerializeField] private Ease panelFadeEase = Ease.InOutSine;
+
+    [FoldoutGroup("Transitions"), MinValue(0f)]
+    [SerializeField] private float sceneFadeDuration = 0.35f;
+
+    [FoldoutGroup("Transitions")]
+    [SerializeField] private Ease sceneFadeEase = Ease.InOutSine;
+
+    [FoldoutGroup("Transitions")]
+    [SerializeField] private CanvasGroup sceneFadeCanvasGroup;
 
     [FoldoutGroup("References")]
     [SerializeField] private HeaderReferences header = new();
@@ -145,25 +181,44 @@ public sealed class HideoutSceneController : MonoBehaviour
     [FoldoutGroup("References")]
     [SerializeField] private PlaceholderPanelReferences contactsPanel = new();
 
+    [FoldoutGroup("References")]
+    [SerializeField] private PlaceholderPanelReferences settingsPanel = new();
+
     private readonly List<HideoutJobDefinition> availableJobs = new();
     private readonly List<PreparedFenceOffer> activeFenceOffers = new();
     private readonly Dictionary<EquipmentSlotType, LoadoutSlotState> loadoutSlots = new();
     private readonly Dictionary<EquipmentSlotType, PlayerEquipmentSlotViewUI> equipmentSlotViews = new();
+    private readonly Dictionary<EquipmentSlotType, Button> equipmentSellButtons = new();
+    private readonly Dictionary<HideoutView, GameObject> resolvedRoots = new();
+    private readonly Dictionary<HideoutView, CanvasGroup> resolvedCanvasGroups = new();
 
     private HideoutView currentView;
     private HideoutJobDefinition selectedJob;
+    private HideoutJobDefinition preparedJob;
     private PreparedFenceOffer selectedOffer;
     private EquipmentSlotType selectedEquipmentSlot = EquipmentSlotType.None;
     private DetailSelectionSource detailSelectionSource = DetailSelectionSource.None;
     private int totalConfiguredJobs;
+    private bool hasPreparedFence;
+    private bool viewInitialized;
+    private bool isSceneTransitioning;
+    private bool isTearingDown;
+    private Coroutine panelTransitionRoutine;
+    private Tween sceneFadeTween;
 
     private void Awake()
     {
+        isTearingDown = false;
         HideoutRuntimeSession.EnsureInitialized(startingCash, startingInfluencePoints);
         InitializeLoadoutSlots();
+        ResolvePanelRoots();
+        ResolvePanelCanvasGroups();
         CacheSlotViews();
+        CacheSellButtons();
         PrepareTemplates();
+        PrepareSceneFade();
         BindSlotEvents();
+        BindButtons();
         ConfigurePlaceholderPanels();
         LoadAvailableJobs();
 
@@ -172,45 +227,87 @@ public sealed class HideoutSceneController : MonoBehaviour
         RebuildJobList();
         RefreshJobDetails();
         RefreshCurrencyTexts();
-        RefreshEquipmentSlots();
-        RefreshDetailPanel();
-        ShowView(HideoutView.MainMenu);
+        RefreshFenceView();
+        SetViewImmediate(HideoutView.MainMenu);
 
         if (HideoutRuntimeSession.TryConsumePendingHideoutMessage(out string pendingMessage))
+        {
             SetMessage(pendingMessage);
+        }
+        else if (availableJobs.Count > 0)
+        {
+            SetMessage("Choose a job to inspect the contract details.");
+        }
+        else if (totalConfiguredJobs > 0)
+        {
+            SetMessage("No jobs are currently available.");
+        }
         else
         {
-            SetMessage(availableJobs.Count > 0
-                ? "Hideout scene is now fully manual. Wire your own buttons and layout in the editor."
-                : totalConfiguredJobs > 0
-                    ? "No jobs are currently available."
-                    : "No hideout jobs were found in Resources. Create a Hideout Job asset to populate this screen.");
+            SetMessage("Assign at least one starting job to populate the hideout.");
         }
+    }
+
+    private void OnDisable()
+    {
+        BeginTeardown();
     }
 
     private void OnDestroy()
     {
+        BeginTeardown();
+    }
+
+    private void BeginTeardown()
+    {
+        if (isTearingDown)
+            return;
+
+        isTearingDown = true;
+        if (sceneFadeCanvasGroup != null)
+            DOTween.Kill(sceneFadeCanvasGroup);
+
+        foreach (CanvasGroup canvasGroup in resolvedCanvasGroups.Values)
+        {
+            if (canvasGroup != null)
+                DOTween.Kill(canvasGroup);
+        }
+
+        sceneFadeTween?.Kill();
+        sceneFadeTween = null;
+
+        if (panelTransitionRoutine != null)
+        {
+            StopCoroutine(panelTransitionRoutine);
+            panelTransitionRoutine = null;
+        }
+
         UnbindSlotEvents();
     }
 
     public void ShowMainMenu()
     {
-        ShowView(HideoutView.MainMenu);
+        RequestView(HideoutView.MainMenu);
     }
 
     public void ShowJobsView()
     {
-        ShowView(HideoutView.Jobs);
+        RequestView(HideoutView.Jobs);
     }
 
     public void ShowPerksView()
     {
-        ShowView(HideoutView.Perks);
+        RequestView(HideoutView.Perks);
     }
 
     public void ShowContactsView()
     {
-        ShowView(HideoutView.Contacts);
+        RequestView(HideoutView.Contacts);
+    }
+
+    public void ShowSettingsView()
+    {
+        RequestView(HideoutView.Settings);
     }
 
     public void OpenSelectedJobFence()
@@ -221,59 +318,81 @@ public sealed class HideoutSceneController : MonoBehaviour
             return;
         }
 
-        ResetPreparedLoadout();
-        GenerateFenceInventory(selectedJob);
+        if (!hasPreparedFence || preparedJob != selectedJob)
+        {
+            if (hasPreparedFence && preparedJob != null && preparedJob != selectedJob)
+                RefundAllPurchasedItems(refreshUi: false);
+
+            ResetPreparedLoadout();
+            GenerateFenceInventory(selectedJob);
+            preparedJob = selectedJob;
+            hasPreparedFence = true;
+            SetMessage($"The fence prepared a fresh spread for {selectedJob.JobTitle}.");
+        }
+
         HideoutRuntimeSession.SetCurrentJob(selectedJob);
-        SelectInitialFenceDetail();
-        ShowView(HideoutView.Fence);
+        EnsureValidFenceSelection();
         RefreshFenceView();
-        SetMessage($"The fence laid out a fresh spread for {selectedJob.JobTitle}.");
+        RequestView(HideoutView.Fence);
     }
 
     public void BackOutOfFence()
     {
-        int refund = RefundAllPurchasedItems();
-        ShowView(HideoutView.Jobs);
-        SetMessage(refund > 0
-            ? $"Fence closed. Refunded ${refund} and cleared the prep loadout."
-            : "Fence closed. No purchases needed to be refunded.");
+        RequestView(HideoutView.Jobs);
     }
 
     public void SellSelectedEquipment()
     {
-        LoadoutSlotState slotState = GetSlotState(selectedEquipmentSlot);
-        if (slotState == null || !slotState.HasItem)
+        if (selectedEquipmentSlot == EquipmentSlotType.None)
         {
             SetMessage("Select an equipped item before selling.");
             return;
         }
 
-        int refund = slotState.PurchasePrice;
-        string itemName = slotState.Item.DisplayName;
-        PreparedFenceOffer restoredOffer = RestockPurchasedOffer(slotState);
-        ClearSlot(slotState);
-        HideoutRuntimeSession.AddCash(refund);
-
-        if (restoredOffer != null)
-            SelectOffer(restoredOffer);
-        else
-            SelectEquipmentSlot(selectedEquipmentSlot);
-
-        SetMessage($"Sold {itemName} for ${refund}.");
+        SellEquipmentInSlot(selectedEquipmentSlot);
     }
 
     public void StartQuest()
     {
+        if (isSceneTransitioning)
+            return;
+
         if (selectedJob == null || !SceneLoadUtility.CanLoadScene(selectedJob.MissionSceneBuildIndex, selectedJob.MissionSceneName))
         {
-            SetMessage("This job does not have a quest scene configured yet.");
+            SetMessage("This job does not have a scene configured yet.");
             return;
         }
 
         PlayerEquipmentRuntimeSession.SetPendingQuestLoadout(BuildRuntimeLoadout());
         HideoutRuntimeSession.SetCurrentJob(selectedJob);
+        StartCoroutine(StartQuestRoutine(selectedJob));
+    }
+
+    public void ExitGame()
+    {
+#if UNITY_EDITOR
+        EditorApplication.isPlaying = false;
+#else
+        Application.Quit();
+#endif
+    }
+
+    private IEnumerator StartQuestRoutine(HideoutJobDefinition job)
+    {
+        isSceneTransitioning = true;
+        SetAllPanelsInteractable(false);
+
+        yield return FadeScreen(1f, sceneFadeDuration);
+
         Time.timeScale = 1f;
-        SceneLoadUtility.TryLoadScene(selectedJob.MissionSceneBuildIndex, selectedJob.MissionSceneName);
+        bool loaded = SceneLoadUtility.TryLoadScene(job.MissionSceneBuildIndex, job.MissionSceneName);
+        if (!loaded)
+        {
+            yield return FadeScreen(0f, sceneFadeDuration);
+            SetAllPanelsInteractable(true);
+            SetMessage("The selected job scene could not be loaded.");
+            isSceneTransitioning = false;
+        }
     }
 
     private void InitializeLoadoutSlots()
@@ -283,6 +402,35 @@ public sealed class HideoutSceneController : MonoBehaviour
         loadoutSlots[EquipmentSlotType.Secondary] = new LoadoutSlotState { SlotType = EquipmentSlotType.Secondary };
         loadoutSlots[EquipmentSlotType.Belt] = new LoadoutSlotState { SlotType = EquipmentSlotType.Belt };
         loadoutSlots[EquipmentSlotType.Armor] = new LoadoutSlotState { SlotType = EquipmentSlotType.Armor };
+    }
+
+    private void ResolvePanelRoots()
+    {
+        resolvedRoots.Clear();
+        resolvedRoots[HideoutView.MainMenu] = ResolveConfiguredPanelRoot(mainMenu.root, "Main Menu Panel");
+        resolvedRoots[HideoutView.Jobs] = ResolveConfiguredPanelRoot(jobsPanel.root, "Selected Job", "Available Jobs Panel");
+        resolvedRoots[HideoutView.Fence] = ResolveConfiguredPanelRoot(fencePanel.root, "Fence Panel");
+        resolvedRoots[HideoutView.Perks] = ResolveConfiguredPanelRoot(perksPanel.root, "Perks Panel");
+        resolvedRoots[HideoutView.Contacts] = ResolveConfiguredPanelRoot(contactsPanel.root, "Contacts Panel");
+        resolvedRoots[HideoutView.Settings] = ResolveConfiguredPanelRoot(settingsPanel.root, "Settings Panel");
+    }
+
+    private void ResolvePanelCanvasGroups()
+    {
+        resolvedCanvasGroups.Clear();
+
+        foreach (KeyValuePair<HideoutView, GameObject> pair in resolvedRoots)
+        {
+            GameObject root = pair.Value;
+            if (root == null)
+                continue;
+
+            CanvasGroup canvasGroup = root.GetComponent<CanvasGroup>();
+            if (canvasGroup == null)
+                canvasGroup = root.AddComponent<CanvasGroup>();
+
+            resolvedCanvasGroups[pair.Key] = canvasGroup;
+        }
     }
 
     private void CacheSlotViews()
@@ -299,6 +447,20 @@ public sealed class HideoutSceneController : MonoBehaviour
         }
     }
 
+    private void CacheSellButtons()
+    {
+        equipmentSellButtons.Clear();
+
+        for (int i = 0; i < fencePanel.slotSellButtons.Count; i++)
+        {
+            SellButtonReference reference = fencePanel.slotSellButtons[i];
+            if (reference == null || reference.button == null || reference.slotType == EquipmentSlotType.None)
+                continue;
+
+            equipmentSellButtons[reference.slotType] = reference.button;
+        }
+    }
+
     private void BindSlotEvents()
     {
         foreach (PlayerEquipmentSlotViewUI slotView in equipmentSlotViews.Values)
@@ -306,7 +468,7 @@ public sealed class HideoutSceneController : MonoBehaviour
             if (slotView == null)
                 continue;
 
-            slotView.SetDragAndDropEnabled(slotView.SlotType != EquipmentSlotType.None);
+            slotView.SetDragAndDropEnabled(slotView.SlotType.IsHandSlot());
             slotView.Clicked -= HandleSlotClicked;
             slotView.DropReceived -= HandleSlotDrop;
             slotView.Clicked += HandleSlotClicked;
@@ -326,6 +488,30 @@ public sealed class HideoutSceneController : MonoBehaviour
         }
     }
 
+    private void BindButtons()
+    {
+        BindButton(jobsPanel.proceedButton, OpenSelectedJobFence);
+        BindButton(fencePanel.sellButton, SellSelectedEquipment);
+        BindButton(fencePanel.startQuestButton, StartQuest);
+
+        foreach (KeyValuePair<EquipmentSlotType, Button> pair in equipmentSellButtons)
+        {
+            EquipmentSlotType slotType = pair.Key;
+            BindButton(pair.Value, () => SellEquipmentInSlot(slotType));
+        }
+    }
+
+    private static void BindButton(Button button, UnityAction action)
+    {
+        if (button == null || action == null)
+            return;
+
+        if (button.onClick.GetPersistentEventCount() > 0)
+            return;
+
+        button.onClick.AddListener(action);
+    }
+
     private void PrepareTemplates()
     {
         if (jobsPanel.jobListItemPrefab != null)
@@ -333,12 +519,26 @@ public sealed class HideoutSceneController : MonoBehaviour
 
         if (fencePanel.shopOfferItemPrefab != null)
             fencePanel.shopOfferItemPrefab.gameObject.SetActive(false);
+
+        if (fencePanel.contextPanel != null)
+            fencePanel.contextPanel.SetVisible(true);
+    }
+
+    private void PrepareSceneFade()
+    {
+        if (sceneFadeCanvasGroup == null)
+            return;
+
+        sceneFadeCanvasGroup.alpha = 0f;
+        sceneFadeCanvasGroup.interactable = false;
+        sceneFadeCanvasGroup.blocksRaycasts = false;
     }
 
     private void ConfigurePlaceholderPanels()
     {
         ConfigurePlaceholderPanel(perksPanel, "Perks");
         ConfigurePlaceholderPanel(contactsPanel, "Contacts");
+        ConfigurePlaceholderPanel(settingsPanel, "Settings");
     }
 
     private static void ConfigurePlaceholderPanel(PlaceholderPanelReferences panel, string title)
@@ -356,23 +556,59 @@ public sealed class HideoutSceneController : MonoBehaviour
     private void LoadAvailableJobs()
     {
         availableJobs.Clear();
-        HideoutJobDefinition[] jobs = Resources.LoadAll<HideoutJobDefinition>(resourcesSearchPath ?? string.Empty);
-        totalConfiguredJobs = 0;
-        HashSet<string> lockedJobIds = new(StringComparer.OrdinalIgnoreCase);
+        List<HideoutJobDefinition> configuredJobs = CollectConfiguredJobs(out HashSet<string> startingJobIds);
+        totalConfiguredJobs = configuredJobs.Count;
 
-        for (int i = 0; i < jobs.Length; i++)
+        for (int i = 0; i < configuredJobs.Count; i++)
         {
-            HideoutJobDefinition job = jobs[i];
+            HideoutJobDefinition job = configuredJobs[i];
+            if (job == null || HideoutRuntimeSession.IsJobCompleted(job))
+                continue;
+
+            if (!startingJobIds.Contains(job.JobId) && !HideoutRuntimeSession.IsJobUnlocked(job))
+                continue;
+
+            availableJobs.Add(job);
+        }
+
+        availableJobs.Sort((left, right) =>
+            string.Compare(left != null ? left.JobTitle : string.Empty, right != null ? right.JobTitle : string.Empty, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private List<HideoutJobDefinition> CollectConfiguredJobs(out HashSet<string> startingJobIds)
+    {
+        startingJobIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        HashSet<HideoutJobDefinition> visitedJobs = new();
+        List<HideoutJobDefinition> configuredJobs = new();
+
+        for (int i = 0; i < startingJobs.Count; i++)
+        {
+            HideoutJobDefinition job = startingJobs[i];
             if (job == null)
                 continue;
 
-            totalConfiguredJobs++;
-            if (job.UnlockJobs == null)
+            startingJobIds.Add(job.JobId);
+            CollectJobRecursive(job, visitedJobs, configuredJobs);
+        }
+
+        if (configuredJobs.Count > 0)
+            return configuredJobs;
+
+        HideoutJobDefinition[] resourceJobs = Resources.LoadAll<HideoutJobDefinition>(resourcesSearchPath ?? string.Empty);
+        HashSet<string> lockedJobIds = new(StringComparer.OrdinalIgnoreCase);
+
+        for (int i = 0; i < resourceJobs.Length; i++)
+        {
+            HideoutJobDefinition job = resourceJobs[i];
+            if (job == null || !visitedJobs.Add(job))
                 continue;
 
-            for (int unlockIndex = 0; unlockIndex < job.UnlockJobs.Count; unlockIndex++)
+            configuredJobs.Add(job);
+
+            IReadOnlyList<HideoutJobDefinition> unlockJobs = job.UnlockJobs;
+            for (int unlockIndex = 0; unlockIndex < unlockJobs.Count; unlockIndex++)
             {
-                HideoutJobDefinition unlockJob = job.UnlockJobs[unlockIndex];
+                HideoutJobDefinition unlockJob = unlockJobs[unlockIndex];
                 if (unlockJob == null || string.IsNullOrWhiteSpace(unlockJob.JobId))
                     continue;
 
@@ -380,24 +616,34 @@ public sealed class HideoutSceneController : MonoBehaviour
             }
         }
 
-        Array.Sort(jobs, (left, right) => string.Compare(left != null ? left.JobTitle : string.Empty, right != null ? right.JobTitle : string.Empty, StringComparison.OrdinalIgnoreCase));
-
-        for (int i = 0; i < jobs.Length; i++)
+        for (int i = 0; i < configuredJobs.Count; i++)
         {
-            HideoutJobDefinition job = jobs[i];
-            if (job == null || HideoutRuntimeSession.IsJobCompleted(job))
+            HideoutJobDefinition job = configuredJobs[i];
+            if (job == null || lockedJobIds.Contains(job.JobId))
                 continue;
 
-            bool isBaseJob = !lockedJobIds.Contains(job.JobId);
-            if (!isBaseJob && !HideoutRuntimeSession.IsJobUnlocked(job))
-                continue;
-
-            availableJobs.Add(job);
+            startingJobIds.Add(job.JobId);
         }
+
+        return configuredJobs;
+    }
+
+    private static void CollectJobRecursive(HideoutJobDefinition job, HashSet<HideoutJobDefinition> visitedJobs, List<HideoutJobDefinition> configuredJobs)
+    {
+        if (job == null || visitedJobs == null || configuredJobs == null || !visitedJobs.Add(job))
+            return;
+
+        configuredJobs.Add(job);
+        IReadOnlyList<HideoutJobDefinition> unlockJobs = job.UnlockJobs;
+        for (int i = 0; i < unlockJobs.Count; i++)
+            CollectJobRecursive(unlockJobs[i], visitedJobs, configuredJobs);
     }
 
     private HideoutJobDefinition ResolveInitialSelectedJob()
     {
+        if (selectedJob != null && availableJobs.Contains(selectedJob))
+            return selectedJob;
+
         HideoutJobDefinition runtimeJob = HideoutRuntimeSession.CurrentJob;
         if (runtimeJob != null && availableJobs.Contains(runtimeJob))
             return runtimeJob;
@@ -407,7 +653,12 @@ public sealed class HideoutSceneController : MonoBehaviour
 
     private void RebuildJobList()
     {
-        Transform preservedTemplate = ResolvePreservedTemplate(jobsPanel.jobListContent, jobsPanel.jobListItemPrefab != null ? jobsPanel.jobListItemPrefab.transform : null);
+        if (isTearingDown)
+            return;
+
+        Transform preservedTemplate = ResolvePreservedTemplate(
+            jobsPanel.jobListContent,
+            jobsPanel.jobListItemPrefab != null ? jobsPanel.jobListItemPrefab.transform : null);
         ClearGeneratedChildren(jobsPanel.jobListContent, preservedTemplate);
 
         if (availableJobs.Count == 0)
@@ -440,18 +691,23 @@ public sealed class HideoutSceneController : MonoBehaviour
 
     private void RebuildFenceOfferList()
     {
-        Transform preservedTemplate = ResolvePreservedTemplate(fencePanel.shopListContent, fencePanel.shopOfferItemPrefab != null ? fencePanel.shopOfferItemPrefab.transform : null);
+        if (isTearingDown)
+            return;
+
+        Transform preservedTemplate = ResolvePreservedTemplate(
+            fencePanel.shopListContent,
+            fencePanel.shopOfferItemPrefab != null ? fencePanel.shopOfferItemPrefab.transform : null);
         ClearGeneratedChildren(fencePanel.shopListContent, preservedTemplate);
 
         if (activeFenceOffers.Count == 0)
         {
-            SetOptionalTextState(fencePanel.emptyStateText, true, "This fence has nothing on the table for this contract.");
+            SetOptionalTextState(fencePanel.emptyStateText, true, "This fence has nothing available for this job.");
             return;
         }
 
         if (fencePanel.shopOfferItemPrefab == null || fencePanel.shopListContent == null)
         {
-            SetOptionalTextState(fencePanel.emptyStateText, true, "Assign a fence offer prefab and content root.");
+            SetOptionalTextState(fencePanel.emptyStateText, true, "Assign a fence item prefab and content root.");
             return;
         }
 
@@ -465,7 +721,7 @@ public sealed class HideoutSceneController : MonoBehaviour
             itemView.gameObject.SetActive(true);
             itemView.Bind(
                 offer.Item.DisplayName,
-                $"${offer.Price} | Qty {offer.RemainingQuantity}",
+                $"R${offer.Price} | Qty {offer.RemainingQuantity}",
                 FormatAllowedSlots(offer.Item.AllowedSlots),
                 offer.Item.Icon,
                 detailSelectionSource == DetailSelectionSource.ShopOffer && selectedOffer == offer,
@@ -484,15 +740,14 @@ public sealed class HideoutSceneController : MonoBehaviour
 
     private void RefreshJobDetails()
     {
-        EquipmentContextUiSettings uiSettings = GlobalSettings.Instance != null
-            ? GlobalSettings.Instance.EquipmentContextUi
-            : new EquipmentContextUiSettings();
+        if (isTearingDown)
+            return;
 
         if (selectedJob == null)
         {
             SetText(jobsPanel.jobNameText, "No Job Selected");
             SetText(jobsPanel.jobLevelText, string.Empty);
-            SetText(jobsPanel.jobDescriptionText, "Select a contract to see the full brief.");
+            SetText(jobsPanel.jobDescriptionText, "Select a contract to inspect it.");
             SetText(jobsPanel.jobRewardText, string.Empty);
             SetText(jobsPanel.jobObjectivesText, string.Empty);
             SetText(jobsPanel.jobFailureText, string.Empty);
@@ -506,14 +761,12 @@ public sealed class HideoutSceneController : MonoBehaviour
         }
 
         SetText(jobsPanel.jobNameText, selectedJob.JobTitle);
-        SetText(
-            jobsPanel.jobLevelText,
-            $"{uiSettings.JobLevelPrefix}{uiSettings.GetJobLevelText(selectedJob.JobLevel)}");
+        SetText(jobsPanel.jobLevelText, ResolveJobLevelText(selectedJob.JobLevel));
         SetText(jobsPanel.jobDescriptionText, selectedJob.JobDescription);
         SetText(jobsPanel.jobRewardText, selectedJob.RewardText);
         SetText(jobsPanel.jobObjectivesText, selectedJob.ObjectivesText);
         SetText(jobsPanel.jobFailureText, selectedJob.TermsOfFailureText);
-        SetText(jobsPanel.jobFixerText, string.IsNullOrWhiteSpace(selectedJob.FixerName) ? string.Empty : $"Fixer: {selectedJob.FixerName}");
+        SetText(jobsPanel.jobFixerText, selectedJob.FixerName);
         SetImage(jobsPanel.jobImage, selectedJob.JobImage);
 
         if (jobsPanel.proceedButton != null)
@@ -568,21 +821,139 @@ public sealed class HideoutSceneController : MonoBehaviour
             });
         }
 
-        activeFenceOffers.Sort((left, right) => string.Compare(left.Item != null ? left.Item.DisplayName : string.Empty, right.Item != null ? right.Item.DisplayName : string.Empty, StringComparison.OrdinalIgnoreCase));
+        activeFenceOffers.Sort((left, right) =>
+            string.Compare(left.Item != null ? left.Item.DisplayName : string.Empty, right.Item != null ? right.Item.DisplayName : string.Empty, StringComparison.OrdinalIgnoreCase));
     }
 
     private void RefreshFenceView()
     {
+        if (isTearingDown)
+            return;
+
+        if (fencePanel.contextPanel != null)
+            fencePanel.contextPanel.SetVisible(true);
+
         SetText(fencePanel.shopTitleText, selectedJob != null ? selectedJob.ShopTitle : "The Fence");
         SetText(fencePanel.shopDescriptionText, selectedJob != null ? selectedJob.ShopDescription : string.Empty);
         SetImage(fencePanel.shopImage, selectedJob != null ? selectedJob.ShopImage : null);
         RefreshCurrencyTexts();
         RebuildFenceOfferList();
         RefreshEquipmentSlots();
-        RefreshDetailPanel();
+        RefreshFenceDetail();
 
         if (fencePanel.startQuestButton != null)
-            fencePanel.startQuestButton.interactable = selectedJob != null && SceneLoadUtility.CanLoadScene(selectedJob.MissionSceneBuildIndex, selectedJob.MissionSceneName);
+        {
+            fencePanel.startQuestButton.interactable =
+                selectedJob != null &&
+                SceneLoadUtility.CanLoadScene(selectedJob.MissionSceneBuildIndex, selectedJob.MissionSceneName) &&
+                !isSceneTransitioning;
+        }
+    }
+
+    private void RefreshEquipmentSlots()
+    {
+        if (isTearingDown)
+            return;
+
+        RefreshSingleSlot(EquipmentSlotType.Primary);
+        RefreshSingleSlot(EquipmentSlotType.Secondary);
+        RefreshSingleSlot(EquipmentSlotType.Belt);
+        RefreshSingleSlot(EquipmentSlotType.Armor);
+        RefreshSellButtons();
+    }
+
+    private void RefreshSingleSlot(EquipmentSlotType slotType)
+    {
+        if (!equipmentSlotViews.TryGetValue(slotType, out PlayerEquipmentSlotViewUI slotView) || slotView == null)
+            return;
+
+        LoadoutSlotState slotState = GetSlotState(slotType);
+        bool isSelected = detailSelectionSource == DetailSelectionSource.Equipment && selectedEquipmentSlot == slotType;
+        slotView.Refresh(
+            slotState != null ? slotState.Item : null,
+            isSelected,
+            ResolveSlotDisplayName(slotType),
+            ResolveHotkeyLabel(slotType));
+    }
+
+    private void RefreshSellButtons()
+    {
+        foreach (KeyValuePair<EquipmentSlotType, Button> pair in equipmentSellButtons)
+        {
+            LoadoutSlotState slotState = GetSlotState(pair.Key);
+            if (pair.Value != null)
+                pair.Value.interactable = slotState != null && slotState.HasItem;
+        }
+    }
+
+    private void RefreshFenceDetail()
+    {
+        if (isTearingDown)
+            return;
+
+        bool canSell = false;
+
+        if (detailSelectionSource == DetailSelectionSource.ShopOffer && selectedOffer != null)
+        {
+            ShowFenceContext(
+                selectedOffer.Item,
+                ResolvePreferredSlotForContext(selectedOffer.Item),
+                selectedOffer.Projectile,
+                ResolveLoadedAmmo(selectedOffer.Item),
+                ResolveReserveAmmo(selectedOffer.Item));
+        }
+        else if (detailSelectionSource == DetailSelectionSource.Equipment)
+        {
+            LoadoutSlotState slotState = GetSlotState(selectedEquipmentSlot);
+            if (slotState != null && slotState.HasItem)
+            {
+                canSell = true;
+                ShowFenceContext(
+                    slotState.Item,
+                    slotState.SlotType,
+                    slotState.Projectile,
+                    slotState.LoadedAmmo,
+                    slotState.ReserveAmmo);
+            }
+            else
+            {
+                detailSelectionSource = DetailSelectionSource.None;
+                selectedEquipmentSlot = EquipmentSlotType.None;
+                ShowEmptyFenceContext();
+            }
+        }
+        else
+        {
+            ShowEmptyFenceContext();
+        }
+
+        if (fencePanel.sellButton != null)
+            fencePanel.sellButton.interactable = canSell;
+    }
+
+    private void ShowFenceContext(
+        EquipmentItemData item,
+        EquipmentSlotType slotType,
+        ProjectileData projectile,
+        int loadedAmmo,
+        int reserveAmmo)
+    {
+        if (fencePanel.contextPanel == null)
+            return;
+
+        if (item == null)
+        {
+            fencePanel.contextPanel.ShowNoSelectionContext();
+            return;
+        }
+
+        fencePanel.contextPanel.ShowContextForItem(item, slotType, projectile, loadedAmmo, reserveAmmo);
+    }
+
+    private void ShowEmptyFenceContext()
+    {
+        if (fencePanel.contextPanel != null)
+            fencePanel.contextPanel.ShowNoSelectionContext();
     }
 
     private void SelectInitialFenceDetail()
@@ -607,13 +978,32 @@ public sealed class HideoutSceneController : MonoBehaviour
         }
     }
 
+    private void EnsureValidFenceSelection()
+    {
+        if (detailSelectionSource == DetailSelectionSource.ShopOffer &&
+            selectedOffer != null &&
+            activeFenceOffers.Contains(selectedOffer))
+        {
+            return;
+        }
+
+        if (detailSelectionSource == DetailSelectionSource.Equipment)
+        {
+            LoadoutSlotState slotState = GetSlotState(selectedEquipmentSlot);
+            if (slotState != null && slotState.HasItem)
+                return;
+        }
+
+        SelectInitialFenceDetail();
+    }
+
     private void SelectOffer(PreparedFenceOffer offer)
     {
         selectedOffer = offer;
         selectedEquipmentSlot = EquipmentSlotType.None;
         detailSelectionSource = offer != null ? DetailSelectionSource.ShopOffer : DetailSelectionSource.None;
 
-        if (currentView == HideoutView.Fence)
+        if (!isTearingDown && currentView == HideoutView.Fence)
             RefreshFenceView();
     }
 
@@ -623,7 +1013,7 @@ public sealed class HideoutSceneController : MonoBehaviour
         selectedOffer = null;
         detailSelectionSource = slotType != EquipmentSlotType.None ? DetailSelectionSource.Equipment : DetailSelectionSource.None;
 
-        if (currentView == HideoutView.Fence)
+        if (!isTearingDown && currentView == HideoutView.Fence)
             RefreshFenceView();
     }
 
@@ -643,7 +1033,7 @@ public sealed class HideoutSceneController : MonoBehaviour
 
         if (!HideoutRuntimeSession.TrySpendCash(offer.Price))
         {
-            SetMessage("Not enough cash for that purchase.");
+            SetMessage("You do not have enough cash for this item.");
             return;
         }
 
@@ -657,7 +1047,7 @@ public sealed class HideoutSceneController : MonoBehaviour
         offer.RemainingQuantity--;
         SelectEquipmentSlot(slotType);
         RefreshFenceView();
-        SetMessage($"Bought {offer.Item.DisplayName} and placed it in the {FormatSlot(slotType)} slot.");
+        SetMessage($"Bought {offer.Item.DisplayName} for the {ResolveSlotDisplayName(slotType)} slot.");
     }
 
     private bool TryPlacePurchasedItem(PreparedFenceOffer offer, out EquipmentSlotType slotType, out string failureMessage)
@@ -690,12 +1080,36 @@ public sealed class HideoutSceneController : MonoBehaviour
         }
 
         failureMessage = compatibleSlots.Count > 0
-            ? $"The compatible slot for {offer.Item.DisplayName} is already occupied."
-            : $"{offer.Item.DisplayName} cannot be equipped into any prep slot.";
+            ? $"No free compatible slot is available for {offer.Item.DisplayName}."
+            : $"{offer.Item.DisplayName} cannot be equipped in the hideout loadout.";
         return false;
     }
 
-    private int RefundAllPurchasedItems()
+    private void SellEquipmentInSlot(EquipmentSlotType slotType)
+    {
+        LoadoutSlotState slotState = GetSlotState(slotType);
+        if (slotState == null || !slotState.HasItem)
+        {
+            SetMessage("There is no equipment in that slot to sell.");
+            return;
+        }
+
+        int refund = slotState.PurchasePrice;
+        string itemName = slotState.Item.DisplayName;
+        PreparedFenceOffer restoredOffer = RestockPurchasedOffer(slotState);
+        ClearSlot(slotState);
+        HideoutRuntimeSession.AddCash(refund);
+
+        if (restoredOffer != null)
+            SelectOffer(restoredOffer);
+        else
+            EnsureValidFenceSelection();
+
+        RefreshFenceView();
+        SetMessage($"Sold {itemName} for ${refund}.");
+    }
+
+    private int RefundAllPurchasedItems(bool refreshUi)
     {
         int refund = 0;
 
@@ -716,7 +1130,10 @@ public sealed class HideoutSceneController : MonoBehaviour
         detailSelectionSource = DetailSelectionSource.None;
         selectedOffer = null;
         selectedEquipmentSlot = EquipmentSlotType.None;
-        RefreshFenceView();
+
+        if (refreshUi)
+            RefreshFenceView();
+
         return refund;
     }
 
@@ -728,136 +1145,6 @@ public sealed class HideoutSceneController : MonoBehaviour
         detailSelectionSource = DetailSelectionSource.None;
         selectedOffer = null;
         selectedEquipmentSlot = EquipmentSlotType.None;
-    }
-
-    private void RefreshEquipmentSlots()
-    {
-        RefreshSingleSlot(EquipmentSlotType.Primary);
-        RefreshSingleSlot(EquipmentSlotType.Secondary);
-        RefreshSingleSlot(EquipmentSlotType.Belt);
-        RefreshSingleSlot(EquipmentSlotType.Armor);
-    }
-
-    private void RefreshSingleSlot(EquipmentSlotType slotType)
-    {
-        if (!equipmentSlotViews.TryGetValue(slotType, out PlayerEquipmentSlotViewUI slotView) || slotView == null)
-            return;
-
-        LoadoutSlotState slotState = GetSlotState(slotType);
-        bool isSelected = detailSelectionSource == DetailSelectionSource.Equipment && selectedEquipmentSlot == slotType;
-        slotView.Refresh(slotState != null ? slotState.Item : null, isSelected, FormatSlot(slotType), ResolveHotkeyLabel(slotType));
-    }
-
-    private void RefreshDetailPanel()
-    {
-        if (detailSelectionSource == DetailSelectionSource.ShopOffer && selectedOffer != null)
-        {
-            PopulateItemDetail(
-                selectedOffer.Item,
-                $"Fence Offer | {selectedOffer.RemainingQuantity} remaining",
-                selectedOffer.Price,
-                ResolveLoadedAmmo(selectedOffer.Item),
-                ResolveReserveAmmo(selectedOffer.Item),
-                canSell: false);
-            return;
-        }
-
-        if (detailSelectionSource == DetailSelectionSource.Equipment)
-        {
-            LoadoutSlotState slotState = GetSlotState(selectedEquipmentSlot);
-            if (slotState != null && slotState.HasItem)
-            {
-                PopulateItemDetail(
-                    slotState.Item,
-                    $"Prepared Loadout | {FormatSlot(slotState.SlotType)} slot",
-                    slotState.PurchasePrice,
-                    slotState.LoadedAmmo,
-                    slotState.ReserveAmmo,
-                    canSell: true);
-                return;
-            }
-        }
-
-        SetText(fencePanel.detailTitleText, "Select an item");
-        SetText(fencePanel.detailSourceText, "Choose a fence offer or click an equipped item.");
-        SetText(fencePanel.detailDescriptionText, string.Empty);
-        SetText(fencePanel.detailStatsText, string.Empty);
-        SetText(fencePanel.detailValueText, string.Empty);
-        SetText(fencePanel.sellValueText, "Sell Value: $0");
-        SetImage(fencePanel.detailImage, selectedJob != null ? selectedJob.ShopImage : null);
-
-        if (fencePanel.sellButton != null)
-            fencePanel.sellButton.interactable = false;
-    }
-
-    private void PopulateItemDetail(EquipmentItemData item, string sourceText, int value, int loadedAmmo, int reserveAmmo, bool canSell)
-    {
-        SetText(fencePanel.detailTitleText, item != null ? item.DisplayName : "Select an item");
-        SetText(fencePanel.detailSourceText, sourceText);
-        SetText(fencePanel.detailDescriptionText, item != null ? item.Description : string.Empty);
-        SetText(fencePanel.detailStatsText, item != null ? BuildItemStats(item, loadedAmmo, reserveAmmo) : string.Empty);
-        SetText(fencePanel.detailValueText, $"Value: ${Mathf.Max(0, value)}");
-        SetText(fencePanel.sellValueText, $"Sell Value: ${Mathf.Max(0, value)}");
-        SetImage(fencePanel.detailImage, item != null ? item.Icon : null);
-
-        if (fencePanel.sellButton != null)
-            fencePanel.sellButton.interactable = canSell && item != null;
-    }
-
-    private string BuildItemStats(EquipmentItemData item, int loadedAmmo, int reserveAmmo)
-    {
-        if (item == null)
-            return string.Empty;
-
-        if (item is FirearmData firearmData)
-        {
-            return
-                $"Class: {firearmData.Class}\n" +
-                $"Slots: {FormatAllowedSlots(firearmData.AllowedSlots)}\n" +
-                $"Fire Modes: {firearmData.Modes.ToString().Replace(", ", " / ")}\n" +
-                $"Bullets: {loadedAmmo}/{reserveAmmo}\n" +
-                $"Reload: {(firearmData.ReloadStyle == ReloadType.BulletPerBullet ? "Per bullet" : "Magazine")} | {firearmData.ReloadTime:0.##}s";
-        }
-
-        if (item is ArmorData armorData)
-        {
-            return
-                $"Armor Class: {armorData.ArmorClass}\n" +
-                $"Armor Value: {armorData.ArmorValue:0.##}\n" +
-                $"Rotation Penalty: {armorData.RotationPenalty:0.#}%\n" +
-                $"Movement Noise: +{armorData.MovementNoiseModifierPercent:0.#}%";
-        }
-
-        if (item is MeleeWeaponData meleeWeaponData)
-        {
-            return
-                $"Grip: {meleeWeaponData.GripType}\n" +
-                $"Slots: {FormatAllowedSlots(meleeWeaponData.AllowedSlots)}\n" +
-                $"Damage: {meleeWeaponData.Damage:0.#}\n" +
-                $"Attack: {meleeWeaponData.AttackAnimationDuration:0.##}s total | {meleeWeaponData.AttackSwingDuration:0.##}s swing\n" +
-                $"Reach: {meleeWeaponData.AttackReachDistance:0.##}";
-        }
-
-        if (item is UtilityItemData utilityItemData)
-        {
-            if (item is ThrowableUtilityData throwableData)
-            {
-                return
-                    $"Type: {utilityItemData.UtilityTypeName}\n" +
-                    $"Slots: {FormatAllowedSlots(utilityItemData.AllowedSlots)}\n" +
-                    $"Uses: {reserveAmmo}/{throwableData.MaxUses}\n" +
-                    $"Throw Distance: {throwableData.MinTravelDistance:0.##}-{throwableData.MaxTravelDistance:0.##}\n" +
-                    $"Equip: {utilityItemData.EquipTime:0.##}s | Holster: {utilityItemData.HolsterTime:0.##}s";
-            }
-
-            return
-                $"Type: {utilityItemData.UtilityTypeName}\n" +
-                $"Slots: {FormatAllowedSlots(utilityItemData.AllowedSlots)}\n" +
-                $"Equip: {utilityItemData.EquipTime:0.##}s\n" +
-                $"Holster: {utilityItemData.HolsterTime:0.##}s";
-        }
-
-        return $"Slots: {FormatAllowedSlots(item.AllowedSlots)}";
     }
 
     private PlayerEquipmentRuntimeLoadout BuildRuntimeLoadout()
@@ -904,35 +1191,6 @@ public sealed class HideoutSceneController : MonoBehaviour
         return EquipmentSlotType.None;
     }
 
-    private void ShowView(HideoutView view)
-    {
-        currentView = view;
-
-        SetActive(mainMenu.root, view == HideoutView.MainMenu);
-        SetActive(jobsPanel.root, view == HideoutView.Jobs);
-        SetActive(fencePanel.root, view == HideoutView.Fence);
-        SetActive(perksPanel.root, view == HideoutView.Perks);
-        SetActive(contactsPanel.root, view == HideoutView.Contacts);
-
-        string headerTitle = view switch
-        {
-            HideoutView.MainMenu => "Thieves Guild Hideout",
-            HideoutView.Jobs => "Available Jobs",
-            HideoutView.Fence => selectedJob != null ? $"{selectedJob.JobTitle} | The Fence" : "The Fence",
-            HideoutView.Perks => "Perks",
-            HideoutView.Contacts => "Contacts",
-            _ => "Thieves Guild Hideout"
-        };
-
-        SetText(header.titleText, headerTitle);
-
-        if (view == HideoutView.Jobs)
-            RefreshJobDetails();
-
-        if (view == HideoutView.Fence)
-            RefreshFenceView();
-    }
-
     private void HandleSlotClicked(PlayerEquipmentSlotViewUI slotView)
     {
         if (slotView == null)
@@ -954,7 +1212,7 @@ public sealed class HideoutSceneController : MonoBehaviour
 
         SelectEquipmentSlot(targetSlotView.SlotType);
         RefreshFenceView();
-        SetMessage($"Moved equipment into the {FormatSlot(targetSlotView.SlotType)} slot.");
+        SetMessage($"Moved equipment to the {ResolveSlotDisplayName(targetSlotView.SlotType)} slot.");
     }
 
     private bool TryMoveLoadoutItem(EquipmentSlotType fromSlotType, EquipmentSlotType toSlotType, out string message)
@@ -971,13 +1229,13 @@ public sealed class HideoutSceneController : MonoBehaviour
 
         if (!fromSlot.Item.SupportsSlot(toSlotType))
         {
-            message = $"{fromSlot.Item.DisplayName} cannot go into the {FormatSlot(toSlotType)} slot.";
+            message = $"{fromSlot.Item.DisplayName} cannot go into the {ResolveSlotDisplayName(toSlotType)} slot.";
             return false;
         }
 
         if (toSlot.HasItem && !toSlot.Item.SupportsSlot(fromSlotType))
         {
-            message = $"{toSlot.Item.DisplayName} cannot swap into the {FormatSlot(fromSlotType)} slot.";
+            message = $"{toSlot.Item.DisplayName} cannot swap into the {ResolveSlotDisplayName(fromSlotType)} slot.";
             return false;
         }
 
@@ -1006,7 +1264,14 @@ public sealed class HideoutSceneController : MonoBehaviour
         return slotState;
     }
 
-    private void AssignSlot(LoadoutSlotState slotState, EquipmentItemData item, ProjectileData projectile, int loadedAmmo, int reserveAmmo, int purchasePrice, PreparedFenceOffer sourceOffer = null)
+    private void AssignSlot(
+        LoadoutSlotState slotState,
+        EquipmentItemData item,
+        ProjectileData projectile,
+        int loadedAmmo,
+        int reserveAmmo,
+        int purchasePrice,
+        PreparedFenceOffer sourceOffer = null)
     {
         if (slotState == null)
             return;
@@ -1035,28 +1300,6 @@ public sealed class HideoutSceneController : MonoBehaviour
         return sourceOffer;
     }
 
-    private List<EquipmentSlotType> ResolveCompatibleSlots(EquipmentItemData item)
-    {
-        List<EquipmentSlotType> compatibleSlots = new();
-        if (item == null)
-            return compatibleSlots;
-
-        TryAddCompatibleSlot(compatibleSlots, item, EquipmentSlotType.Primary);
-        TryAddCompatibleSlot(compatibleSlots, item, EquipmentSlotType.Secondary);
-        TryAddCompatibleSlot(compatibleSlots, item, EquipmentSlotType.Belt);
-        TryAddCompatibleSlot(compatibleSlots, item, EquipmentSlotType.Armor);
-        return compatibleSlots;
-    }
-
-    private static void TryAddCompatibleSlot(List<EquipmentSlotType> slots, EquipmentItemData item, EquipmentSlotType slotType)
-    {
-        if (slots == null || item == null)
-            return;
-
-        if (item.SupportsSlot(slotType))
-            slots.Add(slotType);
-    }
-
     private static ProjectileData ResolveProjectileForItem(EquipmentItemData item, ProjectileData preferredProjectile)
     {
         if (item is not FirearmData firearmData)
@@ -1081,6 +1324,297 @@ public sealed class HideoutSceneController : MonoBehaviour
             ThrowableUtilityData throwableData => throwableData.MaxUses,
             _ => 0
         };
+    }
+
+    private static EquipmentSlotType ResolvePreferredSlotForContext(EquipmentItemData item)
+    {
+        if (item == null)
+            return EquipmentSlotType.None;
+
+        if (item.SupportsSlot(EquipmentSlotType.Primary))
+            return EquipmentSlotType.Primary;
+
+        if (item.SupportsSlot(EquipmentSlotType.Secondary))
+            return EquipmentSlotType.Secondary;
+
+        if (item.SupportsSlot(EquipmentSlotType.Belt))
+            return EquipmentSlotType.Belt;
+
+        if (item.SupportsSlot(EquipmentSlotType.Armor))
+            return EquipmentSlotType.Armor;
+
+        return EquipmentSlotType.None;
+    }
+
+    private List<EquipmentSlotType> ResolveCompatibleSlots(EquipmentItemData item)
+    {
+        List<EquipmentSlotType> compatibleSlots = new();
+        if (item == null)
+            return compatibleSlots;
+
+        TryAddCompatibleSlot(compatibleSlots, item, EquipmentSlotType.Primary);
+        TryAddCompatibleSlot(compatibleSlots, item, EquipmentSlotType.Secondary);
+        TryAddCompatibleSlot(compatibleSlots, item, EquipmentSlotType.Belt);
+        TryAddCompatibleSlot(compatibleSlots, item, EquipmentSlotType.Armor);
+        return compatibleSlots;
+    }
+
+    private static void TryAddCompatibleSlot(List<EquipmentSlotType> slots, EquipmentItemData item, EquipmentSlotType slotType)
+    {
+        if (slots == null || item == null)
+            return;
+
+        if (item.SupportsSlot(slotType))
+            slots.Add(slotType);
+    }
+
+    private void RequestView(HideoutView targetView)
+    {
+        if (isTearingDown)
+            return;
+
+        if (GetViewRoot(targetView) == null)
+        {
+            SetMessage($"{ResolveViewDisplayName(targetView)} panel is not assigned.");
+            return;
+        }
+
+        if (!viewInitialized)
+        {
+            SetViewImmediate(targetView);
+            return;
+        }
+
+        if (panelTransitionRoutine != null || targetView == currentView)
+        {
+            RefreshViewContent(targetView);
+            return;
+        }
+
+        panelTransitionRoutine = StartCoroutine(TransitionToViewRoutine(targetView));
+    }
+
+    private IEnumerator TransitionToViewRoutine(HideoutView targetView)
+    {
+        RefreshViewContent(targetView);
+
+        GameObject currentRoot = GetViewRoot(currentView);
+        CanvasGroup currentCanvasGroup = GetViewCanvasGroup(currentView);
+        GameObject targetRoot = GetViewRoot(targetView);
+        CanvasGroup targetCanvasGroup = GetViewCanvasGroup(targetView);
+
+        if (currentRoot == targetRoot)
+        {
+            SetViewImmediate(targetView);
+            panelTransitionRoutine = null;
+            yield break;
+        }
+
+        if (currentRoot != null && currentCanvasGroup != null)
+        {
+            currentCanvasGroup.interactable = false;
+            currentCanvasGroup.blocksRaycasts = false;
+
+            if (panelFadeDuration > 0f)
+            {
+                Tween fadeOutTween = currentCanvasGroup
+                    .DOFade(0f, panelFadeDuration)
+                    .SetEase(panelFadeEase)
+                    .SetUpdate(true);
+                yield return fadeOutTween.WaitForCompletion();
+            }
+            else
+            {
+                currentCanvasGroup.alpha = 0f;
+            }
+        }
+
+        if (currentRoot != null)
+            currentRoot.SetActive(false);
+
+        currentView = targetView;
+        UpdateHeaderTitle(targetView);
+
+        if (targetRoot != null)
+        {
+            targetRoot.SetActive(true);
+
+            if (targetCanvasGroup != null)
+            {
+                targetCanvasGroup.alpha = 0f;
+                targetCanvasGroup.interactable = true;
+                targetCanvasGroup.blocksRaycasts = true;
+
+                if (panelFadeDuration > 0f)
+                {
+                    Tween fadeInTween = targetCanvasGroup
+                        .DOFade(1f, panelFadeDuration)
+                        .SetEase(panelFadeEase)
+                        .SetUpdate(true);
+                    yield return fadeInTween.WaitForCompletion();
+                }
+                else
+                {
+                    targetCanvasGroup.alpha = 1f;
+                }
+            }
+        }
+
+        panelTransitionRoutine = null;
+    }
+
+    private void SetViewImmediate(HideoutView view)
+    {
+        RefreshViewContent(view);
+
+        foreach (KeyValuePair<HideoutView, GameObject> pair in resolvedRoots)
+        {
+            bool isTarget = pair.Key == view;
+            if (pair.Value != null)
+                pair.Value.SetActive(isTarget);
+
+            if (!resolvedCanvasGroups.TryGetValue(pair.Key, out CanvasGroup canvasGroup) || canvasGroup == null)
+                continue;
+
+            canvasGroup.alpha = isTarget ? 1f : 0f;
+            canvasGroup.interactable = isTarget;
+            canvasGroup.blocksRaycasts = isTarget;
+        }
+
+        currentView = view;
+        viewInitialized = true;
+        UpdateHeaderTitle(view);
+    }
+
+    private void RefreshViewContent(HideoutView view)
+    {
+        if (isTearingDown)
+            return;
+
+        if (view == HideoutView.Jobs)
+            RefreshJobDetails();
+
+        if (view == HideoutView.Fence)
+            RefreshFenceView();
+    }
+
+    private void UpdateHeaderTitle(HideoutView view)
+    {
+        string headerTitle = view switch
+        {
+            HideoutView.MainMenu => "Hideout",
+            HideoutView.Jobs => "Jobs",
+            HideoutView.Fence => selectedJob != null ? $"{selectedJob.JobTitle} | Fence" : "Fence",
+            HideoutView.Perks => "Perks",
+            HideoutView.Contacts => "Contacts",
+            HideoutView.Settings => "Settings",
+            _ => "Hideout"
+        };
+
+        SetText(header.titleText, headerTitle);
+    }
+
+    private GameObject GetViewRoot(HideoutView view)
+    {
+        resolvedRoots.TryGetValue(view, out GameObject root);
+        return root;
+    }
+
+    private CanvasGroup GetViewCanvasGroup(HideoutView view)
+    {
+        resolvedCanvasGroups.TryGetValue(view, out CanvasGroup canvasGroup);
+        return canvasGroup;
+    }
+
+    private IEnumerator FadeScreen(float targetAlpha, float duration)
+    {
+        if (isTearingDown || sceneFadeCanvasGroup == null)
+            yield break;
+
+        sceneFadeTween?.Kill();
+        sceneFadeCanvasGroup.blocksRaycasts = targetAlpha > 0.001f;
+        sceneFadeCanvasGroup.interactable = false;
+
+        if (duration <= 0f)
+        {
+            sceneFadeCanvasGroup.alpha = targetAlpha;
+            yield break;
+        }
+
+        sceneFadeTween = sceneFadeCanvasGroup
+            .DOFade(targetAlpha, duration)
+            .SetEase(sceneFadeEase)
+            .SetUpdate(true);
+        yield return sceneFadeTween.WaitForCompletion();
+        sceneFadeTween = null;
+    }
+
+    private void SetAllPanelsInteractable(bool interactable)
+    {
+        foreach (CanvasGroup canvasGroup in resolvedCanvasGroups.Values)
+        {
+            if (canvasGroup == null)
+                continue;
+
+            canvasGroup.interactable = interactable && canvasGroup.alpha > 0.001f;
+            canvasGroup.blocksRaycasts = interactable && canvasGroup.alpha > 0.001f;
+        }
+    }
+
+    private static GameObject ResolveConfiguredPanelRoot(GameObject configuredRoot, params string[] fallbackNames)
+    {
+        if (configuredRoot != null)
+            return configuredRoot;
+
+        if (fallbackNames == null)
+            return null;
+
+        for (int i = 0; i < fallbackNames.Length; i++)
+        {
+            GameObject sceneObject = FindSceneObjectByName(fallbackNames[i]);
+            if (sceneObject != null)
+                return sceneObject;
+        }
+
+        return null;
+    }
+
+    private static GameObject FindSceneObjectByName(string targetName)
+    {
+        if (string.IsNullOrWhiteSpace(targetName))
+            return null;
+
+        Scene activeScene = SceneManager.GetActiveScene();
+        if (!activeScene.IsValid())
+            return null;
+
+        GameObject[] rootObjects = activeScene.GetRootGameObjects();
+        for (int i = 0; i < rootObjects.Length; i++)
+        {
+            GameObject match = FindGameObjectRecursive(rootObjects[i].transform, targetName);
+            if (match != null)
+                return match;
+        }
+
+        return null;
+    }
+
+    private static GameObject FindGameObjectRecursive(Transform root, string targetName)
+    {
+        if (root == null)
+            return null;
+
+        if (string.Equals(root.name, targetName, StringComparison.OrdinalIgnoreCase))
+            return root.gameObject;
+
+        for (int i = 0; i < root.childCount; i++)
+        {
+            GameObject childMatch = FindGameObjectRecursive(root.GetChild(i), targetName);
+            if (childMatch != null)
+                return childMatch;
+        }
+
+        return null;
     }
 
     private void RefreshCurrencyTexts()
@@ -1131,45 +1665,14 @@ public sealed class HideoutSceneController : MonoBehaviour
         }
     }
 
-    private static string FormatAllowedSlots(EquipmentSlotMask slotMask)
+    private static void SetOptionalTextState(TMP_Text textField, bool visible, string value)
     {
-        List<string> slotNames = new();
-        if ((slotMask & EquipmentSlotMask.Primary) != 0)
-            slotNames.Add("Primary");
+        if (textField == null)
+            return;
 
-        if ((slotMask & EquipmentSlotMask.Secondary) != 0)
-            slotNames.Add("Secondary");
-
-        if ((slotMask & EquipmentSlotMask.Belt) != 0)
-            slotNames.Add("Belt");
-
-        if ((slotMask & EquipmentSlotMask.Armor) != 0)
-            slotNames.Add("Armor");
-
-        return slotNames.Count > 0 ? string.Join(", ", slotNames) : "None";
-    }
-
-    private static string FormatSlot(EquipmentSlotType slotType)
-    {
-        return slotType switch
-        {
-            EquipmentSlotType.Primary => "Primary",
-            EquipmentSlotType.Secondary => "Secondary",
-            EquipmentSlotType.Belt => "Belt",
-            EquipmentSlotType.Armor => "Armor",
-            _ => "None"
-        };
-    }
-
-    private static string ResolveHotkeyLabel(EquipmentSlotType slotType)
-    {
-        return slotType switch
-        {
-            EquipmentSlotType.Primary => "1",
-            EquipmentSlotType.Secondary => "2",
-            EquipmentSlotType.Belt => "3",
-            _ => string.Empty
-        };
+        textField.gameObject.SetActive(visible);
+        if (visible)
+            textField.text = value ?? string.Empty;
     }
 
     private static void SetText(TMP_Text textField, string value)
@@ -1187,21 +1690,66 @@ public sealed class HideoutSceneController : MonoBehaviour
         imageField.enabled = sprite != null;
     }
 
-    private static void SetActive(GameObject target, bool value)
+    private static string ResolveHotkeyLabel(EquipmentSlotType slotType)
     {
-        if (target != null)
-            target.SetActive(value);
+        return slotType switch
+        {
+            EquipmentSlotType.Primary => "1",
+            EquipmentSlotType.Secondary => "2",
+            EquipmentSlotType.Belt => "3",
+            _ => string.Empty
+        };
     }
 
-    private static void SetOptionalTextState(TMP_Text textField, bool active, string value)
+    private static EquipmentContextUiSettings ResolveUiSettings()
     {
-        if (textField == null)
-            return;
+        return GlobalSettings.Instance != null
+            ? GlobalSettings.Instance.EquipmentContextUi
+            : new EquipmentContextUiSettings();
+    }
 
-        if (value != null)
-            textField.text = value;
+    private static string ResolveSlotDisplayName(EquipmentSlotType slotType)
+    {
+        return ResolveUiSettings().GetSlotDisplayName(slotType);
+    }
 
-        textField.gameObject.SetActive(active);
+    private static string ResolveJobLevelText(HideoutJobLevel jobLevel)
+    {
+        return ResolveUiSettings().GetJobLevelText(jobLevel);
+    }
+
+    private static string ResolveViewDisplayName(HideoutView view)
+    {
+        return view switch
+        {
+            HideoutView.MainMenu => "Main menu",
+            HideoutView.Jobs => "Jobs",
+            HideoutView.Fence => "Fence",
+            HideoutView.Perks => "Perks",
+            HideoutView.Contacts => "Contacts",
+            HideoutView.Settings => "Settings",
+            _ => "Requested"
+        };
+    }
+
+    private static string FormatAllowedSlots(EquipmentSlotMask slotMask)
+    {
+        EquipmentContextUiSettings uiSettings = ResolveUiSettings();
+        List<string> slotNames = new();
+
+        if ((slotMask & EquipmentSlotMask.Primary) != 0)
+            slotNames.Add(uiSettings.GetSlotDisplayName(EquipmentSlotType.Primary));
+
+        if ((slotMask & EquipmentSlotMask.Secondary) != 0)
+            slotNames.Add(uiSettings.GetSlotDisplayName(EquipmentSlotType.Secondary));
+
+        if ((slotMask & EquipmentSlotMask.Belt) != 0)
+            slotNames.Add(uiSettings.GetSlotDisplayName(EquipmentSlotType.Belt));
+
+        if ((slotMask & EquipmentSlotMask.Armor) != 0)
+            slotNames.Add(uiSettings.GetSlotDisplayName(EquipmentSlotType.Armor));
+
+        return slotNames.Count > 0 ? string.Join(", ", slotNames) : "None";
     }
 }
 

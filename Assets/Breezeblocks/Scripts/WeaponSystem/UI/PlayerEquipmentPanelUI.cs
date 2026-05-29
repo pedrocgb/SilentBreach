@@ -9,6 +9,13 @@ using UnityEngine.UI;
 namespace Breezeblocks.WeaponSystem
 {
 
+[Serializable]
+public enum EquipmentContextSelectionMode
+{
+    HoverOrClick,
+    ClickOnly
+}
+
 [DisallowMultipleComponent]
 [AddComponentMenu("Breezeblocks/UI/Player Equipment Panel")]
 public class PlayerEquipmentPanelUI : MonoBehaviour
@@ -99,6 +106,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
     [FoldoutGroup("References")]
     [SerializeField] private bool hideOnStart = true;
 
+    [FoldoutGroup("References")]
+    [SerializeField] private EquipmentContextSelectionMode contextSelectionMode = EquipmentContextSelectionMode.HoverOrClick;
+
     [FoldoutGroup("References"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
     [SerializeField] private List<PlayerEquipmentSlotViewUI> slotViews = new();
 
@@ -119,9 +129,18 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
 
     private static readonly EquipmentContextUiSettings DefaultUiSettings = new();
     private EquipmentSlotType activeContextSlot = EquipmentSlotType.None;
+    private EquipmentItemData manualContextItem;
+    private EquipmentSlotType manualContextSlot = EquipmentSlotType.None;
+    private ProjectileData manualContextProjectile;
+    private int manualLoadedAmmo = -1;
+    private int manualReserveAmmo = -1;
+    private bool hasManualContextOverride;
+    private bool showManualNoSelectionOverride;
+    private bool isShuttingDown;
 
     private void Awake()
     {
+        isShuttingDown = false;
         ResolveReferences();
         BindSlotEvents();
         Subscribe();
@@ -135,6 +154,7 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
 
     private void OnEnable()
     {
+        isShuttingDown = false;
         ResolveReferences();
         BindSlotEvents();
         Subscribe();
@@ -143,6 +163,7 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
 
     private void OnDisable()
     {
+        isShuttingDown = true;
         Unsubscribe();
         UnbindSlotEvents();
         activeContextSlot = EquipmentSlotType.None;
@@ -161,6 +182,45 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         }
 
         Refresh();
+    }
+
+    public void ShowContextForItem(
+        EquipmentItemData item,
+        EquipmentSlotType slotType = EquipmentSlotType.None,
+        ProjectileData firearmProjectile = null,
+        int loadedAmmo = -1,
+        int reserveAmmo = -1)
+    {
+        if (isShuttingDown)
+            return;
+
+        manualContextItem = item;
+        manualContextSlot = slotType;
+        manualContextProjectile = firearmProjectile;
+        manualLoadedAmmo = loadedAmmo;
+        manualReserveAmmo = reserveAmmo;
+        hasManualContextOverride = item != null;
+        showManualNoSelectionOverride = item == null;
+        RefreshManualContext();
+    }
+
+    public void ShowNoSelectionContext()
+    {
+        if (isShuttingDown)
+            return;
+
+        ClearManualContextState();
+        showManualNoSelectionOverride = true;
+        RefreshManualContext();
+    }
+
+    public void ClearManualContext()
+    {
+        if (isShuttingDown)
+            return;
+
+        ClearManualContextState();
+        RefreshActiveContext();
     }
 
     private void ResolveReferences()
@@ -225,8 +285,14 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
 
     private void Refresh()
     {
-        if (equipmentController == null)
+        if (isShuttingDown)
             return;
+
+        if (equipmentController == null)
+        {
+            RefreshManualContext();
+            return;
+        }
 
         for (int i = 0; i < slotViews.Count; i++)
         {
@@ -257,15 +323,22 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
 
     private void HandleSlotPointerEntered(PlayerEquipmentSlotViewUI slotView)
     {
+        if (contextSelectionMode == EquipmentContextSelectionMode.ClickOnly)
+            return;
+
         if (slotView == null)
             return;
 
+        ClearManualContextState();
         activeContextSlot = slotView.SlotType;
         RefreshActiveContext();
     }
 
     private void HandleSlotPointerExited(PlayerEquipmentSlotViewUI slotView)
     {
+        if (contextSelectionMode == EquipmentContextSelectionMode.ClickOnly)
+            return;
+
         if (slotView == null || activeContextSlot != slotView.SlotType)
             return;
 
@@ -278,6 +351,7 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         if (slotView == null)
             return;
 
+        ClearManualContextState();
         activeContextSlot = slotView.SlotType;
         if (equipmentController != null && slotView.SlotType.IsHandSlot())
         {
@@ -298,13 +372,23 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
             return;
 
         activeContextSlot = targetSlotView.SlotType;
+        ClearManualContextState();
         Refresh();
     }
 
     private void RefreshActiveContext()
     {
+        if (isShuttingDown)
+            return;
+
         if (!IsVisible)
             return;
+
+        if (hasManualContextOverride || showManualNoSelectionOverride)
+        {
+            RefreshManualContext();
+            return;
+        }
 
         if (activeContextSlot == EquipmentSlotType.None)
         {
@@ -318,41 +402,15 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
     private void ShowContextForSlot(EquipmentSlotType slotType)
     {
         EquipmentItemData item = ResolveItemForSlot(slotType);
-        HideAllContexts();
-
-        if (item == null)
-        {
-            if (noSelectionContextRoot != null)
-                noSelectionContextRoot.SetActive(true);
-
-            return;
-        }
-
-        switch (item)
-        {
-            case FirearmData firearmData:
-                PopulateFirearmContext(firearmData, slotType);
-                break;
-
-            case MeleeWeaponData meleeWeaponData:
-                PopulateMeleeContext(meleeWeaponData);
-                break;
-
-            case FlashlightUtilityData flashlightUtilityData:
-                PopulateUtilityContext(flashlightUtilityData, slotType);
-                break;
-
-            case UtilityItemData utilityItemData:
-                PopulateUtilityContext(utilityItemData, slotType);
-                break;
-
-            case ArmorData armorData:
-                PopulateArmorContext(armorData);
-                break;
-        }
+        ShowContextForItemInternal(item, slotType);
     }
 
-    private void PopulateFirearmContext(FirearmData firearmData, EquipmentSlotType slotType)
+    private void PopulateFirearmContext(
+        FirearmData firearmData,
+        EquipmentSlotType slotType,
+        ProjectileData projectileOverride = null,
+        int loadedAmmoOverride = -1,
+        int reserveAmmoOverride = -1)
     {
         EquipmentContextUiSettings settings = ResolveUiSettings();
         SetActive(firearmContext.root, true);
@@ -371,9 +429,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
             true);
         SetPrefixedText(firearmContext.firearmSpreadText, settings.SpreadPrefix, $"{firearmData.Spread:0.##}°", true);
 
-        int loadedAmmo = firearmData.AmmoCapacity;
-        int reserveAmmo = firearmData.DefaultReserveAmmo;
-        if (equipmentController != null)
+        int loadedAmmo = loadedAmmoOverride >= 0 ? loadedAmmoOverride : firearmData.AmmoCapacity;
+        int reserveAmmo = reserveAmmoOverride >= 0 ? reserveAmmoOverride : firearmData.DefaultReserveAmmo;
+        if (loadedAmmoOverride < 0 && reserveAmmoOverride < 0 && equipmentController != null)
             equipmentController.TryGetRuntimeFirearmState(slotType, out loadedAmmo, out reserveAmmo);
 
         SetPrefixedText(firearmContext.firearmAmmoText, settings.AmmoPrefix, loadedAmmo.ToString(), true);
@@ -381,19 +439,20 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         SetPrefixedText(firearmContext.firearmReloadTimeText, settings.ReloadTimePrefix, $"{firearmData.ReloadTime:0.##}s", true);
         SetPrefixedText(firearmContext.firearmSlotsText, settings.SlotsPrefix, FormatAllowedSlots(firearmData.AllowedSlots, settings), true);
         ProjectileData primaryUiProjectile = ResolvePrimaryCompatibleProjectile(firearmData);
+        ProjectileData activeProjectile = projectileOverride ?? ResolveFirearmProjectile(slotType, firearmData);
         SetPrefixedText(
             firearmContext.firearmPenetrationText,
             settings.FirearmPenetrationPrefix,
-            (primaryUiProjectile != null ? primaryUiProjectile.Penetration : 0).ToString(),
+            ((activeProjectile ?? primaryUiProjectile) != null ? (activeProjectile ?? primaryUiProjectile).Penetration : 0).ToString(),
             true);
         SetPrefixedText(
             firearmContext.firearmLethalText,
             settings.LethalPrefix,
-            ResolveBoolText(settings, ResolveFirearmProjectile(slotType, firearmData)?.IsLethal ?? true),
+            ResolveBoolText(settings, activeProjectile?.IsLethal ?? true),
             true);
     }
 
-    private void PopulateUtilityContext(UtilityItemData utilityItemData, EquipmentSlotType slotType)
+    private void PopulateUtilityContext(UtilityItemData utilityItemData, EquipmentSlotType slotType, int quantityOverride = -1)
     {
         EquipmentContextUiSettings settings = ResolveUiSettings();
         SetActive(utilityContext.root, true);
@@ -417,8 +476,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         bool showQuantity = false;
         if (utilityItemData is ThrowableUtilityData throwableQuantityData)
         {
-            int maxUses = throwableQuantityData.MaxUses;
-            if (equipmentController != null &&
+            int maxUses = quantityOverride >= 0 ? quantityOverride : throwableQuantityData.MaxUses;
+            if (quantityOverride < 0 &&
+                equipmentController != null &&
                 equipmentController.TryGetRuntimeThrowableState(slotType, out _, out int runtimeMaxUses))
             {
                 maxUses = runtimeMaxUses;
@@ -520,6 +580,86 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         SetActive(utilityContext.root, false);
         SetActive(armorContext.root, false);
         SetActive(noSelectionContextRoot, false);
+    }
+
+    private void RefreshManualContext()
+    {
+        if (isShuttingDown)
+            return;
+
+        if (!IsVisible)
+            return;
+
+        if (hasManualContextOverride)
+        {
+            ShowContextForItemInternal(
+                manualContextItem,
+                manualContextSlot,
+                manualContextProjectile,
+                manualLoadedAmmo,
+                manualReserveAmmo);
+            return;
+        }
+
+        if (showManualNoSelectionOverride)
+        {
+            HideAllContexts();
+            SetActive(noSelectionContextRoot, true);
+        }
+    }
+
+    private void ShowContextForItemInternal(
+        EquipmentItemData item,
+        EquipmentSlotType slotType,
+        ProjectileData projectileOverride = null,
+        int loadedAmmoOverride = -1,
+        int reserveAmmoOverride = -1)
+    {
+        HideAllContexts();
+
+        if (item == null)
+        {
+            SetActive(noSelectionContextRoot, true);
+            return;
+        }
+
+        switch (item)
+        {
+            case FirearmData firearmData:
+                PopulateFirearmContext(firearmData, slotType, projectileOverride, loadedAmmoOverride, reserveAmmoOverride);
+                break;
+
+            case MeleeWeaponData meleeWeaponData:
+                PopulateMeleeContext(meleeWeaponData);
+                break;
+
+            case FlashlightUtilityData flashlightUtilityData:
+                PopulateUtilityContext(flashlightUtilityData, slotType, reserveAmmoOverride);
+                break;
+
+            case UtilityItemData utilityItemData:
+                PopulateUtilityContext(utilityItemData, slotType, reserveAmmoOverride);
+                break;
+
+            case ArmorData armorData:
+                PopulateArmorContext(armorData);
+                break;
+
+            default:
+                SetActive(noSelectionContextRoot, true);
+                break;
+        }
+    }
+
+    private void ClearManualContextState()
+    {
+        manualContextItem = null;
+        manualContextSlot = EquipmentSlotType.None;
+        manualContextProjectile = null;
+        manualLoadedAmmo = -1;
+        manualReserveAmmo = -1;
+        hasManualContextOverride = false;
+        showManualNoSelectionOverride = false;
     }
 
     private void HideWeaponContextDetailFields()
@@ -733,7 +873,10 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         if (textField == null)
             return;
 
-        textField.gameObject.SetActive(visible);
+        GameObject visibilityTarget = ResolveVisibilityTarget(textField);
+        if (visibilityTarget != null)
+            visibilityTarget.SetActive(visible);
+
         if (visible)
             textField.text = value ?? string.Empty;
     }
@@ -743,7 +886,10 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         if (textField == null)
             return;
 
-        textField.gameObject.SetActive(visible);
+        GameObject visibilityTarget = ResolveVisibilityTarget(textField);
+        if (visibilityTarget != null)
+            visibilityTarget.SetActive(visible);
+
         if (!visible)
             return;
 
@@ -765,7 +911,18 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         if (textField == null)
             return;
 
-        textField.gameObject.SetActive(false);
+        GameObject visibilityTarget = ResolveVisibilityTarget(textField);
+        if (visibilityTarget != null)
+            visibilityTarget.SetActive(false);
+    }
+
+    private static GameObject ResolveVisibilityTarget(TMP_Text textField)
+    {
+        if (textField == null)
+            return null;
+
+        Transform parent = textField.transform.parent;
+        return parent != null ? parent.gameObject : textField.gameObject;
     }
 
     private static void SetImage(Image imageField, Sprite sprite)

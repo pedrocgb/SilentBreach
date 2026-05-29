@@ -14,6 +14,7 @@ public sealed class HideoutFenceOfferItemUI : MonoBehaviour
     [SerializeField] private Button buyButton;
     [SerializeField] private Image backgroundImage;
     [SerializeField] private Image iconImage;
+    [SerializeField] private GameObject highlightObject;
     [SerializeField] private TMP_Text nameText;
     [SerializeField] private TMP_Text priceText;
     [SerializeField] private TMP_Text slotsText;
@@ -60,10 +61,13 @@ public sealed class HideoutFenceOfferItemUI : MonoBehaviour
         }
 
         if (buyButtonText != null)
-            buyButtonText.text = canBuy ? "Buy" : "Sold Out";
+            buyButtonText.text = canBuy ? "Comprar" : "Esgotado";
 
         if (backgroundImage != null)
             backgroundImage.color = isSelected ? selectedColor : (canBuy ? normalColor : soldOutColor);
+
+        if (highlightObject != null)
+            highlightObject.SetActive(isSelected);
 
         if (selectButton != null)
         {

@@ -233,7 +233,7 @@ public sealed class HideoutJobDefinition : ScriptableObject
     public HideoutJobLevel JobLevel => jobLevel;
     public int RewardCash => Mathf.Max(0, rewardCash);
     public int RewardInfluencePoints => Mathf.Max(0, rewardInfluencePoints);
-    public string RewardText => BuildRewardText();
+    public string RewardText => rewardText != null ? rewardText.Trim() : string.Empty;
     public string RewardSummaryText => BuildRewardSummaryText();
     public string ObjectivesText => string.IsNullOrWhiteSpace(objectivesText)
         ? BuildFormattedList(gameplayObjectives, objective => objective?.DisplayText)
@@ -295,32 +295,6 @@ public sealed class HideoutJobDefinition : ScriptableObject
 
         for (int i = 0; i < gameplayFailures.Count; i++)
             gameplayFailures[i]?.OnValidate();
-    }
-
-    private string BuildRewardText()
-    {
-        StringBuilder builder = new();
-
-        if (RewardCash > 0)
-            builder.Append($"- Money: ${RewardCash}");
-
-        if (RewardInfluencePoints > 0)
-        {
-            if (builder.Length > 0)
-                builder.Append('\n');
-
-            builder.Append($"- Influence: +{RewardInfluencePoints}");
-        }
-
-        if (!string.IsNullOrWhiteSpace(rewardText))
-        {
-            if (builder.Length > 0)
-                builder.Append('\n');
-
-            builder.Append(rewardText.Trim());
-        }
-
-        return builder.ToString();
     }
 
     private string BuildRewardSummaryText()

@@ -176,6 +176,12 @@ public sealed class EquipmentContextUiSettings
     [FoldoutGroup("Hideout UI/Job Levels"), LabelText("Insane Text")]
     [SerializeField] private string insaneJobLevelText = "Insane";
 
+    [FoldoutGroup("Hideout UI/Perks"), LabelText("Perk Tier Prefix")]
+    [SerializeField] private string perkTierText = "Tier: ";
+
+    [FoldoutGroup("Hideout UI/Perks"), LabelText("Perk Cost Prefix")]
+    [SerializeField] private string perkCostText = "Cost: ";
+
     public string YesText => Fallback(yesText, "Yes");
     public string NoText => Fallback(noText, "No");
     public string RoundsPerSecondText => Fallback(roundsPerSecondText, "rounds/s");
@@ -207,6 +213,8 @@ public sealed class EquipmentContextUiSettings
     public string MovementSpeedPenaltyPrefix => Fallback(movementSpeedPenaltyPrefix, "Movement Speed Penalty: ");
     public Color PrefixColor => prefixColor;
     public string JobLevelPrefix => Fallback(jobLevelPrefix, "Level: ");
+    public string PerkTierText => Fallback(perkTierText, "Tier: ");
+    public string PerkCostText => Fallback(perkCostText, "Cost: ");
 
     public string GetBoolText(bool value)
     {

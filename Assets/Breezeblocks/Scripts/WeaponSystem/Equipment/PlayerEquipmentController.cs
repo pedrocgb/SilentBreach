@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using Breezeblocks.HideoutSystem;
 using Breezeblocks.Missions;
 using Rewired;
 using Sirenix.OdinInspector;
@@ -155,6 +156,7 @@ public class PlayerEquipmentController : MonoBehaviour
     private bool inputBlocked;
     private float unarmedAimRotationSpeed = 720f;
     private float unarmedAimPanDistance;
+    private PlayerPerkEffectController playerPerkEffectController;
 
     private void Reset()
     {
@@ -207,6 +209,7 @@ public class PlayerEquipmentController : MonoBehaviour
         if (actorStaggerController == null)
             actorStaggerController = GetComponent<ActorStaggerController>();
 
+        playerPerkEffectController = PlayerPerkEffectController.EnsureOn(gameObject);
         InitializeRuntimeSlots();
         ResolveRewiredPlayer();
         CharacterOrbitHandsAnimator.EnsureOn(gameObject);
@@ -225,6 +228,7 @@ public class PlayerEquipmentController : MonoBehaviour
         EquipStartingSlot();
         ApplyPanelPresentation(IsEquipmentPanelVisible);
         NotifyEquipmentChanged();
+        playerPerkEffectController?.ApplyRuntimePerks();
     }
 
     private void OnDestroy()

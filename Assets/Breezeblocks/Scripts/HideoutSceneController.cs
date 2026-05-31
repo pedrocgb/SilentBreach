@@ -142,6 +142,9 @@ public sealed class HideoutSceneController : MonoBehaviour
     [FoldoutGroup("Defaults"), MinValue(0)]
     [SerializeField] private int startingInfluencePoints = 3;
 
+    [FoldoutGroup("Defaults"), MinValue(0)]
+    [SerializeField] private int startingPerkPoints = 0;
+
     [FoldoutGroup("Jobs"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
     [SerializeField] private List<HideoutJobDefinition> startingJobs = new();
 
@@ -192,6 +195,7 @@ public sealed class HideoutSceneController : MonoBehaviour
     private readonly Dictionary<HideoutView, GameObject> resolvedRoots = new();
     private readonly Dictionary<HideoutView, CanvasGroup> resolvedCanvasGroups = new();
 
+    private HideoutPerksPanelUI perksPanelUi;
     private HideoutView currentView;
     private HideoutJobDefinition selectedJob;
     private HideoutJobDefinition preparedJob;
@@ -209,10 +213,11 @@ public sealed class HideoutSceneController : MonoBehaviour
     private void Awake()
     {
         isTearingDown = false;
-        HideoutRuntimeSession.EnsureInitialized(startingCash, startingInfluencePoints);
+        HideoutRuntimeSession.EnsureInitialized(startingCash, startingInfluencePoints, startingPerkPoints);
         InitializeLoadoutSlots();
         ResolvePanelRoots();
         ResolvePanelCanvasGroups();
+        ResolvePerksPanelUi();
         CacheSlotViews();
         CacheSellButtons();
         PrepareTemplates();
@@ -433,6 +438,19 @@ public sealed class HideoutSceneController : MonoBehaviour
         }
     }
 
+    private void ResolvePerksPanelUi()
+    {
+        if (perksPanelUi != null)
+            return;
+
+        GameObject perksRoot = GetViewRoot(HideoutView.Perks);
+        if (perksRoot == null)
+            perksRoot = perksPanel.root;
+
+        if (perksRoot != null)
+            perksPanelUi = perksRoot.GetComponentInChildren<HideoutPerksPanelUI>(true);
+    }
+
     private void CacheSlotViews()
     {
         equipmentSlotViews.Clear();
@@ -536,7 +554,6 @@ public sealed class HideoutSceneController : MonoBehaviour
 
     private void ConfigurePlaceholderPanels()
     {
-        ConfigurePlaceholderPanel(perksPanel, "Perks");
         ConfigurePlaceholderPanel(contactsPanel, "Contacts");
         ConfigurePlaceholderPanel(settingsPanel, "Settings");
     }
@@ -1496,6 +1513,12 @@ public sealed class HideoutSceneController : MonoBehaviour
 
         if (view == HideoutView.Fence)
             RefreshFenceView();
+
+        if (view == HideoutView.Perks)
+        {
+            ResolvePerksPanelUi();
+            perksPanelUi?.RefreshView();
+        }
     }
 
     private void UpdateHeaderTitle(HideoutView view)

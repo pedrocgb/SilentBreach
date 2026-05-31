@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fcbba94ccb2c54b6d98e099cab531a9e, type: 3}
+  m_Name: Eagle Eye
+  m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.HideoutSystem.HideoutPerkDefinition
+  perkName: "Olhos de \xC1guia"
+  perkId: eagle_eye
+  cost: 2
+  description: "Sua mira encontra o alvo antes que ele encontre voc\xEA."
+  effect: "O tempo necess\xE1rio para entrar no Modo Atirador \xE9 reduzida em 50%."
+  tier: 1
+  icon: {fileID: 926205834, guid: fd2bf8ab7d5d552c2a0d8f9e9f4f9902, type: 3}

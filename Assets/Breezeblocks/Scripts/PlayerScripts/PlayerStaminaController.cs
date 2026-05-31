@@ -1,4 +1,5 @@
 using System;
+using Breezeblocks.HideoutSystem;
 using Breezeblocks.WeaponSystem;
 using DG.Tweening;
 using Sirenix.OdinInspector;
@@ -56,12 +57,14 @@ public class PlayerStaminaController : MonoBehaviour
     private float staggerStaminaLossPercent = 12f;
 
     private float movementThreshold = 0.05f;
+    private float perkMaxStaminaFlatBonus;
+    private float perkSprintDrainMultiplier = 1f;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public float CurrentStamina { get; private set; }
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly, ProgressBar(0f, 1f)]
-    public float CurrentStaminaNormalized => maxStamina <= 0f ? 0f : Mathf.Clamp01(CurrentStamina / maxStamina);
+    public float CurrentStaminaNormalized => ResolveMaxStamina() <= 0f ? 0f : Mathf.Clamp01(CurrentStamina / ResolveMaxStamina());
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsRegenerating { get; private set; }
@@ -144,8 +147,9 @@ public class PlayerStaminaController : MonoBehaviour
 
     private void Update()
     {
-        if (GameplayConsoleCheatState.AthleteMode && CurrentStamina < maxStamina)
-            CurrentStamina = maxStamina;
+        float currentMaxStamina = ResolveMaxStamina();
+        if (GameplayConsoleCheatState.AthleteMode && CurrentStamina < currentMaxStamina)
+            CurrentStamina = currentMaxStamina;
 
         bool consumedStaminaThisFrame = DrainSprintStamina();
         UpdateSprintInsufficientFeedback();
@@ -153,7 +157,7 @@ public class PlayerStaminaController : MonoBehaviour
         bool canRegenerate = !consumedStaminaThisFrame && CanRegenerate();
         IsRegenerating = canRegenerate;
         if (canRegenerate)
-            CurrentStamina = Mathf.Min(maxStamina, CurrentStamina + (regenerationPerSecond * Time.deltaTime));
+            CurrentStamina = Mathf.Min(currentMaxStamina, CurrentStamina + (regenerationPerSecond * Time.deltaTime));
 
         if (playerMotor != null)
             playerMotor.SetSprintBlocked(IsSprintBlocked);
@@ -165,7 +169,7 @@ public class PlayerStaminaController : MonoBehaviour
     [FoldoutGroup("Debug")]
     public void RestoreStamina()
     {
-        CurrentStamina = maxStamina;
+        CurrentStamina = ResolveMaxStamina();
         nextRegenerationAllowedTime = 0f;
         IsRegenerating = false;
         sprintInsufficientFeedbackActive = false;
@@ -176,7 +180,7 @@ public class PlayerStaminaController : MonoBehaviour
     {
         if (GameplayConsoleCheatState.AthleteMode)
         {
-            CurrentStamina = maxStamina;
+            CurrentStamina = ResolveMaxStamina();
             nextRegenerationAllowedTime = 0f;
             IsRegenerating = false;
             sprintInsufficientFeedbackActive = false;
@@ -184,7 +188,7 @@ public class PlayerStaminaController : MonoBehaviour
             return;
         }
 
-        if (amount <= 0f || maxStamina <= 0f)
+        if (amount <= 0f || ResolveMaxStamina() <= 0f)
             return;
 
         float clampedAmount = Mathf.Max(0f, amount);
@@ -211,7 +215,7 @@ public class PlayerStaminaController : MonoBehaviour
     {
         if (GameplayConsoleCheatState.AthleteMode)
         {
-            CurrentStamina = maxStamina;
+            CurrentStamina = ResolveMaxStamina();
             nextRegenerationAllowedTime = 0f;
             IsRegenerating = false;
             sprintInsufficientFeedbackActive = false;
@@ -272,7 +276,22 @@ public class PlayerStaminaController : MonoBehaviour
             return;
         }
 
-        CurrentStamina = Mathf.Clamp(CurrentStamina, 0f, maxStamina);
+        CurrentStamina = Mathf.Clamp(CurrentStamina, 0f, ResolveMaxStamina());
+        RefreshUi();
+    }
+
+    public void ApplyPerkModifiers(PlayerPerkModifierSet modifiers, bool restoreToFull = false)
+    {
+        perkMaxStaminaFlatBonus = modifiers != null ? Mathf.Max(0f, modifiers.MaxStaminaFlatBonus) : 0f;
+        perkSprintDrainMultiplier = modifiers != null ? Mathf.Max(0f, modifiers.SprintStaminaDrainMultiplier) : 1f;
+
+        if (!Application.isPlaying || restoreToFull)
+        {
+            RestoreStamina();
+            return;
+        }
+
+        CurrentStamina = Mathf.Clamp(CurrentStamina, 0f, ResolveMaxStamina());
         RefreshUi();
     }
 
@@ -281,7 +300,7 @@ public class PlayerStaminaController : MonoBehaviour
         if (playerMotor == null || !playerMotor.IsSprinting || !IsMoving())
             return false;
 
-        float drain = sprintDrainPerSecond * Time.deltaTime;
+        float drain = ResolveSprintDrainPerSecond() * Time.deltaTime;
         if (drain <= 0f)
             return false;
 
@@ -305,7 +324,8 @@ public class PlayerStaminaController : MonoBehaviour
 
     private bool CanRegenerate()
     {
-        if (CurrentStamina >= maxStamina || maxStamina <= 0f)
+        float currentMaxStamina = ResolveMaxStamina();
+        if (CurrentStamina >= currentMaxStamina || currentMaxStamina <= 0f)
             return false;
 
         if (Time.time < nextRegenerationAllowedTime)
@@ -339,19 +359,31 @@ public class PlayerStaminaController : MonoBehaviour
 
     private void HandleStaggerApplied(float duration)
     {
-        if (staggerStaminaLossPercent <= 0f || maxStamina <= 0f)
+        float currentMaxStamina = ResolveMaxStamina();
+        if (staggerStaminaLossPercent <= 0f || currentMaxStamina <= 0f)
             return;
 
-        SpendStamina(maxStamina * (staggerStaminaLossPercent / 100f));
+        SpendStamina(currentMaxStamina * (staggerStaminaLossPercent / 100f));
     }
 
     private void RefreshUi()
     {
+        float currentMaxStamina = ResolveMaxStamina();
         if (staminaFillImage != null)
             staminaFillImage.fillAmount = CurrentStaminaNormalized;
 
         if (staminaText != null)
-            staminaText.text = string.Format(staminaTextFormat, CurrentStamina, maxStamina);
+            staminaText.text = string.Format(staminaTextFormat, CurrentStamina, currentMaxStamina);
+    }
+
+    private float ResolveMaxStamina()
+    {
+        return Mathf.Max(0f, maxStamina + perkMaxStaminaFlatBonus);
+    }
+
+    private float ResolveSprintDrainPerSecond()
+    {
+        return Mathf.Max(0f, sprintDrainPerSecond * perkSprintDrainMultiplier);
     }
 
     private void CacheFeedbackRoot()

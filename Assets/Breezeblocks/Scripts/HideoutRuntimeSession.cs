@@ -10,14 +10,17 @@ public static class HideoutRuntimeSession
     private static bool initialized;
     private static int cash;
     private static int influencePoints;
+    private static int perkPoints;
     private static HideoutJobDefinition currentJob;
     private static string pendingHideoutMessage;
     private static readonly HashSet<string> completedJobIds = new();
     private static readonly HashSet<string> unlockedJobIds = new();
+    private static readonly HashSet<string> unlockedPerkIds = new();
 
     public static bool IsInitialized => initialized;
     public static int Cash => cash;
     public static int InfluencePoints => influencePoints;
+    public static int PerkPoints => perkPoints;
     public static HideoutJobDefinition CurrentJob => currentJob;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -26,13 +29,20 @@ public static class HideoutRuntimeSession
         initialized = false;
         cash = 0;
         influencePoints = 0;
+        perkPoints = 0;
         currentJob = null;
         pendingHideoutMessage = string.Empty;
         completedJobIds.Clear();
         unlockedJobIds.Clear();
+        unlockedPerkIds.Clear();
     }
 
     public static void EnsureInitialized(int startingCash, int startingInfluencePoints)
+    {
+        EnsureInitialized(startingCash, startingInfluencePoints, 0);
+    }
+
+    public static void EnsureInitialized(int startingCash, int startingInfluencePoints, int startingPerkPoints)
     {
         if (initialized)
             return;
@@ -40,12 +50,15 @@ public static class HideoutRuntimeSession
         initialized = true;
         bool hasExistingProgress = cash > 0 ||
                                    influencePoints > 0 ||
+                                   perkPoints > 0 ||
                                    completedJobIds.Count > 0 ||
+                                   unlockedPerkIds.Count > 0 ||
                                    unlockedJobIds.Count > 0 ||
                                    !string.IsNullOrWhiteSpace(pendingHideoutMessage);
 
         cash = hasExistingProgress ? Mathf.Max(0, cash) : Mathf.Max(0, startingCash);
         influencePoints = hasExistingProgress ? Mathf.Max(0, influencePoints) : Mathf.Max(0, startingInfluencePoints);
+        perkPoints = hasExistingProgress ? Mathf.Max(0, perkPoints) : Mathf.Max(0, startingPerkPoints);
         currentJob = null;
     }
 
@@ -67,6 +80,33 @@ public static class HideoutRuntimeSession
     public static void AddInfluencePoints(int amount)
     {
         influencePoints += Mathf.Max(0, amount);
+    }
+
+    public static bool TrySpendPerkPoints(int amount)
+    {
+        amount = Mathf.Max(0, amount);
+        if (perkPoints < amount)
+            return false;
+
+        perkPoints -= amount;
+        return true;
+    }
+
+    public static void AddPerkPoints(int amount)
+    {
+        perkPoints += Mathf.Max(0, amount);
+    }
+
+    public static bool IsPerkUnlocked(HideoutPerkDefinition perkDefinition)
+    {
+        string perkId = ResolvePerkId(perkDefinition);
+        return !string.IsNullOrWhiteSpace(perkId) && unlockedPerkIds.Contains(perkId);
+    }
+
+    public static bool UnlockPerk(HideoutPerkDefinition perkDefinition)
+    {
+        string perkId = ResolvePerkId(perkDefinition);
+        return !string.IsNullOrWhiteSpace(perkId) && unlockedPerkIds.Add(perkId);
     }
 
     public static void SetCurrentJob(HideoutJobDefinition jobDefinition)
@@ -144,6 +184,11 @@ public static class HideoutRuntimeSession
     private static string ResolveJobId(HideoutJobDefinition jobDefinition)
     {
         return jobDefinition != null ? jobDefinition.JobId : string.Empty;
+    }
+
+    private static string ResolvePerkId(HideoutPerkDefinition perkDefinition)
+    {
+        return perkDefinition != null ? perkDefinition.PerkId : string.Empty;
     }
 
     private static string BuildCompletionMessage(HideoutJobDefinition jobDefinition, int unlockedCount)

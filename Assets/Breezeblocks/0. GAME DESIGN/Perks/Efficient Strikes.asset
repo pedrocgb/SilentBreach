@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fcbba94ccb2c54b6d98e099cab531a9e, type: 3}
+  m_Name: Efficient Strikes
+  m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.HideoutSystem.HideoutPerkDefinition
+  perkName: Golpes Eficientes
+  perkId: effiecient_strikes
+  cost: 1
+  description: "Cada golpe \xE9 calculado, brutal e nunca desperdi\xE7ado."
+  effect: Reduz o custo de Vigor ao atacar com Armas Brancas em 50%.
+  tier: 0
+  runtimeEffects:
+  - effectType: 4
+    floatValue: 0.5
+    boolValue: 1
+    firearmClass: 0
+    speedLevelValues:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+  icon: {fileID: -6815318785967397338, guid: 1ef0be22b8a86fcc4abbd56c5393160c, type: 3}

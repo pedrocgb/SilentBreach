@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using Breezeblocks.HideoutSystem;
 using Rewired;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -78,6 +79,7 @@ public class PlayerMeleeController : MonoBehaviour
     private MeleeDamageSource meleeDamageSource;
     private bool inputBlocked;
     private float defaultLookRotationSpeed = -1f;
+    private float perkMeleeStaminaCostMultiplier = 1f;
 
     private void Reset()
     {
@@ -167,6 +169,11 @@ public class PlayerMeleeController : MonoBehaviour
         inputBlocked = blocked;
         if (blocked)
             SetAimState(false);
+    }
+
+    public void ApplyPerkModifiers(PlayerPerkModifierSet modifiers)
+    {
+        perkMeleeStaminaCostMultiplier = modifiers != null ? Mathf.Max(0f, modifiers.MeleeStaminaCostMultiplier) : 1f;
     }
 
     private IEnumerator EquipWeaponRoutine(MeleeWeaponData meleeWeapon)
@@ -382,7 +389,7 @@ public class PlayerMeleeController : MonoBehaviour
         if (meleeWeapon == null)
             return false;
 
-        float staminaCost = Mathf.Max(0f, meleeWeapon.StaminaCost);
+        float staminaCost = ResolveAttackStaminaCost(meleeWeapon);
         if (staminaCost <= 0f || playerStaminaController == null)
             return true;
 
@@ -394,11 +401,18 @@ public class PlayerMeleeController : MonoBehaviour
         if (meleeWeapon == null)
             return false;
 
-        float staminaCost = Mathf.Max(0f, meleeWeapon.StaminaCost);
+        float staminaCost = ResolveAttackStaminaCost(meleeWeapon);
         if (staminaCost <= 0f || playerStaminaController == null)
             return true;
 
         return playerStaminaController.TrySpendStamina(staminaCost, playFeedbackOnFailure: false);
+    }
+
+    private float ResolveAttackStaminaCost(MeleeWeaponData meleeWeapon)
+    {
+        return meleeWeapon == null
+            ? 0f
+            : Mathf.Max(0f, meleeWeapon.StaminaCost * perkMeleeStaminaCostMultiplier);
     }
 }
 }

@@ -1,4 +1,5 @@
 using System;
+using Breezeblocks.HideoutSystem;
 using DG.Tweening;
 using Rewired;
 using Sirenix.OdinInspector;
@@ -54,7 +55,7 @@ public class PlayerFocusController : MonoBehaviour
     public float CurrentFocusSeconds { get; private set; }
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly, ProgressBar(0f, 1f)]
-    public float CurrentFocusNormalized => maxFocusSeconds <= 0f ? 0f : Mathf.Clamp01(CurrentFocusSeconds / maxFocusSeconds);
+    public float CurrentFocusNormalized => ResolveMaxFocusSeconds() <= 0f ? 0f : Mathf.Clamp01(CurrentFocusSeconds / ResolveMaxFocusSeconds());
 
     public event Action<float> FocusSpent;
 
@@ -67,6 +68,10 @@ public class PlayerFocusController : MonoBehaviour
     private bool inputBlocked;
     private bool isFocusActive;
     private bool focusToggleState;
+    private float perkMaxFocusFlatBonus;
+    private bool hasPerkRegenerationOverride;
+    private bool perkRegenerationEnabled;
+    private float perkRegenerationPerSecond;
 
     private void Reset()
     {
@@ -81,7 +86,7 @@ public class PlayerFocusController : MonoBehaviour
 
         ResolveRewiredPlayer();
         CacheVolumeOverride();
-        CurrentFocusSeconds = Mathf.Max(0f, maxFocusSeconds);
+        CurrentFocusSeconds = ResolveMaxFocusSeconds();
         ApplyUi();
         ApplySaturationImmediate(baseSaturation);
         FocusRevealTarget.SetGlobalFocusVisible(false);
@@ -117,8 +122,9 @@ public class PlayerFocusController : MonoBehaviour
 
         if (GameplayConsoleCheatState.FocusMode)
         {
-            if (CurrentFocusSeconds < maxFocusSeconds)
-                CurrentFocusSeconds = Mathf.Max(0f, maxFocusSeconds);
+            float currentMaxFocus = ResolveMaxFocusSeconds();
+            if (CurrentFocusSeconds < currentMaxFocus)
+                CurrentFocusSeconds = Mathf.Max(0f, currentMaxFocus);
         }
 
         bool focusRequested = ResolveFocusRequested();
@@ -167,8 +173,25 @@ public class PlayerFocusController : MonoBehaviour
     [FoldoutGroup("Debug")]
     public void RestoreFullFocus()
     {
-        CurrentFocusSeconds = Mathf.Max(0f, maxFocusSeconds);
+        CurrentFocusSeconds = ResolveMaxFocusSeconds();
         nextRegenerationAllowedTime = 0f;
+        ApplyUi();
+    }
+
+    public void ApplyPerkModifiers(PlayerPerkModifierSet modifiers, bool restoreToFull = false)
+    {
+        perkMaxFocusFlatBonus = modifiers != null ? Mathf.Max(0f, modifiers.MaxFocusFlatBonus) : 0f;
+        hasPerkRegenerationOverride = modifiers != null && modifiers.HasFocusRegenerationOverride;
+        perkRegenerationEnabled = modifiers != null && modifiers.FocusRegenerationEnabled;
+        perkRegenerationPerSecond = modifiers != null ? Mathf.Max(0f, modifiers.FocusRegenerationPerSecond) : 0f;
+
+        if (!Application.isPlaying || restoreToFull)
+        {
+            RestoreFullFocus();
+            return;
+        }
+
+        CurrentFocusSeconds = Mathf.Clamp(CurrentFocusSeconds, 0f, ResolveMaxFocusSeconds());
         ApplyUi();
     }
 
@@ -200,10 +223,17 @@ public class PlayerFocusController : MonoBehaviour
 
     private void TryRegenerateFocus(bool focusRequested)
     {
-        if (!regenerate || focusRequested || inputBlocked || CurrentFocusSeconds >= maxFocusSeconds || Time.time < nextRegenerationAllowedTime)
+        float currentMaxFocus = ResolveMaxFocusSeconds();
+        if (!ResolveFocusRegenerationEnabled() ||
+            focusRequested ||
+            inputBlocked ||
+            CurrentFocusSeconds >= currentMaxFocus ||
+            Time.time < nextRegenerationAllowedTime)
+        {
             return;
+        }
 
-        CurrentFocusSeconds = Mathf.Min(maxFocusSeconds, CurrentFocusSeconds + (regenerationPerSecond * Time.deltaTime));
+        CurrentFocusSeconds = Mathf.Min(currentMaxFocus, CurrentFocusSeconds + (ResolveFocusRegenerationPerSecond() * Time.deltaTime));
     }
 
     private void SetFocusActive(bool active, bool force = false)
@@ -274,6 +304,23 @@ public class PlayerFocusController : MonoBehaviour
     {
         if (focusFillImage != null)
             focusFillImage.fillAmount = CurrentFocusNormalized;
+    }
+
+    private float ResolveMaxFocusSeconds()
+    {
+        return Mathf.Max(0f, maxFocusSeconds + perkMaxFocusFlatBonus);
+    }
+
+    private bool ResolveFocusRegenerationEnabled()
+    {
+        return hasPerkRegenerationOverride ? perkRegenerationEnabled : regenerate;
+    }
+
+    private float ResolveFocusRegenerationPerSecond()
+    {
+        return hasPerkRegenerationOverride
+            ? Mathf.Max(0f, perkRegenerationPerSecond)
+            : Mathf.Max(0f, regenerationPerSecond);
     }
 
     private bool ResolveRewiredPlayer()

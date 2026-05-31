@@ -1,4 +1,5 @@
 using Sirenix.OdinInspector;
+using Breezeblocks.HideoutSystem;
 using UnityEngine;
 using System;
 
@@ -43,13 +44,22 @@ public class ArmorLoadout : MonoBehaviour
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool HasEquippedArmor => startingArmor != null;
 
-    public float RotationPenaltyPercent => HasEquippedArmor ? startingArmor.RotationPenalty : 0f;
+    public float RotationPenaltyPercent => HasEquippedArmor
+        ? startingArmor.RotationPenalty * perkRotationPenaltyMultiplier
+        : 0f;
     public float RotationSpeedMultiplier => 1f - Mathf.Clamp01(RotationPenaltyPercent / 100f);
-    public float MovementNoiseMultiplier => HasEquippedArmor ? 1f + (startingArmor.MovementNoiseModifierPercent / 100f) : 1f;
-    public float MovementSpeedPenaltyPercent => HasEquippedArmor ? startingArmor.MovementSpeedPenaltyPercent : 0f;
+    public float MovementNoiseMultiplier => HasEquippedArmor
+        ? 1f + ((startingArmor.MovementNoiseModifierPercent * perkMovementPenaltyMultiplier) / 100f)
+        : 1f;
+    public float MovementSpeedPenaltyPercent => HasEquippedArmor
+        ? startingArmor.MovementSpeedPenaltyPercent * perkMovementPenaltyMultiplier
+        : 0f;
     public float MovementSpeedMultiplier => 1f - Mathf.Clamp01(MovementSpeedPenaltyPercent / 100f);
 
     public event Action ArmorChanged;
+
+    private float perkRotationPenaltyMultiplier = 1f;
+    private float perkMovementPenaltyMultiplier = 1f;
 
     private void Awake()
     {
@@ -68,6 +78,13 @@ public class ArmorLoadout : MonoBehaviour
     {
         startingArmor = armorData;
         RestoreArmor();
+    }
+
+    public void ApplyPerkModifiers(PlayerPerkModifierSet modifiers)
+    {
+        perkRotationPenaltyMultiplier = modifiers != null ? Mathf.Max(0f, modifiers.ArmorRotationPenaltyMultiplier) : 1f;
+        perkMovementPenaltyMultiplier = modifiers != null ? Mathf.Max(0f, modifiers.ArmorMovementPenaltyMultiplier) : 1f;
+        NotifyArmorChanged();
     }
 
     public ArmorImpactResult ResolveProjectileImpact(ProjectileData projectile)

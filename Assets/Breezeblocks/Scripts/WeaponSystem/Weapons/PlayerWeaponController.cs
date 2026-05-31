@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Breezeblocks.HideoutSystem;
 using Rewired;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -180,6 +181,7 @@ public class PlayerWeaponController : MonoBehaviour
     private int currentLoadedAmmo;
     private int currentReserveAmmo;
     private readonly List<FireMode> _availableFireModes = new();
+    private PlayerPerkModifierSet perkModifiers = new();
     private bool inputBlocked;
 
     private void Reset()
@@ -474,7 +476,7 @@ public class PlayerWeaponController : MonoBehaviour
     {
         PlayMagazineReloadStartSfx();
         EmitNoiseSpike(EquippedFirearm.ReloadNoise, EquippedFirearm.ReloadNoiseDuration, EquippedFirearm.ReloadNoiseType, EquippedFirearm.ReloadExtremeNoise);
-        float reloadDuration = Mathf.Max(0f, EquippedFirearm.ReloadTime);
+        float reloadDuration = ResolveCurrentReloadDuration();
         float midReloadSfxDelay = reloadDuration * EquippedFirearm.MagazineReloadMidSfxNormalizedTime;
         float remainingReloadDelay = Mathf.Max(0f, reloadDuration - midReloadSfxDelay);
 
@@ -506,7 +508,7 @@ public class PlayerWeaponController : MonoBehaviour
     private IEnumerator BulletPerBulletReloadRoutine()
     {
         EmitNoiseSpike(EquippedFirearm.ReloadNoise, EquippedFirearm.ReloadNoiseDuration, EquippedFirearm.ReloadNoiseType, EquippedFirearm.ReloadExtremeNoise);
-        yield return new WaitForSeconds(EquippedFirearm.ReloadTime);
+        yield return new WaitForSeconds(ResolveCurrentReloadDuration());
 
         if (EquippedFirearm != null &&
             CurrentProjectile != null &&
@@ -679,7 +681,7 @@ public class PlayerWeaponController : MonoBehaviour
         if (baseDirection.sqrMagnitude <= MinDirectionSqr)
             return Vector2.right;
 
-        float spread = Mathf.Max(0f, EquippedFirearm != null ? EquippedFirearm.Spread : 0f);
+        float spread = ResolvePerkAdjustedSpreadAngle();
         if (IsAccurate)
             spread *= 1f - Mathf.Clamp01(EquippedFirearm.Accuracy / 100f);
 
@@ -980,7 +982,7 @@ public class PlayerWeaponController : MonoBehaviour
         if (EquippedFirearm == null)
             return 0f;
 
-        return Mathf.Max(0f, EquippedFirearm.AimTime);
+        return Mathf.Max(0f, EquippedFirearm.AimTime * perkModifiers.AccurateAimTimeMultiplier);
     }
 
     private float ResolveCurrentAccuracyProgress01()
@@ -1001,7 +1003,36 @@ public class PlayerWeaponController : MonoBehaviour
             return 0f;
 
         float accurateSpreadMultiplier = 1f - Mathf.Clamp01(EquippedFirearm.Accuracy / 100f);
-        return EquippedFirearm.Spread * Mathf.Lerp(1f, accurateSpreadMultiplier, ResolveCurrentAccuracyProgress01());
+        return ResolvePerkAdjustedSpreadAngle() * Mathf.Lerp(1f, accurateSpreadMultiplier, ResolveCurrentAccuracyProgress01());
+    }
+
+    public void ApplyPerkModifiers(PlayerPerkModifierSet modifiers)
+    {
+        perkModifiers = modifiers != null ? modifiers.Clone() : new PlayerPerkModifierSet();
+        NotifyWeaponStateChanged();
+    }
+
+    private float ResolveCurrentReloadDuration()
+    {
+        if (EquippedFirearm == null)
+            return 0f;
+
+        return Mathf.Max(0f, EquippedFirearm.ReloadTime * perkModifiers.ReloadTimeMultiplier);
+    }
+
+    private float ResolvePerkAdjustedSpreadAngle()
+    {
+        if (EquippedFirearm == null)
+            return 0f;
+
+        return Mathf.Max(0f, EquippedFirearm.Spread * ResolveFirearmSpreadMultiplier());
+    }
+
+    private float ResolveFirearmSpreadMultiplier()
+    {
+        return perkModifiers != null
+            ? Mathf.Max(0f, perkModifiers.GetFirearmSpreadMultiplier(EquippedFirearm.Class))
+            : 1f;
     }
 
     private int ResolveInitialLoadedAmmo(FirearmData firearm, int requestedLoadedAmmo)

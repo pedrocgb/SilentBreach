@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fcbba94ccb2c54b6d98e099cab531a9e, type: 3}
+  m_Name: Quick Hands
+  m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.HideoutSystem.HideoutPerkDefinition
+  perkName: "M\xE3os R\xE1pidas"
+  perkId: quick_hands
+  cost: 1
+  description: "Recarregar armas pequenas j\xE1 virou rotina."
+  effect: Reduz a velocidade de Recarga em 50%.
+  tier: 0
+  icon: {fileID: -232376819, guid: 1ef0be22b8a86fcc4abbd56c5393160c, type: 3}

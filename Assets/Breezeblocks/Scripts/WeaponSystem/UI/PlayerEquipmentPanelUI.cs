@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Breezeblocks.HideoutSystem;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
@@ -97,6 +98,19 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         public TMP_Text movementSpeedPenaltyText;
     }
 
+    [Serializable]
+    private sealed class EquippedPerksView
+    {
+        public RectTransform contentRoot;
+        public HideoutPerkItemUI itemPrefab;
+        public TMP_Text emptyStateText;
+        public Image selectedPerkIconImage;
+        public TMP_Text selectedPerkNameText;
+        public TMP_Text selectedPerkDescriptionText;
+        public TMP_Text selectedPerkTierText;
+        public TMP_Text selectedPerkCostText;
+    }
+
     [FoldoutGroup("References")]
     [SerializeField] private PlayerEquipmentController equipmentController;
 
@@ -124,6 +138,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
     [FoldoutGroup("Contexts")]
     [SerializeField] private GameObject noSelectionContextRoot;
 
+    [FoldoutGroup("Perks")]
+    [SerializeField] private EquippedPerksView equippedPerksView = new();
+
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsVisible => panelRoot != null && panelRoot.activeSelf;
 
@@ -137,11 +154,14 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
     private bool hasManualContextOverride;
     private bool showManualNoSelectionOverride;
     private bool isShuttingDown;
+    private readonly List<HideoutPerkDefinition> equippedPerks = new();
+    private HideoutPerkDefinition selectedPerk;
 
     private void Awake()
     {
         isShuttingDown = false;
         ResolveReferences();
+        PreparePerkTemplate();
         BindSlotEvents();
         Subscribe();
         if (hideOnStart)
@@ -156,6 +176,7 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
     {
         isShuttingDown = false;
         ResolveReferences();
+        PreparePerkTemplate();
         BindSlotEvents();
         Subscribe();
         Refresh();
@@ -288,6 +309,8 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         if (isShuttingDown)
             return;
 
+        RefreshEquippedPerks();
+
         if (equipmentController == null)
         {
             RefreshManualContext();
@@ -309,6 +332,120 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         }
 
         RefreshActiveContext();
+    }
+
+    private void RefreshEquippedPerks()
+    {
+        SyncEquippedPerksFromRuntime();
+        EnsureValidPerkSelection();
+        RebuildEquippedPerkList();
+        RefreshSelectedPerkDetails();
+    }
+
+    private void SyncEquippedPerksFromRuntime()
+    {
+        equippedPerks.Clear();
+
+        PlayerPerkRuntimeLoadout runtimeLoadout = PlayerPerkRuntimeSession.PeekEquippedPerks();
+        IReadOnlyList<HideoutPerkDefinition> runtimePerks = runtimeLoadout.EquippedPerks;
+        for (int i = 0; i < runtimePerks.Count; i++)
+        {
+            HideoutPerkDefinition perkDefinition = runtimePerks[i];
+            if (perkDefinition == null)
+                continue;
+
+            equippedPerks.Add(perkDefinition);
+        }
+    }
+
+    private void EnsureValidPerkSelection()
+    {
+        if (selectedPerk != null)
+        {
+            for (int i = 0; i < equippedPerks.Count; i++)
+            {
+                if (AreSamePerk(selectedPerk, equippedPerks[i]))
+                {
+                    selectedPerk = equippedPerks[i];
+                    return;
+                }
+            }
+        }
+
+        selectedPerk = equippedPerks.Count > 0 ? equippedPerks[0] : null;
+    }
+
+    private void PreparePerkTemplate()
+    {
+        if (equippedPerksView.itemPrefab != null)
+            equippedPerksView.itemPrefab.gameObject.SetActive(false);
+    }
+
+    private void RebuildEquippedPerkList()
+    {
+        Transform preservedTemplate = ResolvePreservedTemplate(
+            equippedPerksView.contentRoot,
+            equippedPerksView.itemPrefab != null ? equippedPerksView.itemPrefab.transform : null);
+        ClearGeneratedChildren(equippedPerksView.contentRoot, preservedTemplate);
+
+        bool showEmptyState = equippedPerks.Count == 0;
+        SetOptionalTextState(equippedPerksView.emptyStateText, showEmptyState, showEmptyState ? "No perks equipped." : string.Empty);
+
+        if (equippedPerksView.contentRoot == null || equippedPerksView.itemPrefab == null)
+            return;
+
+        for (int i = 0; i < equippedPerks.Count; i++)
+        {
+            HideoutPerkDefinition perkDefinition = equippedPerks[i];
+            HideoutPerkItemUI itemView = Instantiate(equippedPerksView.itemPrefab, equippedPerksView.contentRoot);
+            itemView.gameObject.name = $"{perkDefinition.PerkName} Equipped";
+            itemView.gameObject.SetActive(true);
+            itemView.Bind(
+                perkDefinition,
+                AreSamePerk(selectedPerk, perkDefinition),
+                true,
+                true,
+                false,
+                false,
+                false,
+                false,
+                () => SelectPerk(perkDefinition),
+                null,
+                null);
+        }
+    }
+
+    private void SelectPerk(HideoutPerkDefinition perkDefinition)
+    {
+        selectedPerk = perkDefinition;
+        RebuildEquippedPerkList();
+        RefreshSelectedPerkDetails();
+    }
+
+    private void RefreshSelectedPerkDetails()
+    {
+        if (selectedPerk == null)
+        {
+            SetImage(equippedPerksView.selectedPerkIconImage, null);
+            SetPlainText(equippedPerksView.selectedPerkNameText, string.Empty, false);
+            SetPlainText(equippedPerksView.selectedPerkDescriptionText, string.Empty, false);
+            SetPlainText(equippedPerksView.selectedPerkTierText, string.Empty, false);
+            SetPlainText(equippedPerksView.selectedPerkCostText, string.Empty, false);
+            return;
+        }
+
+        EquipmentContextUiSettings settings = ResolveUiSettings();
+        SetImage(equippedPerksView.selectedPerkIconImage, selectedPerk.Icon);
+        SetPlainText(equippedPerksView.selectedPerkNameText, selectedPerk.PerkName, true);
+        SetPlainText(equippedPerksView.selectedPerkDescriptionText, BuildPerkDescription(selectedPerk), true);
+        SetPlainText(
+            equippedPerksView.selectedPerkTierText,
+            $"{settings.PerkTierText}{ResolvePerkTierText(selectedPerk.Tier)}",
+            true);
+        SetPlainText(
+            equippedPerksView.selectedPerkCostText,
+            $"{settings.PerkCostText}{selectedPerk.Cost}",
+            true);
     }
 
     private EquipmentItemData ResolveItemForSlot(EquipmentSlotType slotType)
@@ -730,6 +867,41 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
             : null;
     }
 
+    private static bool AreSamePerk(HideoutPerkDefinition left, HideoutPerkDefinition right)
+    {
+        if (left == null || right == null)
+            return false;
+
+        return string.Equals(left.PerkId, right.PerkId, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string BuildPerkDescription(HideoutPerkDefinition perkDefinition)
+    {
+        if (perkDefinition == null)
+            return string.Empty;
+
+        bool hasDescription = !string.IsNullOrWhiteSpace(perkDefinition.Description);
+        bool hasEffect = !string.IsNullOrWhiteSpace(perkDefinition.Effect);
+        if (hasDescription && hasEffect)
+            return $"{perkDefinition.Description}\n{perkDefinition.Effect}";
+
+        if (hasDescription)
+            return perkDefinition.Description;
+
+        return hasEffect ? perkDefinition.Effect : string.Empty;
+    }
+
+    private static string ResolvePerkTierText(HideoutPerkTier perkTier)
+    {
+        return perkTier switch
+        {
+            HideoutPerkTier.TierI => "I",
+            HideoutPerkTier.TierII => "II",
+            HideoutPerkTier.TierIII => "III",
+            _ => string.Empty
+        };
+    }
+
     private static EquipmentContextUiSettings ResolveUiSettings()
     {
         return GlobalSettings.Instance != null ? GlobalSettings.Instance.EquipmentContextUi : DefaultUiSettings;
@@ -866,6 +1038,39 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         }
 
         return new string(buffer.ToArray());
+    }
+
+    private static Transform ResolvePreservedTemplate(RectTransform contentRoot, Transform templateTransform)
+    {
+        if (contentRoot == null || templateTransform == null)
+            return null;
+
+        return templateTransform.parent == contentRoot ? templateTransform : null;
+    }
+
+    private static void ClearGeneratedChildren(RectTransform contentRoot, Transform preservedTemplate)
+    {
+        if (contentRoot == null)
+            return;
+
+        for (int i = contentRoot.childCount - 1; i >= 0; i--)
+        {
+            Transform child = contentRoot.GetChild(i);
+            if (child == preservedTemplate)
+                continue;
+
+            UnityEngine.Object.Destroy(child.gameObject);
+        }
+    }
+
+    private static void SetOptionalTextState(TMP_Text textField, bool visible, string value)
+    {
+        if (textField == null)
+            return;
+
+        textField.gameObject.SetActive(visible);
+        if (visible)
+            textField.text = value ?? string.Empty;
     }
 
     private static void SetPlainText(TMP_Text textField, string value, bool visible)

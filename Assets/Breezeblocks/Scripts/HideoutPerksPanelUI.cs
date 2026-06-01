@@ -64,6 +64,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
     [FoldoutGroup("Selection")]
     [SerializeField] private Button confirmButton;
 
+    [FoldoutGroup("Selection")]
+    [SerializeField] private Button closeButton;
+
     [FoldoutGroup("Details")]
     [SerializeField] private Image selectedPerkIconImage;
 
@@ -87,6 +90,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
 
     private HideoutPerkDefinition selectedPerk;
     private bool initialized;
+
+    public event Action Confirmed;
+    public event Action CloseRequested;
 
     private void Awake()
     {
@@ -117,11 +123,17 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
 
     private void BindButtons()
     {
-        if (confirmButton == null)
-            return;
+        if (confirmButton != null)
+        {
+            confirmButton.onClick.RemoveListener(ConfirmSelection);
+            confirmButton.onClick.AddListener(ConfirmSelection);
+        }
 
-        confirmButton.onClick.RemoveListener(ConfirmSelection);
-        confirmButton.onClick.AddListener(ConfirmSelection);
+        if (closeButton != null)
+        {
+            closeButton.onClick.RemoveListener(HandleCloseRequested);
+            closeButton.onClick.AddListener(HandleCloseRequested);
+        }
     }
 
     private void CollectConfiguredPerks()
@@ -142,6 +154,7 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         }
 
         configuredPerks.Sort(ComparePerks);
+        HideoutRuntimeSession.SyncPerkTierUnlocks(configuredPerks);
     }
 
     private void TryAddConfiguredPerk(HideoutPerkDefinition perkDefinition, HashSet<string> addedPerkIds)
@@ -476,7 +489,24 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         PlayerPerkRuntimeLoadout loadout = new();
         loadout.SetPerks(workingEquippedPerks);
         PlayerPerkRuntimeSession.SetEquippedPerks(loadout);
+        Confirmed?.Invoke();
         RefreshView();
+    }
+
+    public void ClearWorkingSelectionAndRuntime()
+    {
+        if (!initialized)
+            EnsureInitialized();
+
+        workingEquippedPerks.Clear();
+        PlayerPerkRuntimeSession.ClearEquippedPerks();
+        selectedPerk = configuredPerks.Count > 0 ? configuredPerks[0] : null;
+        RefreshView();
+    }
+
+    private void HandleCloseRequested()
+    {
+        CloseRequested?.Invoke();
     }
 
     private void RefreshConfirmButton()
@@ -490,25 +520,10 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         return perkTier switch
         {
             HideoutPerkTier.TierI => true,
-            HideoutPerkTier.TierII => CountUnlockedPerksInTier(HideoutPerkTier.TierI) >= 3,
-            HideoutPerkTier.TierIII => CountUnlockedPerksInTier(HideoutPerkTier.TierII) >= 2,
+            HideoutPerkTier.TierII => HideoutRuntimeSession.IsPerkTierUnlocked(HideoutPerkTier.TierII),
+            HideoutPerkTier.TierIII => HideoutRuntimeSession.IsPerkTierUnlocked(HideoutPerkTier.TierIII),
             _ => false
         };
-    }
-
-    private int CountUnlockedPerksInTier(HideoutPerkTier perkTier)
-    {
-        int count = 0;
-        for (int i = 0; i < configuredPerks.Count; i++)
-        {
-            HideoutPerkDefinition perkDefinition = configuredPerks[i];
-            if (perkDefinition == null || perkDefinition.Tier != perkTier || !HideoutRuntimeSession.IsPerkUnlocked(perkDefinition))
-                continue;
-
-            count++;
-        }
-
-        return count;
     }
 
     private static string BuildPerkDescription(HideoutPerkDefinition perkDefinition)

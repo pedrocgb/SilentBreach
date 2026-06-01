@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 1436268997069932989}
   - component: {fileID: 1018394670833254452}
   - component: {fileID: 5916321733564799962}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: Actor Focus GFX
   m_TagString: Untagged
   m_Icon: {fileID: 0}

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using DG.Tweening;
 using Breezeblocks;
 using Breezeblocks.WeaponSystem;
+using Rewired;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
@@ -58,6 +59,7 @@ public sealed class HideoutSceneController : MonoBehaviour
     private sealed class JobsPanelReferences
     {
         public GameObject root;
+        public Button closeButton;
         public RectTransform jobListContent;
         public HideoutJobListItemUI jobListItemPrefab;
         public TMP_Text emptyStateText;
@@ -83,6 +85,7 @@ public sealed class HideoutSceneController : MonoBehaviour
     private sealed class FencePanelReferences
     {
         public GameObject root;
+        public Button closeButton;
         public TMP_Text shopTitleText;
         public TMP_Text shopDescriptionText;
         public Image shopImage;
@@ -106,11 +109,16 @@ public sealed class HideoutSceneController : MonoBehaviour
     }
 
     [Serializable]
+    private sealed class PerksPanelReferences
+    {
+        public GameObject root;
+        public HideoutPerksPanelUI panelUi;
+    }
+
+    [Serializable]
     private sealed class PlaceholderPanelReferences
     {
         public GameObject root;
-        public TMP_Text titleText;
-        public TMP_Text bodyText;
     }
 
     private sealed class PreparedFenceOffer
@@ -166,6 +174,12 @@ public sealed class HideoutSceneController : MonoBehaviour
     [FoldoutGroup("Transitions")]
     [SerializeField] private CanvasGroup sceneFadeCanvasGroup;
 
+    [FoldoutGroup("Rewired"), MinValue(0)]
+    [SerializeField] private int rewiredPlayerId = 1;
+
+    [FoldoutGroup("Rewired")]
+    [SerializeField] private string closeCurrentPanelAction = string.Empty;
+
     [FoldoutGroup("References")]
     [SerializeField] private HeaderReferences header = new();
 
@@ -179,7 +193,7 @@ public sealed class HideoutSceneController : MonoBehaviour
     [SerializeField] private FencePanelReferences fencePanel = new();
 
     [FoldoutGroup("References")]
-    [SerializeField] private PlaceholderPanelReferences perksPanel = new();
+    [SerializeField] private PerksPanelReferences perksPanel = new();
 
     [FoldoutGroup("References")]
     [SerializeField] private PlaceholderPanelReferences contactsPanel = new();
@@ -209,6 +223,7 @@ public sealed class HideoutSceneController : MonoBehaviour
     private bool isTearingDown;
     private Coroutine panelTransitionRoutine;
     private Tween sceneFadeTween;
+    private Player rewiredPlayer;
 
     private void Awake()
     {
@@ -222,9 +237,9 @@ public sealed class HideoutSceneController : MonoBehaviour
         CacheSellButtons();
         PrepareTemplates();
         PrepareSceneFade();
+        ResolveRewiredPlayer();
         BindSlotEvents();
         BindButtons();
-        ConfigurePlaceholderPanels();
         LoadAvailableJobs();
 
         selectedJob = ResolveInitialSelectedJob();
@@ -263,6 +278,21 @@ public sealed class HideoutSceneController : MonoBehaviour
         BeginTeardown();
     }
 
+    private void Update()
+    {
+        if (isTearingDown || isSceneTransitioning || panelTransitionRoutine != null)
+            return;
+
+        if (string.IsNullOrWhiteSpace(closeCurrentPanelAction))
+            return;
+
+        if (rewiredPlayer == null && !ResolveRewiredPlayer())
+            return;
+
+        if (rewiredPlayer.GetButtonDown(closeCurrentPanelAction))
+            CloseCurrentView();
+    }
+
     private void BeginTeardown()
     {
         if (isTearingDown)
@@ -285,6 +315,12 @@ public sealed class HideoutSceneController : MonoBehaviour
         {
             StopCoroutine(panelTransitionRoutine);
             panelTransitionRoutine = null;
+        }
+
+        if (perksPanelUi != null)
+        {
+            perksPanelUi.Confirmed -= HandlePerksPanelConfirmed;
+            perksPanelUi.CloseRequested -= HandlePerksPanelCloseRequested;
         }
 
         UnbindSlotEvents();
@@ -313,6 +349,64 @@ public sealed class HideoutSceneController : MonoBehaviour
     public void ShowSettingsView()
     {
         RequestView(HideoutView.Settings);
+    }
+
+    public void CloseCurrentView()
+    {
+        switch (currentView)
+        {
+            case HideoutView.Jobs:
+                CloseJobsView();
+                break;
+
+            case HideoutView.Fence:
+                CloseFenceView();
+                break;
+
+            case HideoutView.Perks:
+                ClosePerksView();
+                break;
+
+            case HideoutView.Contacts:
+                CloseContactsView();
+                break;
+
+            case HideoutView.Settings:
+                CloseSettingsView();
+                break;
+        }
+    }
+
+    public void CloseJobsView()
+    {
+        RequestView(HideoutView.MainMenu);
+    }
+
+    public void CloseFenceView()
+    {
+        int refund = RefundAllPurchasedItems(refreshUi: false);
+        RequestView(HideoutView.Jobs);
+        SetMessage(refund > 0
+            ? $"Closed the fence and refunded ${refund}."
+            : "Left the fence.");
+    }
+
+    public void ClosePerksView()
+    {
+        ResolvePerksPanelUi();
+        perksPanelUi?.ClearWorkingSelectionAndRuntime();
+        RequestView(HideoutView.MainMenu);
+        SetMessage("Cleared the selected perks.");
+    }
+
+    public void CloseContactsView()
+    {
+        RequestView(HideoutView.MainMenu);
+    }
+
+    public void CloseSettingsView()
+    {
+        RequestView(HideoutView.MainMenu);
     }
 
     public void OpenSelectedJobFence()
@@ -440,15 +534,37 @@ public sealed class HideoutSceneController : MonoBehaviour
 
     private void ResolvePerksPanelUi()
     {
-        if (perksPanelUi != null)
+        HideoutPerksPanelUI resolvedPanelUi = perksPanel.panelUi;
+        if (resolvedPanelUi == null)
+        {
+            GameObject perksRoot = GetViewRoot(HideoutView.Perks);
+            if (perksRoot == null)
+                perksRoot = perksPanel.root;
+
+            if (perksRoot != null)
+                resolvedPanelUi = perksRoot.GetComponentInChildren<HideoutPerksPanelUI>(true);
+        }
+
+        if (resolvedPanelUi == null)
+            resolvedPanelUi = FindFirstObjectByType<HideoutPerksPanelUI>();
+
+        if (resolvedPanelUi == null)
             return;
 
-        GameObject perksRoot = GetViewRoot(HideoutView.Perks);
-        if (perksRoot == null)
-            perksRoot = perksPanel.root;
+        if (perksPanelUi == resolvedPanelUi)
+            return;
 
-        if (perksRoot != null)
-            perksPanelUi = perksRoot.GetComponentInChildren<HideoutPerksPanelUI>(true);
+        if (perksPanelUi != null)
+        {
+            perksPanelUi.Confirmed -= HandlePerksPanelConfirmed;
+            perksPanelUi.CloseRequested -= HandlePerksPanelCloseRequested;
+        }
+
+        perksPanelUi = resolvedPanelUi;
+        perksPanelUi.Confirmed -= HandlePerksPanelConfirmed;
+        perksPanelUi.CloseRequested -= HandlePerksPanelCloseRequested;
+        perksPanelUi.Confirmed += HandlePerksPanelConfirmed;
+        perksPanelUi.CloseRequested += HandlePerksPanelCloseRequested;
     }
 
     private void CacheSlotViews()
@@ -509,8 +625,10 @@ public sealed class HideoutSceneController : MonoBehaviour
     private void BindButtons()
     {
         BindButton(jobsPanel.proceedButton, OpenSelectedJobFence);
+        BindButton(jobsPanel.closeButton, CloseJobsView);
         BindButton(fencePanel.sellButton, SellSelectedEquipment);
         BindButton(fencePanel.startQuestButton, StartQuest);
+        BindButton(fencePanel.closeButton, CloseFenceView);
 
         foreach (KeyValuePair<EquipmentSlotType, Button> pair in equipmentSellButtons)
         {
@@ -552,22 +670,14 @@ public sealed class HideoutSceneController : MonoBehaviour
         sceneFadeCanvasGroup.blocksRaycasts = false;
     }
 
-    private void ConfigurePlaceholderPanels()
+    private void HandlePerksPanelConfirmed()
     {
-        ConfigurePlaceholderPanel(contactsPanel, "Contacts");
-        ConfigurePlaceholderPanel(settingsPanel, "Settings");
+        RequestView(HideoutView.MainMenu);
     }
 
-    private static void ConfigurePlaceholderPanel(PlaceholderPanelReferences panel, string title)
+    private void HandlePerksPanelCloseRequested()
     {
-        if (panel == null)
-            return;
-
-        if (panel.titleText != null && string.IsNullOrWhiteSpace(panel.titleText.text))
-            panel.titleText.text = title;
-
-        if (panel.bodyText != null && string.IsNullOrWhiteSpace(panel.bodyText.text))
-            panel.bodyText.text = "Coming soon";
+        ClosePerksView();
     }
 
     private void LoadAvailableJobs()
@@ -1600,6 +1710,15 @@ public sealed class HideoutSceneController : MonoBehaviour
         }
 
         return null;
+    }
+
+    private bool ResolveRewiredPlayer()
+    {
+        if (!ReInput.isReady)
+            return false;
+
+        rewiredPlayer = ReInput.players.GetPlayer(rewiredPlayerId);
+        return rewiredPlayer != null;
     }
 
     private static GameObject FindSceneObjectByName(string targetName)

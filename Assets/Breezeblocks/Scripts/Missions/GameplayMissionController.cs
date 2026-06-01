@@ -573,6 +573,9 @@ public class GameplayMissionController : MonoBehaviour
         if (resolvedJob != null && resolvedJob != runtimeJob)
             HideoutRuntimeSession.SetCurrentJob(resolvedJob);
 
+        if (resolvedJob != null)
+            HideoutRuntimeSession.SetActiveMissionJob(resolvedJob);
+
         return resolvedJob;
     }
 
@@ -2243,7 +2246,12 @@ public class GameplayMissionController : MonoBehaviour
         if (completeCurrentJob)
             HideoutRuntimeSession.CompleteJob(currentJob);
         else if (clearCurrentJob)
+        {
             HideoutRuntimeSession.ClearCurrentJob();
+            HideoutRuntimeSession.ClearActiveMissionJob();
+        }
+        else if (sceneBuildIndex == hideoutSceneBuildIndex)
+            HideoutRuntimeSession.ClearActiveMissionJob();
 
         if (SceneLoadUtility.TryLoadScene(sceneBuildIndex, fallbackSceneName))
             yield break;

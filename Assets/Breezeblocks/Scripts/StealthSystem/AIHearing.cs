@@ -1,4 +1,5 @@
 using System;
+using Breezeblocks.Missions;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -150,6 +151,12 @@ public class AIHearing : MonoBehaviour
 
     private void Update()
     {
+        if (GameplayMissionController.EnemyRuntimeBlockedAtMissionStart)
+        {
+            currentAccumulatedDetection = 0f;
+            return;
+        }
+
         if (GameplayConsoleCheatState.Lightfooted)
         {
             currentAccumulatedDetection = 0f;
@@ -172,6 +179,9 @@ public class AIHearing : MonoBehaviour
 
     public void ReceiveNoise(NoiseEvent noiseEvent)
     {
+        if (GameplayMissionController.EnemyRuntimeBlockedAtMissionStart)
+            return;
+
         if (noiseEvent.Source != null && noiseEvent.Source.transform.root == transform.root)
             return;
 

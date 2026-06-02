@@ -19,9 +19,12 @@ namespace Breezeblocks.Missions
 {
 
 [DisallowMultipleComponent]
+[DefaultExecutionOrder(-5000)]
 [AddComponentMenu("Breezeblocks/Missions/Gameplay Mission Controller")]
 public class GameplayMissionController : MonoBehaviour
 {
+    public static bool EnemyRuntimeBlockedAtMissionStart { get; private set; }
+
     [Serializable]
     private sealed class ObjectiveRuntimeState
     {
@@ -136,6 +139,9 @@ public class GameplayMissionController : MonoBehaviour
 
     [FoldoutGroup("Job")]
     [SerializeField] private HideoutJobDefinition fallbackMission;
+
+    [FoldoutGroup("Job UI")]
+    [SerializeField] private TMP_Text jobTitleText;
 
     [FoldoutGroup("Job UI")]
     [SerializeField] private TMP_Text jobNameText;
@@ -288,6 +294,9 @@ public class GameplayMissionController : MonoBehaviour
     [FoldoutGroup("Intro Cinematic"), MinValue(0f), SuffixLabel("s", true)]
     [SerializeField] private float introSkipBlackHoldDuration = 0.5f;
 
+    [FoldoutGroup("Intro Cinematic"), MinValue(0f), SuffixLabel("s", true)]
+    [SerializeField] private float introStartupBlackHoldDuration = 0.5f;
+
     [FoldoutGroup("Intro Cinematic"), LabelText("Initial Player Facing"), SuffixLabel("deg", true)]
     [SerializeField] private float introInitialPlayerFacingDegrees;
 
@@ -368,6 +377,7 @@ public class GameplayMissionController : MonoBehaviour
     private Player rewiredPlayer;
     private Coroutine introRoutine;
     private Coroutine introSkipRoutine;
+    private Coroutine startupSequenceRoutine;
     private Coroutine continuousCarDriveRoutine;
     private bool playerVisionLightDefaultEnabled = true;
     private bool playerFocusControllerDefaultEnabled = true;
@@ -388,6 +398,7 @@ public class GameplayMissionController : MonoBehaviour
 
     private void Awake()
     {
+        EnemyRuntimeBlockedAtMissionStart = true;
         CacheReferences();
         ResetSceneScopedRuntimeState();
         GameplayConsoleController.EnsureOn(gameObject);
@@ -404,16 +415,18 @@ public class GameplayMissionController : MonoBehaviour
             missionEscapeTrigger.SetEscapeEnabled(false);
         }
 
+        BlockPlayerControls(true);
+        SetIntroVisionLightActive(false);
+
         if (playIntroCinematic && CanPlayIntroCinematic())
         {
-            BlockPlayerControls(true);
-            SetIntroVisionLightActive(false);
             ApplyPlayerFacingDegrees(introInitialPlayerFacingDegrees);
         }
     }
 
     private void OnEnable()
     {
+        EnemyRuntimeBlockedAtMissionStart = true;
         MissionRuntimeEvents.ActorKilled += HandleActorKilled;
         MissionRuntimeEvents.ActorIncapacitated += HandleActorIncapacitated;
         MissionRuntimeEvents.ItemPickedUp += HandleItemPickedUp;
@@ -430,16 +443,8 @@ public class GameplayMissionController : MonoBehaviour
 
     private void Start()
     {
-        if (playIntroCinematic && CanPlayIntroCinematic())
-        {
-            SetIntroVisionLightActive(false);
-            ApplyPlayerFacingDegrees(introInitialPlayerFacingDegrees);
-            introRoutine = StartCoroutine(PlayIntroRoutine());
-        }
-        else
-            StartGameplay();
-
         RestartMissionStatusEntryBuild();
+        startupSequenceRoutine = StartCoroutine(BeginMissionStartupRoutine());
     }
 
     private void Update()
@@ -457,6 +462,7 @@ public class GameplayMissionController : MonoBehaviour
 
     private void OnDisable()
     {
+        EnemyRuntimeBlockedAtMissionStart = false;
         MissionRuntimeEvents.ActorKilled -= HandleActorKilled;
         MissionRuntimeEvents.ActorIncapacitated -= HandleActorIncapacitated;
         MissionRuntimeEvents.ItemPickedUp -= HandleItemPickedUp;
@@ -477,6 +483,21 @@ public class GameplayMissionController : MonoBehaviour
         carEngineLoopTween = null;
         activeCinematicPlayerMoveTween?.Kill();
         activeCinematicPlayerMoveTween = null;
+        if (startupSequenceRoutine != null)
+        {
+            StopCoroutine(startupSequenceRoutine);
+            startupSequenceRoutine = null;
+        }
+        if (introRoutine != null)
+        {
+            StopCoroutine(introRoutine);
+            introRoutine = null;
+        }
+        if (introSkipRoutine != null)
+        {
+            StopCoroutine(introSkipRoutine);
+            introSkipRoutine = null;
+        }
         if (missionStatusEntryBuildRoutine != null)
         {
             StopCoroutine(missionStatusEntryBuildRoutine);
@@ -658,7 +679,7 @@ public class GameplayMissionController : MonoBehaviour
     private void PrepareUiDefaults()
     {
         if (fadeImageFader != null)
-            fadeImageFader.SetAlphaImmediate(0f);
+            fadeImageFader.SetAlphaImmediate(1f);
 
         RegisterMissionStatusEntryPrefabs();
         ClearMissionStatusEntries();
@@ -743,6 +764,28 @@ public class GameplayMissionController : MonoBehaviour
                introPlayerExitPoint != null;
     }
 
+    private IEnumerator BeginMissionStartupRoutine()
+    {
+        if (introStartupBlackHoldDuration > 0f)
+            yield return new WaitForSecondsRealtime(introStartupBlackHoldDuration);
+
+        bool shouldPlayIntro = playIntroCinematic && CanPlayIntroCinematic();
+        if (shouldPlayIntro)
+        {
+            SetIntroVisionLightActive(false);
+            ApplyPlayerFacingDegrees(introInitialPlayerFacingDegrees);
+            introRoutine = StartCoroutine(PlayIntroRoutine());
+            yield return FadeOverlayOutAndRestore();
+        }
+        else
+        {
+            yield return FadeOverlayOutAndRestore();
+            StartGameplay();
+        }
+
+        startupSequenceRoutine = null;
+    }
+
     private IEnumerator PlayIntroRoutine()
     {
         BlockPlayerControls(true);
@@ -779,6 +822,8 @@ public class GameplayMissionController : MonoBehaviour
     private void StartGameplay()
     {
         gameplayStarted = true;
+        EnemyRuntimeBlockedAtMissionStart = false;
+        NotifyEnemiesGameplayStarted();
         SetEndScreenPointerVisible(false);
         SetCollidersEnabled(collidersToEnableAfterGameplayStart, true);
         SetGameObjectsActive(gameObjectsToEnableAfterGameplayStart, true);
@@ -789,6 +834,13 @@ public class GameplayMissionController : MonoBehaviour
 
         if (objectivesCompleted)
             HandleAllObjectivesCompleted();
+    }
+
+    private void NotifyEnemiesGameplayStarted()
+    {
+        EnemyMovementController[] enemyControllers = FindObjectsByType<EnemyMovementController>(FindObjectsSortMode.None);
+        for (int i = 0; i < enemyControllers.Length; i++)
+            enemyControllers[i]?.HandleMissionGameplayStarted();
     }
 
     private IEnumerator PlayWinRoutine()
@@ -1737,8 +1789,10 @@ public class GameplayMissionController : MonoBehaviour
     {
         if (jobNameText != null)
             jobNameText.text = currentJob != null ? currentJob.JobTitle : string.Empty;
+        if (jobTitleText != null)
+            jobTitleText.text = currentJob != null ? currentJob.JobTitle : string.Empty;
 
-        if (UseMissionStatusEntryList)
+            if (UseMissionStatusEntryList)
         {
             if (jobObjectivesText != null)
                 jobObjectivesText.text = string.Empty;
@@ -2197,6 +2251,9 @@ public class GameplayMissionController : MonoBehaviour
     {
         if (sceneTransitionInProgress)
             return;
+
+        PlayerEquipmentRuntimeSession.RestorePreparedQuestLoadoutForReplay();
+        PlayerPerkRuntimeSession.RestorePreparedEquippedPerks();
 
         Scene activeScene = SceneManager.GetActiveScene();
         if (!SceneLoadUtility.CanLoadScene(activeScene.buildIndex, activeScene.name))

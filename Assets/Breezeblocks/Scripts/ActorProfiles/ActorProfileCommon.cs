@@ -339,6 +339,39 @@ public class EnemyMovementSettings
     [FoldoutGroup("Rigidbody"), ShowIf(nameof(ApplyRecommendedRigidbodySettings))]
     public CollisionDetectionMode2D RecommendedCollisionDetection = CollisionDetectionMode2D.Continuous;
 
+    [FoldoutGroup("Doors")]
+    public bool AllowClosedDoorTraversalWhileAlert = true;
+
+    [FoldoutGroup("Doors")]
+    public bool AllowClosedDoorTraversalWhileSuspicious = true;
+
+    [FoldoutGroup("Doors")]
+    public bool AllowClosedDoorTraversalWhileSearching = true;
+
+    [FoldoutGroup("Doors")]
+    public bool AllowClosedDoorTraversalWhileFleeing = true;
+
+    [FoldoutGroup("Doors")]
+    public bool AllowClosedDoorTraversalWhileDetected;
+
+    [FoldoutGroup("Doors"), Range(0, 31)]
+    public int ClosedDoorPathTag = 1;
+
+    [FoldoutGroup("Doors"), MinValue(0)]
+    public int ClosedDoorTagPenalty;
+
+    [FoldoutGroup("Doors")]
+    public LayerMask DoorDetectionMask = Physics2D.AllLayers;
+
+    [FoldoutGroup("Doors"), MinValue(0.05f), SuffixLabel("u", true)]
+    public float DoorAutoOpenRange = 0.9f;
+
+    [FoldoutGroup("Doors"), MinValue(0.01f), SuffixLabel("u", true)]
+    public float DoorAutoOpenRadius = 0.18f;
+
+    [FoldoutGroup("Doors"), MinValue(0f), SuffixLabel("s", true)]
+    public float DoorAutoOpenCooldown = 0.2f;
+
     private bool ShouldShowMissingFleeFallback =>
         DetectionBehavior == EnemyDetectionBehavior.FleeToPoint && !CanFlee;
 }

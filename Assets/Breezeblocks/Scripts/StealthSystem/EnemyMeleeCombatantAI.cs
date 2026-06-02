@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using Breezeblocks.Missions;
 using Breezeblocks.WeaponSystem;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -90,6 +91,9 @@ public class EnemyMeleeCombatantAI : MonoBehaviour
 
     private void Update()
     {
+        if (GameplayMissionController.EnemyRuntimeBlockedAtMissionStart)
+            return;
+
         if (enemyMovementController == null ||
             EquippedMeleeWeapon == null ||
             !IsCombatAwarenessState(enemyMovementController.CurrentState) ||

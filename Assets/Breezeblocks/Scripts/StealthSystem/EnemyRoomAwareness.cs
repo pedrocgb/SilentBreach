@@ -1,4 +1,5 @@
 using System.Collections;
+using Breezeblocks.Missions;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -114,6 +115,9 @@ public class EnemyRoomAwareness : MonoBehaviour
 
     private void Update()
     {
+        if (GameplayMissionController.EnemyRuntimeBlockedAtMissionStart)
+            return;
+
         if (Time.time < nextRoomCheckTime)
             return;
 
@@ -132,6 +136,9 @@ public class EnemyRoomAwareness : MonoBehaviour
 
     private void HandleNoiseReactionTriggered(NoiseEvent noiseEvent)
     {
+        if (GameplayMissionController.EnemyRuntimeBlockedAtMissionStart)
+            return;
+
         if (reactionRoutine == null)
             return;
 

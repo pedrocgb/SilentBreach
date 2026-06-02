@@ -184,6 +184,8 @@ public class EnemyMovementController : MonoBehaviour
     private const float MinimumDirectionSqr = 0.0001f;
     private const float DestinationRefreshSqrDistance = 0.0025f;
     private const float AstarAccelerationOverride = 9999f;
+    private const float MinimumDoorAutoOpenRange = 0.05f;
+    private const float MinimumDoorAutoOpenRadius = 0.01f;
 
     [FoldoutGroup("References")]
     [Tooltip("Optional override. If empty, uses Rigidbody2D on this GameObject.")]
@@ -198,6 +200,39 @@ public class EnemyMovementController : MonoBehaviour
 
     [FoldoutGroup("A* Pathfinding")]
     [SerializeField] private Seeker seeker;
+
+    [FoldoutGroup("Doors")]
+    [SerializeField] private bool allowClosedDoorTraversalWhileAlert = true;
+
+    [FoldoutGroup("Doors")]
+    [SerializeField] private bool allowClosedDoorTraversalWhileSuspicious = true;
+
+    [FoldoutGroup("Doors")]
+    [SerializeField] private bool allowClosedDoorTraversalWhileSearching = true;
+
+    [FoldoutGroup("Doors")]
+    [SerializeField] private bool allowClosedDoorTraversalWhileFleeing = true;
+
+    [FoldoutGroup("Doors")]
+    [SerializeField] private bool allowClosedDoorTraversalWhileDetected;
+
+    [FoldoutGroup("Doors"), Range(0, 31)]
+    [SerializeField] private int closedDoorPathTag = 1;
+
+    [FoldoutGroup("Doors"), MinValue(0)]
+    [SerializeField] private int closedDoorTagPenalty;
+
+    [FoldoutGroup("Doors")]
+    [SerializeField] private LayerMask doorDetectionMask = Physics2D.AllLayers;
+
+    [FoldoutGroup("Doors"), MinValue(MinimumDoorAutoOpenRange), SuffixLabel("u", true)]
+    [SerializeField] private float doorAutoOpenRange = 0.9f;
+
+    [FoldoutGroup("Doors"), MinValue(MinimumDoorAutoOpenRadius), SuffixLabel("u", true)]
+    [SerializeField] private float doorAutoOpenRadius = 0.18f;
+
+    [FoldoutGroup("Doors"), MinValue(0f), SuffixLabel("s", true)]
+    [SerializeField] private float doorAutoOpenCooldown = 0.2f;
 
     private EnemyState startingState = EnemyState.Idle;
 
@@ -461,6 +496,12 @@ public class EnemyMovementController : MonoBehaviour
     private float alertDefaultFacingAngle;
     private Vector2 alertNoiseFocusPoint;
     private float alertStimulusUntil = float.NegativeInfinity;
+    private int defaultTraversableTags = -1;
+    private int[] defaultTagPenalties;
+    private bool doorTraversalPreferencesInitialized;
+    private bool doorTraversalPreferenceDirty = true;
+    private float nextDoorAutoOpenTime;
+    private readonly RaycastHit2D[] doorAutoOpenHits = new RaycastHit2D[8];
 
     private void Reset()
     {
@@ -475,26 +516,30 @@ public class EnemyMovementController : MonoBehaviour
         lastStableFacingDirection = ResolveCurrentFacingDirection();
         ApplyRigidbodyRecommendations();
         ConfigureAstarDriver();
+        CacheDoorTraversalPreferences();
+        ApplyDoorTraversalPreferencesIfNeeded(force: true);
         CharacterOrbitHandsAnimator.EnsureOn(gameObject);
+
+        if (IsMissionStartupBlockingEnemyRuntime())
+            HoldForMissionStartup();
     }
 
     private void Start()
     {
-        startupCompleted = true;
-
-        if (ShouldUseItinerary)
+        if (IsMissionStartupBlockingEnemyRuntime())
         {
-            BeginItinerary();
+            HoldForMissionStartup();
             return;
         }
 
-        ResumeStartingStateWithoutItinerary();
+        CompleteStartup();
     }
 
     private void OnValidate()
     {
         ClampSettings();
         CacheReferences();
+        CacheDoorTraversalPreferences();
 
         if (!Application.isPlaying)
             CharacterOrbitHandsAnimator.EnsureOn(gameObject);
@@ -503,18 +548,34 @@ public class EnemyMovementController : MonoBehaviour
             ApplyRigidbodyRecommendations();
 
         ConfigureAstarDriver();
+        doorTraversalPreferenceDirty = true;
     }
 
     private void Update()
     {
+        if (IsMissionStartupBlockingEnemyRuntime())
+        {
+            HoldForMissionStartup();
+            return;
+        }
+
+        CompleteStartup();
         SyncRuntimeMovementState();
         UpdateStateMachine();
         UpdateItinerary(Time.deltaTime);
         SyncAstarTargets();
+        TryAutoOpenDoorInPath();
     }
 
     private void FixedUpdate()
     {
+        if (IsMissionStartupBlockingEnemyRuntime())
+        {
+            HoldForMissionStartup();
+            return;
+        }
+
+        CompleteStartup();
         SyncRuntimeMovementState();
         UpdateMovementSpeed(Time.fixedDeltaTime);
         ApplyMovementDriver();
@@ -1066,6 +1127,41 @@ public class EnemyMovementController : MonoBehaviour
         ResumeStartingStateWithoutItinerary();
     }
 
+    public void HandleMissionGameplayStarted()
+    {
+        if (IsMissionStartupBlockingEnemyRuntime())
+            return;
+
+        if (movementBody != null)
+        {
+            movementBody.linearVelocity = Vector2.zero;
+            movementBody.angularVelocity = 0f;
+        }
+
+        if (aiPath != null)
+        {
+            aiPath.canMove = true;
+            aiPath.isStopped = false;
+            aiPath.Teleport(CurrentPosition, false);
+        }
+
+        CompleteStartup();
+        ApplyDoorTraversalPreferencesIfNeeded(force: true);
+        RefreshRuntimeNavigationForCurrentState();
+        SyncAstarTargets();
+        SyncRuntimeMovementState();
+    }
+
+    public void HandleEnvironmentPathingChanged()
+    {
+        if (currentState == EnemyState.Disabled)
+            return;
+
+        ApplyDoorTraversalPreferencesIfNeeded(force: true);
+        RefreshRuntimeNavigationForCurrentState();
+        SyncAstarTargets();
+    }
+
     public bool CanReactToNoise()
     {
         return currentState != EnemyState.Detected &&
@@ -1159,10 +1255,23 @@ public class EnemyMovementController : MonoBehaviour
         forceZeroGravity = settings.ForceZeroGravity;
         recommendedInterpolation = settings.RecommendedInterpolation;
         recommendedCollisionDetection = settings.RecommendedCollisionDetection;
+        allowClosedDoorTraversalWhileAlert = settings.AllowClosedDoorTraversalWhileAlert;
+        allowClosedDoorTraversalWhileSuspicious = settings.AllowClosedDoorTraversalWhileSuspicious;
+        allowClosedDoorTraversalWhileSearching = settings.AllowClosedDoorTraversalWhileSearching;
+        allowClosedDoorTraversalWhileFleeing = settings.AllowClosedDoorTraversalWhileFleeing;
+        allowClosedDoorTraversalWhileDetected = settings.AllowClosedDoorTraversalWhileDetected;
+        closedDoorPathTag = settings.ClosedDoorPathTag;
+        closedDoorTagPenalty = settings.ClosedDoorTagPenalty;
+        doorDetectionMask = settings.DoorDetectionMask;
+        doorAutoOpenRange = settings.DoorAutoOpenRange;
+        doorAutoOpenRadius = settings.DoorAutoOpenRadius;
+        doorAutoOpenCooldown = settings.DoorAutoOpenCooldown;
 
         ClampSettings();
         ApplyRigidbodyRecommendations();
         ConfigureAstarDriver();
+        CacheDoorTraversalPreferences();
+        ApplyDoorTraversalPreferencesIfNeeded(force: true);
     }
 
     public void HoldDetectedPosition()
@@ -2068,6 +2177,7 @@ public class EnemyMovementController : MonoBehaviour
 
         if (aiPath != null)
         {
+            ApplyDoorTraversalPreferencesIfNeeded();
             aiPath.destination = currentDestination;
             if (forceSearchPath && CanIssueAstarSearchRequest())
                 aiPath.SearchPath();
@@ -2085,6 +2195,7 @@ public class EnemyMovementController : MonoBehaviour
 
         if (aiPath != null)
         {
+            ApplyDoorTraversalPreferencesIfNeeded();
             aiPath.destination = destination;
             if (forceSearchPath && CanIssueAstarSearchRequest())
                 aiPath.SearchPath();
@@ -2318,9 +2429,12 @@ public class EnemyMovementController : MonoBehaviour
         EnemyState oldState = currentState;
         previousState = currentState;
         currentState = newState;
+        doorTraversalPreferenceDirty = true;
 
         if (!UsesCombatMovementOverridesForState(newState))
             hasDetectedMovementOverride = false;
+
+        ApplyDoorTraversalPreferencesIfNeeded();
 
         if (debugMovement)
             Debug.Log($"{name} state changed from {previousState} to {currentState}.", this);
@@ -2462,6 +2576,245 @@ public class EnemyMovementController : MonoBehaviour
         return aiPath != null && (!Application.isPlaying || startupCompleted);
     }
 
+    private void CacheDoorTraversalPreferences()
+    {
+        if (seeker == null)
+            return;
+
+        defaultTraversableTags = seeker.traversableTags;
+        if (defaultTagPenalties == null || defaultTagPenalties.Length != 32)
+            defaultTagPenalties = new int[32];
+
+        if (seeker.tagPenalties != null)
+            Array.Copy(seeker.tagPenalties, defaultTagPenalties, Mathf.Min(defaultTagPenalties.Length, seeker.tagPenalties.Length));
+        else
+            Array.Clear(defaultTagPenalties, 0, defaultTagPenalties.Length);
+
+        doorTraversalPreferencesInitialized = true;
+        doorTraversalPreferenceDirty = true;
+    }
+
+    private void ApplyDoorTraversalPreferencesIfNeeded(bool force = false)
+    {
+        if (seeker == null)
+            return;
+
+        if (!doorTraversalPreferencesInitialized || defaultTagPenalties == null || defaultTagPenalties.Length != 32)
+            CacheDoorTraversalPreferences();
+
+        if (!doorTraversalPreferencesInitialized)
+            return;
+
+        if (!force && !doorTraversalPreferenceDirty)
+            return;
+
+        int doorTagMask = 1 << closedDoorPathTag;
+        bool allowClosedDoorTraversal = ShouldAllowClosedDoorTraversalForCurrentState();
+        int desiredTraversableTags = allowClosedDoorTraversal
+            ? defaultTraversableTags | doorTagMask
+            : defaultTraversableTags & ~doorTagMask;
+
+        seeker.traversableTags = desiredTraversableTags;
+
+        if (seeker.tagPenalties == null || seeker.tagPenalties.Length != 32)
+            seeker.tagPenalties = new int[32];
+
+        for (int i = 0; i < seeker.tagPenalties.Length; i++)
+        {
+            int desiredPenalty = defaultTagPenalties[i];
+            if (i == closedDoorPathTag && allowClosedDoorTraversal)
+                desiredPenalty = closedDoorTagPenalty;
+
+            if (seeker.tagPenalties[i] == desiredPenalty)
+                continue;
+
+            seeker.tagPenalties[i] = desiredPenalty;
+        }
+
+        doorTraversalPreferenceDirty = false;
+    }
+
+    private bool ShouldAllowClosedDoorTraversalForCurrentState()
+    {
+        return currentState switch
+        {
+            EnemyState.Alert => allowClosedDoorTraversalWhileAlert,
+            EnemyState.Suspicious => allowClosedDoorTraversalWhileSuspicious,
+            EnemyState.Searching => allowClosedDoorTraversalWhileSearching,
+            EnemyState.Fleeing => allowClosedDoorTraversalWhileFleeing,
+            EnemyState.Detected => allowClosedDoorTraversalWhileDetected,
+            _ => false
+        };
+    }
+
+    private bool TryAutoOpenDoorInPath()
+    {
+        if (!ShouldAllowClosedDoorTraversalForCurrentState() ||
+            !hasDestination ||
+            Time.time < nextDoorAutoOpenTime)
+            return false;
+
+        if (!TryResolveDoorAutoOpenDirection(out Vector2 direction))
+            return false;
+
+        int hitCount = Physics2D.CircleCastNonAlloc(
+            CurrentPosition,
+            doorAutoOpenRadius,
+            direction,
+            doorAutoOpenHits,
+            doorAutoOpenRange,
+            doorDetectionMask);
+
+        DoorInteractable nearestDoor = null;
+        float nearestDistance = float.PositiveInfinity;
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            RaycastHit2D hit = doorAutoOpenHits[i];
+            Collider2D hitCollider = hit.collider;
+            if (hitCollider == null)
+                continue;
+
+            DoorInteractable candidateDoor = hitCollider.GetComponentInParent<DoorInteractable>();
+            if (candidateDoor == null || !candidateDoor.CanBeAutoOpenedByEnemy(this))
+                continue;
+
+            if (hit.distance >= nearestDistance)
+                continue;
+
+            nearestDistance = hit.distance;
+            nearestDoor = candidateDoor;
+        }
+
+        if (nearestDoor == null || !nearestDoor.TryOpenForEnemy(this))
+            return false;
+
+        nextDoorAutoOpenTime = Time.time + doorAutoOpenCooldown;
+        return true;
+    }
+
+    private bool TryResolveDoorAutoOpenDirection(out Vector2 direction)
+    {
+        direction = Vector2.zero;
+
+        if (aiPath != null)
+        {
+            Vector2 steeringDirection = (Vector2)aiPath.steeringTarget - CurrentPosition;
+            if (steeringDirection.sqrMagnitude > MinimumDirectionSqr)
+            {
+                direction = steeringDirection.normalized;
+                return true;
+            }
+        }
+
+        if (hasDestination)
+        {
+            Vector2 toDestination = currentDestination - CurrentPosition;
+            if (toDestination.sqrMagnitude > MinimumDirectionSqr)
+            {
+                direction = toDestination.normalized;
+                return true;
+            }
+        }
+
+        Vector2 movementVector = ResolveMovementVector();
+        if (movementVector.sqrMagnitude <= MinimumDirectionSqr)
+            return false;
+
+        direction = movementVector.normalized;
+        return true;
+    }
+
+    private static bool IsMissionStartupBlockingEnemyRuntime()
+    {
+        return GameplayMissionController.EnemyRuntimeBlockedAtMissionStart;
+    }
+
+    private void CompleteStartup()
+    {
+        if (startupCompleted)
+            return;
+
+        startupCompleted = true;
+
+        if (ShouldUseItinerary)
+        {
+            BeginItinerary();
+            return;
+        }
+
+        ResumeStartingStateWithoutItinerary();
+    }
+
+    private void HoldForMissionStartup()
+    {
+        if (movementBody != null)
+        {
+            movementBody.linearVelocity = Vector2.zero;
+            movementBody.angularVelocity = 0f;
+        }
+
+        if (aiPath == null)
+            return;
+
+        aiPath.canMove = false;
+        aiPath.isStopped = true;
+        aiPath.destination = transform.position;
+    }
+
+    private void RefreshRuntimeNavigationForCurrentState()
+    {
+        switch (currentState)
+        {
+            case EnemyState.Patrol:
+                MoveToCurrentPatrolPoint();
+                return;
+
+            case EnemyState.Suspicious:
+            case EnemyState.Searching:
+            case EnemyState.ReturningToStart:
+            case EnemyState.Fleeing:
+                if (hasDestination)
+                    SetDirectDestination(currentDestination, true);
+                return;
+
+            case EnemyState.Detected:
+                if (ResolveDetectionBehavior() == EnemyDetectionBehavior.ChasePlayer && detectedTarget != null)
+                    SetFollowTarget(detectedTarget, true);
+                else if (hasDestination)
+                    SetDirectDestination(currentDestination, true);
+                return;
+
+            case EnemyState.Alert:
+                if (hasDetectedMovementOverride && hasDestination)
+                {
+                    SetDirectDestination(currentDestination, true);
+                    return;
+                }
+
+                if (alertChaseTarget && detectedTarget != null)
+                {
+                    SetFollowTarget(detectedTarget, true);
+                    return;
+                }
+
+                if (alertChaseTarget && HasActiveAlertStimulus())
+                {
+                    SetDirectDestination(lastKnownTargetPosition, true);
+                    return;
+                }
+
+                if (hasDestination)
+                    SetDirectDestination(currentDestination, true);
+                return;
+
+            default:
+                if (hasDestination)
+                    SetDirectDestination(currentDestination, true);
+                return;
+        }
+    }
+
     private void ClampSettings()
     {
         startingState = SanitizeStartingState(startingState);
@@ -2481,6 +2834,11 @@ public class EnemyMovementController : MonoBehaviour
         lookAroundRotationSpeed = Mathf.Max(0f, lookAroundRotationSpeed);
         randomLookAngleRange = Mathf.Clamp(randomLookAngleRange, 0f, 360f);
         fleeStoppingDistance = Mathf.Max(MinimumDistance, fleeStoppingDistance);
+        closedDoorPathTag = Mathf.Clamp(closedDoorPathTag, 0, 31);
+        closedDoorTagPenalty = Mathf.Max(0, closedDoorTagPenalty);
+        doorAutoOpenRange = Mathf.Max(MinimumDoorAutoOpenRange, doorAutoOpenRange);
+        doorAutoOpenRadius = Mathf.Max(MinimumDoorAutoOpenRadius, doorAutoOpenRadius);
+        doorAutoOpenCooldown = Mathf.Max(0f, doorAutoOpenCooldown);
 
         if (!useMovePosition && !useVelocityMovement)
             useMovePosition = true;

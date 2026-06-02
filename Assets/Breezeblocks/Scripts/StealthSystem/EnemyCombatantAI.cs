@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Breezeblocks.Missions;
 using Pathfinding;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -295,6 +296,9 @@ public class EnemyCombatantAI : MonoBehaviour
 
     private void Update()
     {
+        if (GameplayMissionController.EnemyRuntimeBlockedAtMissionStart)
+            return;
+
         UpdateReloadState();
 
         if (isFlashbanged)

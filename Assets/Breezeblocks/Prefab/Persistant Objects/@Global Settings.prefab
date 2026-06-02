@@ -1,0 +1,117 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &8437850305518007706
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6623324757327919866}
+  - component: {fileID: 6851068643519668860}
+  m_Layer: 0
+  m_Name: '@Global Settings'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6623324757327919866
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8437850305518007706}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 342.88913, y: 150.90453, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6851068643519668860
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8437850305518007706}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5dadece859e75184c9b856f766aa71ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GlobalSettings
+  sprintToggleEnabled: 0
+  focusToggleEnabled: 0
+  shotNoiseDuration: 0.3
+  equipNoiseDuration: 0.4
+  holsterNoiseDuration: 0.6
+  incapacitatedWakeUpDelay: 180
+  equipmentContextUi:
+    yesText: ' Sim'
+    noText: " N\xE3o"
+    roundsPerSecondText: ' p/s'
+    oneHandedGripText: " Uma M\xE3o"
+    twoHandedGripText: " Duas M\xE3o"
+    primarySlotName: ' Costas'
+    secondarySlotName: ' Coldre'
+    beltSlotName: ' Cinto'
+    armorSlotName: ' Colete'
+    gripPrefix: 'Tipo: '
+    lethalPrefix: 'Letal: '
+    staminaCostPrefix: 'Custo Vigor: '
+    armorPenetrationPrefix: "Penetra\xE7\xE3o: "
+    firearmPenetrationPrefix: 'Penetration: '
+    slotsPrefix: 'Slots: '
+    classPrefix: 'Classe: '
+    fireModePrefix: 'Modo de Fogo: '
+    fireRatePrefix: 'Taxa de Tiro: '
+    spreadPrefix: "Dispers\xE3o: "
+    ammoPrefix: "Muni\xE7\xE3o: "
+    reserveAmmoPrefix: "Muni\xE7\xE3o Reserva: "
+    reloadTimePrefix: 'Tempo de Recarga: '
+    utilityTypePrefix: 'Tipo: '
+    quantityPrefix: 'Quantidade: '
+    flashbangDurationPrefix: "Dura\xE7\xE3o Atordoamento:  "
+    explosionRadiusPrefix: "Raio da Explos\xE3o: "
+    explosionTypePrefix: "Tipo de Explos\xE3o: "
+    detonationDelayPrefix: "Atraso Detona\xE7\xE3o: "
+    armorClassPrefix: 'Classe de Armadura: '
+    armorValuePrefix: 'Durabilidade: '
+    rotationPenaltyPrefix: "Penalidade de Rota\xE7\xE3o: "
+    movementNoiseIncreasePrefix: 'Penalidade de Barulho: '
+    movementSpeedPenaltyPrefix: 'Penalidade de Movimento: '
+    prefixColor: {r: 1, g: 1, b: 1, a: 1}
+    throwableNoiseMakerText: " Distra\xE7\xE3o"
+    throwableDirectDamageText: ' Dano'
+    throwableExplosionText: " Explos\xE3o"
+    throwableFlashbangText: ' Atordoamento'
+    pistolClassText: ' Pistola'
+    revolverClassText: ' Revolver'
+    smgClassText: ' SMG'
+    shotgunClassText: ' Espingarda'
+    pumpShotgunClassText: ' Espingarda'
+    semiAutoShotgunClassText: ' Espingarda'
+    rifleClassText: ' Rifle'
+    assaultRifleClassText: ' Rifle de Assaulto'
+    carbineClassText: ' Carabina'
+    sniperRifleClassText: ' Rifle de Atirador'
+    detonationOnHitText: ' Impacto'
+    detonationOnTimerText: ' Temporizador'
+    detonationOnHitAndTimerText: ' Impacto ou Temporizador'
+    jobLevelPrefix: "N\xEDvel:"
+    easyJobLevelText: "F\xE1cil"
+    mediumJobLevelText: "M\xE9dio"
+    hardJobLevelText: "Dif\xEDcil"
+    insaneJobLevelText: Insano
+    perkTierText: 'Tier: '
+    perkCostText: 'Cost: '
+  hudUi:
+    hudAlwaysOn: 0
+    objectivesAlwaysOn: 1
+    autoHideDelaySeconds: 4
+    fadeInDuration: 0.1
+    fadeOutDuration: 0.2

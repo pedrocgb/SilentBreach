@@ -138,18 +138,22 @@ public sealed class PlayerEquipmentRuntimeLoadout
 public static class PlayerEquipmentRuntimeSession
 {
     private static PlayerEquipmentRuntimeLoadout pendingQuestLoadout;
+    private static PlayerEquipmentRuntimeLoadout preparedQuestLoadout;
 
     public static bool HasPendingQuestLoadout => pendingQuestLoadout != null;
+    public static bool HasPreparedQuestLoadout => preparedQuestLoadout != null;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void Reset()
     {
         pendingQuestLoadout = null;
+        preparedQuestLoadout = null;
     }
 
     public static void SetPendingQuestLoadout(PlayerEquipmentRuntimeLoadout loadout)
     {
         pendingQuestLoadout = loadout?.Clone();
+        preparedQuestLoadout = loadout?.Clone();
     }
 
     public static bool TryConsumePendingQuestLoadout(out PlayerEquipmentRuntimeLoadout loadout)
@@ -168,6 +172,23 @@ public static class PlayerEquipmentRuntimeSession
     public static PlayerEquipmentRuntimeLoadout PeekPendingQuestLoadout()
     {
         return pendingQuestLoadout?.Clone();
+    }
+
+    public static PlayerEquipmentRuntimeLoadout PeekPreparedQuestLoadout()
+    {
+        return preparedQuestLoadout?.Clone();
+    }
+
+    public static bool RestorePreparedQuestLoadoutForReplay()
+    {
+        if (preparedQuestLoadout == null)
+        {
+            pendingQuestLoadout = null;
+            return false;
+        }
+
+        pendingQuestLoadout = preparedQuestLoadout.Clone();
+        return true;
     }
 
     public static void ClearPendingQuestLoadout()

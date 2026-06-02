@@ -64,6 +64,7 @@ public sealed class PlayerPerkRuntimeLoadout
 public static class PlayerPerkRuntimeSession
 {
     private static PlayerPerkRuntimeLoadout equippedPerks = new();
+    private static PlayerPerkRuntimeLoadout preparedEquippedPerks = new();
 
     public static bool HasEquippedPerks => equippedPerks != null && equippedPerks.Count > 0;
 
@@ -71,11 +72,13 @@ public static class PlayerPerkRuntimeSession
     private static void Reset()
     {
         equippedPerks = new PlayerPerkRuntimeLoadout();
+        preparedEquippedPerks = new PlayerPerkRuntimeLoadout();
     }
 
     public static void SetEquippedPerks(PlayerPerkRuntimeLoadout loadout)
     {
         equippedPerks = loadout != null ? loadout.Clone() : new PlayerPerkRuntimeLoadout();
+        preparedEquippedPerks = equippedPerks.Clone();
     }
 
     public static void SetEquippedPerks(IEnumerable<HideoutPerkDefinition> perkDefinitions)
@@ -83,6 +86,7 @@ public static class PlayerPerkRuntimeSession
         PlayerPerkRuntimeLoadout loadout = new();
         loadout.SetPerks(perkDefinitions);
         equippedPerks = loadout;
+        preparedEquippedPerks = equippedPerks.Clone();
     }
 
     public static PlayerPerkRuntimeLoadout PeekEquippedPerks()
@@ -93,6 +97,17 @@ public static class PlayerPerkRuntimeSession
     public static void ClearEquippedPerks()
     {
         equippedPerks = new PlayerPerkRuntimeLoadout();
+        preparedEquippedPerks = new PlayerPerkRuntimeLoadout();
+    }
+
+    public static PlayerPerkRuntimeLoadout PeekPreparedEquippedPerks()
+    {
+        return preparedEquippedPerks != null ? preparedEquippedPerks.Clone() : new PlayerPerkRuntimeLoadout();
+    }
+
+    public static void RestorePreparedEquippedPerks()
+    {
+        equippedPerks = preparedEquippedPerks != null ? preparedEquippedPerks.Clone() : new PlayerPerkRuntimeLoadout();
     }
 }
 

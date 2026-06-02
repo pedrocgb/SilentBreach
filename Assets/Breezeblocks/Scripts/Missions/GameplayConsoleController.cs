@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Breezeblocks.HideoutSystem;
 using Breezeblocks.WeaponSystem;
 using Rewired;
 using Sirenix.OdinInspector;
@@ -569,6 +570,8 @@ public class GameplayConsoleController : MonoBehaviour
     {
         AppendLog("Restarting current level.");
         SetConsoleVisible(false);
+        PlayerEquipmentRuntimeSession.RestorePreparedQuestLoadoutForReplay();
+        PlayerPerkRuntimeSession.RestorePreparedEquippedPerks();
         Scene activeScene = SceneManager.GetActiveScene();
         SceneManager.LoadScene(activeScene.name);
     }

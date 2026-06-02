@@ -230,6 +230,9 @@ public class EnemyVisionAI : MonoBehaviour
 
     private void Update()
     {
+        if (GameplayMissionController.EnemyRuntimeBlockedAtMissionStart)
+            return;
+
         if (Time.time >= nextVisionCheckTime)
         {
             PerformVisionCheck();

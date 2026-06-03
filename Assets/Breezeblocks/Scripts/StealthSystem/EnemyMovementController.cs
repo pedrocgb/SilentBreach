@@ -202,6 +202,9 @@ public class EnemyMovementController : MonoBehaviour
     [SerializeField] private Seeker seeker;
 
     [FoldoutGroup("Doors")]
+    [SerializeField] private bool allowClosedDoorTraversalWhilePatrol = true;
+
+    [FoldoutGroup("Doors")]
     [SerializeField] private bool allowClosedDoorTraversalWhileAlert = true;
 
     [FoldoutGroup("Doors")]
@@ -221,6 +224,9 @@ public class EnemyMovementController : MonoBehaviour
 
     [FoldoutGroup("Doors"), MinValue(0)]
     [SerializeField] private int closedDoorTagPenalty;
+
+    [FoldoutGroup("Doors"), MinValue(0)]
+    [SerializeField] private int closedDoorPatrolTagPenalty;
 
     [FoldoutGroup("Doors")]
     [SerializeField] private LayerMask doorDetectionMask = Physics2D.AllLayers;
@@ -1255,6 +1261,7 @@ public class EnemyMovementController : MonoBehaviour
         forceZeroGravity = settings.ForceZeroGravity;
         recommendedInterpolation = settings.RecommendedInterpolation;
         recommendedCollisionDetection = settings.RecommendedCollisionDetection;
+        allowClosedDoorTraversalWhilePatrol = settings.AllowClosedDoorTraversalWhilePatrol;
         allowClosedDoorTraversalWhileAlert = settings.AllowClosedDoorTraversalWhileAlert;
         allowClosedDoorTraversalWhileSuspicious = settings.AllowClosedDoorTraversalWhileSuspicious;
         allowClosedDoorTraversalWhileSearching = settings.AllowClosedDoorTraversalWhileSearching;
@@ -1262,6 +1269,7 @@ public class EnemyMovementController : MonoBehaviour
         allowClosedDoorTraversalWhileDetected = settings.AllowClosedDoorTraversalWhileDetected;
         closedDoorPathTag = settings.ClosedDoorPathTag;
         closedDoorTagPenalty = settings.ClosedDoorTagPenalty;
+        closedDoorPatrolTagPenalty = settings.ClosedDoorPatrolTagPenalty;
         doorDetectionMask = settings.DoorDetectionMask;
         doorAutoOpenRange = settings.DoorAutoOpenRange;
         doorAutoOpenRadius = settings.DoorAutoOpenRadius;
@@ -1604,12 +1612,23 @@ public class EnemyMovementController : MonoBehaviour
         if (currentState != EnemyState.Patrol && !(currentState == EnemyState.LookAround && currentLookAroundContext == EnemyLookAroundContext.Patrol))
             return;
 
+        if (!ShouldCountPatrolItineraryTime())
+            return;
+
         itineraryStepRemainingTime = Mathf.Max(0f, itineraryStepRemainingTime - deltaTime);
         if (itineraryStepRemainingTime > 0f)
             return;
 
         itineraryPatrolCompletionPending = false;
         AdvanceItineraryStep();
+    }
+
+    private bool ShouldCountPatrolItineraryTime()
+    {
+        if (currentState == EnemyState.LookAround)
+            return currentLookAroundContext == EnemyLookAroundContext.Patrol;
+
+        return patrolWaiting || hasReachedDestination;
     }
 
     private void UpdateMovementSpeed(float deltaTime)
@@ -2623,7 +2642,7 @@ public class EnemyMovementController : MonoBehaviour
         {
             int desiredPenalty = defaultTagPenalties[i];
             if (i == closedDoorPathTag && allowClosedDoorTraversal)
-                desiredPenalty = closedDoorTagPenalty;
+                desiredPenalty = ResolveClosedDoorTagPenaltyForCurrentState();
 
             if (seeker.tagPenalties[i] == desiredPenalty)
                 continue;
@@ -2638,6 +2657,7 @@ public class EnemyMovementController : MonoBehaviour
     {
         return currentState switch
         {
+            EnemyState.Patrol => allowClosedDoorTraversalWhilePatrol,
             EnemyState.Alert => allowClosedDoorTraversalWhileAlert,
             EnemyState.Suspicious => allowClosedDoorTraversalWhileSuspicious,
             EnemyState.Searching => allowClosedDoorTraversalWhileSearching,
@@ -2645,6 +2665,13 @@ public class EnemyMovementController : MonoBehaviour
             EnemyState.Detected => allowClosedDoorTraversalWhileDetected,
             _ => false
         };
+    }
+
+    private int ResolveClosedDoorTagPenaltyForCurrentState()
+    {
+        return currentState == EnemyState.Patrol
+            ? closedDoorPatrolTagPenalty
+            : closedDoorTagPenalty;
     }
 
     private bool TryAutoOpenDoorInPath()
@@ -2836,6 +2863,7 @@ public class EnemyMovementController : MonoBehaviour
         fleeStoppingDistance = Mathf.Max(MinimumDistance, fleeStoppingDistance);
         closedDoorPathTag = Mathf.Clamp(closedDoorPathTag, 0, 31);
         closedDoorTagPenalty = Mathf.Max(0, closedDoorTagPenalty);
+        closedDoorPatrolTagPenalty = Mathf.Max(0, closedDoorPatrolTagPenalty);
         doorAutoOpenRange = Mathf.Max(MinimumDoorAutoOpenRange, doorAutoOpenRange);
         doorAutoOpenRadius = Mathf.Max(MinimumDoorAutoOpenRadius, doorAutoOpenRadius);
         doorAutoOpenCooldown = Mathf.Max(0f, doorAutoOpenCooldown);

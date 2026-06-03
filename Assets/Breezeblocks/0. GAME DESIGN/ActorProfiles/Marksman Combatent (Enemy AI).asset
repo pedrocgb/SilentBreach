@@ -24,7 +24,7 @@ MonoBehaviour:
     StartingPointFacing:
       FacingMode: 0
       CustomAngle: 0
-    WalkSpeed: 1
+    WalkSpeed: 3
     RunSpeed: 2
     SprintSpeed: 3.5
     Acceleration: 10
@@ -40,11 +40,13 @@ MonoBehaviour:
     PreferPathSteeringDirection: 1
     LockRotationWhenIdle: 1
     PatrolMode: 0
-    DetachReferencedPointsToWorldOnAwake: 1
     ReturnToStartAfterTemporaryStates: 1
+    Investigate: 1
     ReturnToStartSpeedType: 0
     EnterAlertStateWhenTargetLost: 1
+    ChaseTarget: 1
     AlertNoiseFocusDuration: 2
+    AlertTargetLostDuration: 3
     DefaultLookAroundDuration: 2.5
     LookAroundTurnInterval: 0.5
     LookAroundRotationSpeed: 360
@@ -65,6 +67,19 @@ MonoBehaviour:
     ForceZeroGravity: 1
     RecommendedInterpolation: 1
     RecommendedCollisionDetection: 1
+    AllowClosedDoorTraversalWhileAlert: 1
+    AllowClosedDoorTraversalWhileSuspicious: 1
+    AllowClosedDoorTraversalWhileSearching: 1
+    AllowClosedDoorTraversalWhileFleeing: 1
+    AllowClosedDoorTraversalWhileDetected: 1
+    ClosedDoorPathTag: 1
+    ClosedDoorTagPenalty: 0
+    DoorDetectionMask:
+      serializedVersion: 2
+      m_Bits: 8192
+    DoorAutoOpenRange: 0.9
+    DoorAutoOpenRadius: 0.18
+    DoorAutoOpenCooldown: 0.2
   Vision:
     VisionRange: 12
     VisionAngle: 140
@@ -75,7 +90,7 @@ MonoBehaviour:
     RequireLineOfSight: 1
     ObstacleMask:
       serializedVersion: 2
-      m_Bits: 128
+      m_Bits: 8320
     VisibilityThreshold: 0.15
     DetectionSpeed: 1.25
     DetectionDecaySpeed: 0.5
@@ -90,13 +105,13 @@ MonoBehaviour:
     CloseRangeDistance: 1.5
     NoBonusDistance: 6
     CloseRangeDetectionMultiplier: 4
-    DebugDraw: 1
     DebugLogging: 0
   Hearing:
     EnableHearing: 1
     LoudHearingRange: 35
     CommonHearingRange: 9
     SilentHearingRange: 3
+    IgnoreSilentSounds: 0
     HearingThreshold: 0.2
     MaximumAccumulatedDetection: 1
     DetectionDecayDelay: 1
@@ -129,12 +144,11 @@ MonoBehaviour:
     UseObstructionCheck: 1
     ObstructionLayerMask:
       serializedVersion: 2
-      m_Bits: 128
+      m_Bits: 8320
     WallObstructionMultiplier: 0.2
     MaxObstructionChecks: 4
     StackObstructionMultipliers: 1
     DebugHearing: 1
-    DrawHearingRanges: 1
   Combat:
     StartArmed: 0
     StartingFirearm: {fileID: 11400000, guid: c7e8e44f593459e458e60c5bb09f8f77, type: 2}
@@ -170,9 +184,8 @@ MonoBehaviour:
     MuzzleFlashPoolPrewarm: 8
     MuzzleFlashRotationOffset: 0
     DebugCombat: 0
-    DrawCombatGizmos: 1
   Melee:
-    StartArmed: 1
+    StartArmed: 0
     StartingWeapon: {fileID: 0}
     AttackDecisionInterval: 0.05
     DebugMelee: 0

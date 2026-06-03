@@ -1,0 +1,1573 @@
+fileFormatVersion: 2
+guid: cdeeef0d9c0383a4a9a993f587980722
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 4123747586684601567
+    second: Deck of Cards - Decoration_0
+  - first:
+      213: 1862058062727134252
+    second: Deck of Cards - Decoration_1
+  - first:
+      213: 5561331426271016511
+    second: Deck of Cards - Decoration_2
+  - first:
+      213: 7665091760730854495
+    second: Deck of Cards - Decoration_3
+  - first:
+      213: 2174625637041861676
+    second: Deck of Cards - Decoration_4
+  - first:
+      213: -3284151066465978880
+    second: Deck of Cards - Decoration_5
+  - first:
+      213: -4767964808319799186
+    second: Deck of Cards - Decoration_6
+  - first:
+      213: -3316645107722303145
+    second: Deck of Cards - Decoration_7
+  - first:
+      213: -2291530922699611392
+    second: Deck of Cards - Decoration_8
+  - first:
+      213: -7927147867656790319
+    second: Deck of Cards - Decoration_9
+  - first:
+      213: -2957406060546606483
+    second: Deck of Cards - Decoration_10
+  - first:
+      213: 8761222506034678936
+    second: Deck of Cards - Decoration_11
+  - first:
+      213: -6235955457656133006
+    second: Deck of Cards - Decoration_12
+  - first:
+      213: 6681699986158539841
+    second: Deck of Cards - Decoration_13
+  - first:
+      213: 3892715688959115014
+    second: Deck of Cards - Decoration_14
+  - first:
+      213: 8725883406215148897
+    second: Deck of Cards - Decoration_15
+  - first:
+      213: 5449363796137090995
+    second: Deck of Cards - Decoration_16
+  - first:
+      213: -4052476726758813847
+    second: Deck of Cards - Decoration_17
+  - first:
+      213: 4855063509063898260
+    second: Deck of Cards - Decoration_18
+  - first:
+      213: 2150788048609382035
+    second: Deck of Cards - Decoration_19
+  - first:
+      213: -3792034140472155577
+    second: Deck of Cards - Decoration_20
+  - first:
+      213: -1406227063113326538
+    second: Deck of Cards - Decoration_21
+  - first:
+      213: -2848306099305803462
+    second: Deck of Cards - Decoration_22
+  - first:
+      213: 2571954355076432764
+    second: Deck of Cards - Decoration_23
+  - first:
+      213: 8861557997440948508
+    second: Deck of Cards - Decoration_24
+  - first:
+      213: -8296770604869943864
+    second: Deck of Cards - Decoration_25
+  - first:
+      213: -8483932956644733210
+    second: Deck of Cards - Decoration_26
+  - first:
+      213: 6153633030808080543
+    second: Deck of Cards - Decoration_27
+  - first:
+      213: -528661494167598525
+    second: Deck of Cards - Decoration_28
+  - first:
+      213: -2668093836518567106
+    second: Deck of Cards - Decoration_29
+  - first:
+      213: -6956166884619337848
+    second: Deck of Cards - Decoration_30
+  - first:
+      213: 6954373722468837277
+    second: Deck of Cards - Decoration_31
+  - first:
+      213: 1561686104635823092
+    second: Deck of Cards - Decoration_32
+  - first:
+      213: 280158385543225660
+    second: Deck of Cards - Decoration_33
+  - first:
+      213: 690296330232454317
+    second: Deck of Cards - Decoration_34
+  - first:
+      213: -1069529910730672395
+    second: Deck of Cards - Decoration_35
+  - first:
+      213: -462824769373428935
+    second: Deck of Cards - Decoration_36
+  - first:
+      213: 4258975459080887769
+    second: Deck of Cards - Decoration_37
+  - first:
+      213: -3890441148907967853
+    second: Deck of Cards - Decoration_38
+  - first:
+      213: 2258234714373079645
+    second: Deck of Cards - Decoration_39
+  - first:
+      213: 7307421927352567065
+    second: Deck of Cards - Decoration_40
+  - first:
+      213: 538759597922633584
+    second: Deck of Cards - Decoration_41
+  - first:
+      213: -235748897072965924
+    second: Deck of Cards - Decoration_42
+  - first:
+      213: 5355885287833677083
+    second: Deck of Cards - Decoration_43
+  - first:
+      213: 2381528147784963173
+    second: Deck of Cards - Decoration_44
+  - first:
+      213: -1547552072419048429
+    second: Deck of Cards - Decoration_45
+  - first:
+      213: 2012829133304367528
+    second: Deck of Cards - Decoration_46
+  - first:
+      213: -413607099915903896
+    second: Deck of Cards - Decoration_47
+  - first:
+      213: -6543894611566001730
+    second: Deck of Cards - Decoration_48
+  - first:
+      213: 3016310029662689505
+    second: Deck of Cards - Decoration_49
+  - first:
+      213: 1440782704320973154
+    second: Deck of Cards - Decoration_50
+  - first:
+      213: -8187070154211036008
+    second: Deck of Cards - Decoration_51
+  - first:
+      213: -7709002962375126892
+    second: Deck of Cards - Decoration_52
+  - first:
+      213: 5712557916879479823
+    second: Deck of Cards - Decoration_53
+  - first:
+      213: 4403621016286428442
+    second: Deck of Cards - Decoration_54
+  - first:
+      213: 6239245621906803989
+    second: Deck of Cards - Decoration_55
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 850
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_0
+      rect:
+        serializedVersion: 2
+        x: 46
+        y: 523
+        width: 126
+        height: 174
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fd4c5bfd49e7a3930800000000000000
+      internalID: 4123747586684601567
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_1
+      rect:
+        serializedVersion: 2
+        x: 190
+        y: 523
+        width: 125
+        height: 174
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c2cb00441fb57d910800000000000000
+      internalID: 1862058062727134252
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_2
+      rect:
+        serializedVersion: 2
+        x: 333
+        y: 523
+        width: 128
+        height: 174
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f36b91d8771dd2d40800000000000000
+      internalID: 5561331426271016511
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_3
+      rect:
+        serializedVersion: 2
+        x: 479
+        y: 523
+        width: 127
+        height: 174
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f54d2215850ef5a60800000000000000
+      internalID: 7665091760730854495
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_4
+      rect:
+        serializedVersion: 2
+        x: 624
+        y: 523
+        width: 128
+        height: 174
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c247657ce72dd2e10800000000000000
+      internalID: 2174625637041861676
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_5
+      rect:
+        serializedVersion: 2
+        x: 770
+        y: 523
+        width: 127
+        height: 174
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0063396510a5c62d0800000000000000
+      internalID: -3284151066465978880
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_6
+      rect:
+        serializedVersion: 2
+        x: 916
+        y: 523
+        width: 127
+        height: 174
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e60f882c449c4ddb0800000000000000
+      internalID: -4767964808319799186
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_7
+      rect:
+        serializedVersion: 2
+        x: 1061
+        y: 523
+        width: 128
+        height: 174
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 759cc2cc8d8e8f1d0800000000000000
+      internalID: -3316645107722303145
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_8
+      rect:
+        serializedVersion: 2
+        x: 1207
+        y: 523
+        width: 128
+        height: 174
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 003aaa054c8d230e0800000000000000
+      internalID: -2291530922699611392
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_9
+      rect:
+        serializedVersion: 2
+        x: 1353
+        y: 523
+        width: 128
+        height: 174
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1de5252a30d1df190800000000000000
+      internalID: -7927147867656790319
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_10
+      rect:
+        serializedVersion: 2
+        x: 1499
+        y: 523
+        width: 128
+        height: 174
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d6a38806bde25f6d0800000000000000
+      internalID: -2957406060546606483
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_11
+      rect:
+        serializedVersion: 2
+        x: 1647
+        y: 523
+        width: 135
+        height: 174
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 89cca56437d169970800000000000000
+      internalID: 8761222506034678936
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_12
+      rect:
+        serializedVersion: 2
+        x: 1800
+        y: 523
+        width: 140
+        height: 174
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 27a6f3ffc8f6579a0800000000000000
+      internalID: -6235955457656133006
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_13
+      rect:
+        serializedVersion: 2
+        x: 1958
+        y: 523
+        width: 141
+        height: 174
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 14456ba7cba2abc50800000000000000
+      internalID: 6681699986158539841
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_14
+      rect:
+        serializedVersion: 2
+        x: 44
+        y: 342
+        width: 128
+        height: 173
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 60f7ffb6b44b50630800000000000000
+      internalID: 3892715688959115014
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_15
+      rect:
+        serializedVersion: 2
+        x: 190
+        y: 342
+        width: 125
+        height: 173
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 165fdeae9b0981970800000000000000
+      internalID: 8725883406215148897
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_16
+      rect:
+        serializedVersion: 2
+        x: 333
+        y: 342
+        width: 128
+        height: 173
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3bf10a8208700ab40800000000000000
+      internalID: 5449363796137090995
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_17
+      rect:
+        serializedVersion: 2
+        x: 479
+        y: 342
+        width: 127
+        height: 173
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 96fc00153e5b2c7c0800000000000000
+      internalID: -4052476726758813847
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_18
+      rect:
+        serializedVersion: 2
+        x: 624
+        y: 342
+        width: 128
+        height: 173
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 49417bbc986a06340800000000000000
+      internalID: 4855063509063898260
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_19
+      rect:
+        serializedVersion: 2
+        x: 770
+        y: 342
+        width: 127
+        height: 173
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 39e8488b55229dd10800000000000000
+      internalID: 2150788048609382035
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_20
+      rect:
+        serializedVersion: 2
+        x: 916
+        y: 342
+        width: 127
+        height: 173
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 742e0015a0dff5bc0800000000000000
+      internalID: -3792034140472155577
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_21
+      rect:
+        serializedVersion: 2
+        x: 1061
+        y: 342
+        width: 128
+        height: 173
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 630e695cfe31c7ce0800000000000000
+      internalID: -1406227063113326538
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_22
+      rect:
+        serializedVersion: 2
+        x: 1207
+        y: 342
+        width: 128
+        height: 173
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a319c4391b8c878d0800000000000000
+      internalID: -2848306099305803462
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_23
+      rect:
+        serializedVersion: 2
+        x: 1353
+        y: 342
+        width: 128
+        height: 173
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c7389d0fbda61b320800000000000000
+      internalID: 2571954355076432764
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_24
+      rect:
+        serializedVersion: 2
+        x: 1499
+        y: 342
+        width: 128
+        height: 173
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c195df15c049afa70800000000000000
+      internalID: 8861557997440948508
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_25
+      rect:
+        serializedVersion: 2
+        x: 1647
+        y: 342
+        width: 135
+        height: 173
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8cdf2d1d713fbdc80800000000000000
+      internalID: -8296770604869943864
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_26
+      rect:
+        serializedVersion: 2
+        x: 1800
+        y: 342
+        width: 140
+        height: 173
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6ee06fcfce3034a80800000000000000
+      internalID: -8483932956644733210
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_27
+      rect:
+        serializedVersion: 2
+        x: 1958
+        y: 342
+        width: 141
+        height: 173
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f901d6f53a8166550800000000000000
+      internalID: 6153633030808080543
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_28
+      rect:
+        serializedVersion: 2
+        x: 46
+        y: 179
+        width: 126
+        height: 159
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 34a86b90c21d9a8f0800000000000000
+      internalID: -528661494167598525
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_29
+      rect:
+        serializedVersion: 2
+        x: 190
+        y: 179
+        width: 127
+        height: 157
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e33d6e6bac609fad0800000000000000
+      internalID: -2668093836518567106
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_30
+      rect:
+        serializedVersion: 2
+        x: 333
+        y: 179
+        width: 128
+        height: 157
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 88fbde3e21bb67f90800000000000000
+      internalID: -6956166884619337848
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_31
+      rect:
+        serializedVersion: 2
+        x: 479
+        y: 179
+        width: 127
+        height: 157
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d97e0130e06e28060800000000000000
+      internalID: 6954373722468837277
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_32
+      rect:
+        serializedVersion: 2
+        x: 624
+        y: 179
+        width: 128
+        height: 157
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4f35b7dec393ca510800000000000000
+      internalID: 1561686104635823092
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_33
+      rect:
+        serializedVersion: 2
+        x: 771
+        y: 179
+        width: 126
+        height: 157
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c31a62b319253e300800000000000000
+      internalID: 280158385543225660
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_34
+      rect:
+        serializedVersion: 2
+        x: 916
+        y: 179
+        width: 127
+        height: 157
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dacd241eadc649900800000000000000
+      internalID: 690296330232454317
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_35
+      rect:
+        serializedVersion: 2
+        x: 1061
+        y: 179
+        width: 128
+        height: 157
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5f63e3a76344821f0800000000000000
+      internalID: -1069529910730672395
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_36
+      rect:
+        serializedVersion: 2
+        x: 1207
+        y: 179
+        width: 128
+        height: 157
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 933ae3c0357b399f0800000000000000
+      internalID: -462824769373428935
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_37
+      rect:
+        serializedVersion: 2
+        x: 1353
+        y: 179
+        width: 128
+        height: 157
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9dd5f917d9bea1b30800000000000000
+      internalID: 4258975459080887769
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_38
+      rect:
+        serializedVersion: 2
+        x: 1499
+        y: 179
+        width: 128
+        height: 157
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 39a27c33360620ac0800000000000000
+      internalID: -3890441148907967853
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_39
+      rect:
+        serializedVersion: 2
+        x: 1647
+        y: 179
+        width: 135
+        height: 157
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d52c9a1128cd65f10800000000000000
+      internalID: 2258234714373079645
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_40
+      rect:
+        serializedVersion: 2
+        x: 1800
+        y: 179
+        width: 140
+        height: 157
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 91500cbc68d296560800000000000000
+      internalID: 7307421927352567065
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_41
+      rect:
+        serializedVersion: 2
+        x: 1958
+        y: 179
+        width: 141
+        height: 157
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 077c285fffe0a7700800000000000000
+      internalID: 538759597922633584
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_42
+      rect:
+        serializedVersion: 2
+        x: 46
+        y: 16
+        width: 126
+        height: 154
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cd696cd80a37abcf0800000000000000
+      internalID: -235748897072965924
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_43
+      rect:
+        serializedVersion: 2
+        x: 190
+        y: 16
+        width: 125
+        height: 154
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b1d2117ea4de35a40800000000000000
+      internalID: 5355885287833677083
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_44
+      rect:
+        serializedVersion: 2
+        x: 333
+        y: 16
+        width: 128
+        height: 154
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 56411578b33ec0120800000000000000
+      internalID: 2381528147784963173
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_45
+      rect:
+        serializedVersion: 2
+        x: 479
+        y: 16
+        width: 127
+        height: 154
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3140b04e69df58ae0800000000000000
+      internalID: -1547552072419048429
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_46
+      rect:
+        serializedVersion: 2
+        x: 624
+        y: 16
+        width: 128
+        height: 154
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8a90a2cae610feb10800000000000000
+      internalID: 2012829133304367528
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_47
+      rect:
+        serializedVersion: 2
+        x: 770
+        y: 16
+        width: 127
+        height: 154
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 86cdee4b882924af0800000000000000
+      internalID: -413607099915903896
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_48
+      rect:
+        serializedVersion: 2
+        x: 916
+        y: 16
+        width: 127
+        height: 154
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: eb10406958a6f25a0800000000000000
+      internalID: -6543894611566001730
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_49
+      rect:
+        serializedVersion: 2
+        x: 1061
+        y: 16
+        width: 128
+        height: 154
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1e81e7aadf51cd920800000000000000
+      internalID: 3016310029662689505
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_50
+      rect:
+        serializedVersion: 2
+        x: 1207
+        y: 16
+        width: 128
+        height: 154
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 26904996c30bef310800000000000000
+      internalID: 1440782704320973154
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_51
+      rect:
+        serializedVersion: 2
+        x: 1353
+        y: 16
+        width: 128
+        height: 154
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8947c0b521fa16e80800000000000000
+      internalID: -8187070154211036008
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_52
+      rect:
+        serializedVersion: 2
+        x: 1499
+        y: 16
+        width: 128
+        height: 154
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 490523756ae140590800000000000000
+      internalID: -7709002962375126892
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_53
+      rect:
+        serializedVersion: 2
+        x: 1647
+        y: 16
+        width: 135
+        height: 154
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f046272b825174f40800000000000000
+      internalID: 5712557916879479823
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_54
+      rect:
+        serializedVersion: 2
+        x: 1800
+        y: 16
+        width: 140
+        height: 154
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a1d7231abfdcc1d30800000000000000
+      internalID: 4403621016286428442
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Deck of Cards - Decoration_55
+      rect:
+        serializedVersion: 2
+        x: 1958
+        y: 16
+        width: 141
+        height: 154
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 51d8a2016d0469650800000000000000
+      internalID: 6239245621906803989
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Deck of Cards - Decoration_0: 4123747586684601567
+      Deck of Cards - Decoration_1: 1862058062727134252
+      Deck of Cards - Decoration_10: -2957406060546606483
+      Deck of Cards - Decoration_11: 8761222506034678936
+      Deck of Cards - Decoration_12: -6235955457656133006
+      Deck of Cards - Decoration_13: 6681699986158539841
+      Deck of Cards - Decoration_14: 3892715688959115014
+      Deck of Cards - Decoration_15: 8725883406215148897
+      Deck of Cards - Decoration_16: 5449363796137090995
+      Deck of Cards - Decoration_17: -4052476726758813847
+      Deck of Cards - Decoration_18: 4855063509063898260
+      Deck of Cards - Decoration_19: 2150788048609382035
+      Deck of Cards - Decoration_2: 5561331426271016511
+      Deck of Cards - Decoration_20: -3792034140472155577
+      Deck of Cards - Decoration_21: -1406227063113326538
+      Deck of Cards - Decoration_22: -2848306099305803462
+      Deck of Cards - Decoration_23: 2571954355076432764
+      Deck of Cards - Decoration_24: 8861557997440948508
+      Deck of Cards - Decoration_25: -8296770604869943864
+      Deck of Cards - Decoration_26: -8483932956644733210
+      Deck of Cards - Decoration_27: 6153633030808080543
+      Deck of Cards - Decoration_28: -528661494167598525
+      Deck of Cards - Decoration_29: -2668093836518567106
+      Deck of Cards - Decoration_3: 7665091760730854495
+      Deck of Cards - Decoration_30: -6956166884619337848
+      Deck of Cards - Decoration_31: 6954373722468837277
+      Deck of Cards - Decoration_32: 1561686104635823092
+      Deck of Cards - Decoration_33: 280158385543225660
+      Deck of Cards - Decoration_34: 690296330232454317
+      Deck of Cards - Decoration_35: -1069529910730672395
+      Deck of Cards - Decoration_36: -462824769373428935
+      Deck of Cards - Decoration_37: 4258975459080887769
+      Deck of Cards - Decoration_38: -3890441148907967853
+      Deck of Cards - Decoration_39: 2258234714373079645
+      Deck of Cards - Decoration_4: 2174625637041861676
+      Deck of Cards - Decoration_40: 7307421927352567065
+      Deck of Cards - Decoration_41: 538759597922633584
+      Deck of Cards - Decoration_42: -235748897072965924
+      Deck of Cards - Decoration_43: 5355885287833677083
+      Deck of Cards - Decoration_44: 2381528147784963173
+      Deck of Cards - Decoration_45: -1547552072419048429
+      Deck of Cards - Decoration_46: 2012829133304367528
+      Deck of Cards - Decoration_47: -413607099915903896
+      Deck of Cards - Decoration_48: -6543894611566001730
+      Deck of Cards - Decoration_49: 3016310029662689505
+      Deck of Cards - Decoration_5: -3284151066465978880
+      Deck of Cards - Decoration_50: 1440782704320973154
+      Deck of Cards - Decoration_51: -8187070154211036008
+      Deck of Cards - Decoration_52: -7709002962375126892
+      Deck of Cards - Decoration_53: 5712557916879479823
+      Deck of Cards - Decoration_54: 4403621016286428442
+      Deck of Cards - Decoration_55: 6239245621906803989
+      Deck of Cards - Decoration_6: -4767964808319799186
+      Deck of Cards - Decoration_7: -3316645107722303145
+      Deck of Cards - Decoration_8: -2291530922699611392
+      Deck of Cards - Decoration_9: -7927147867656790319
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

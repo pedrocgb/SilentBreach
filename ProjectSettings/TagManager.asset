@@ -19,8 +19,8 @@ TagManager:
   - Obstacles
   - Projectiles
   - IgnorePostProcessing
-  - 
-  - 
+  - Doors
+  - IgnoreLight
   - 
   - 
   - 

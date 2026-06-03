@@ -1,10 +1,67 @@
 fileFormatVersion: 2
-guid: 763f28f90dc171f4c8e5e721fb9662f0
+guid: 4eb0fd50eedcaee83ad729d10ac0f0bb
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -7076782377521751419
-    second: House Assets_0
+      213: 281487119796701091
+    second: Objects and Decorations 2_0
+  - first:
+      213: 8340315136390009958
+    second: Objects and Decorations 2_1
+  - first:
+      213: 5342133069281479031
+    second: Objects and Decorations 2_2
+  - first:
+      213: -7357888422794522246
+    second: Objects and Decorations 2_3
+  - first:
+      213: 5624823589823576743
+    second: Objects and Decorations 2_4
+  - first:
+      213: -2385887521535855479
+    second: Objects and Decorations 2_5
+  - first:
+      213: -2813522044416541621
+    second: Objects and Decorations 2_6
+  - first:
+      213: 2940401453113426597
+    second: Objects and Decorations 2_7
+  - first:
+      213: -5027978067993082111
+    second: Objects and Decorations 2_8
+  - first:
+      213: -6590894015867619235
+    second: Objects and Decorations 2_9
+  - first:
+      213: 2801297566955744882
+    second: Objects and Decorations 2_10
+  - first:
+      213: -7884199818816382412
+    second: Objects and Decorations 2_11
+  - first:
+      213: -3704016692548635173
+    second: Objects and Decorations 2_12
+  - first:
+      213: -202643597029137569
+    second: Objects and Decorations 2_13
+  - first:
+      213: 4376968620708436548
+    second: Objects and Decorations 2_14
+  - first:
+      213: 376762504578012076
+    second: Objects and Decorations 2_15
+  - first:
+      213: -4163123123752079811
+    second: Objects and Decorations 2_16
+  - first:
+      213: 5432377666699815762
+    second: Objects and Decorations 2_17
+  - first:
+      213: -1042419270409174857
+    second: Objects and Decorations 2_18
+  - first:
+      213: 5796626163395676261
+    second: Objects and Decorations 2_19
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -75,7 +132,7 @@ TextureImporter:
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 2
+    textureCompression: 1
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -100,13 +157,35 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: House Assets_0
+      name: Objects and Decorations 2_0
       rect:
         serializedVersion: 2
-        x: 34
-        y: 855
-        width: 234
-        height: 231
+        x: 140
+        y: 1012
+        width: 191
+        height: 199
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3a784584b0b08e300800000000000000
+      internalID: 281487119796701091
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Objects and Decorations 2_1
+      rect:
+        serializedVersion: 2
+        x: 379
+        y: 1012
+        width: 191
+        height: 199
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -115,404 +194,404 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 58a521b0ce73acd90800000000000000
-      internalID: -7076782377521751419
+      spriteID: 664175b7d60ceb370800000000000000
+      internalID: 8340315136390009958
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: House Assets_1
+      name: Objects and Decorations 2_2
       rect:
         serializedVersion: 2
-        x: 320
-        y: 855
-        width: 226
-        height: 232
+        x: 618
+        y: 1012
+        width: 191
+        height: 199
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: 7f15082cab0a6d04a99e86e782ac8822
-      internalID: -1470219501
+      spriteID: 779c36109b1132a40800000000000000
+      internalID: 5342133069281479031
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: House Assets_2
+      name: Objects and Decorations 2_3
       rect:
         serializedVersion: 2
-        x: 623
-        y: 882
-        width: 154
-        height: 194
+        x: 873
+        y: 1028
+        width: 225
+        height: 157
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: 2c43c6a6000ff694681756a07476fda8
-      internalID: -2128712765
+      spriteID: a719f56967783e990800000000000000
+      internalID: -7357888422794522246
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: House Assets_3
+      name: Objects and Decorations 2_4
       rect:
         serializedVersion: 2
-        x: 869
-        y: 847
-        width: 192
-        height: 240
+        x: 47
+        y: 761
+        width: 205
+        height: 212
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: 56763cd6cc682b04b83b0339ba84dc64
-      internalID: 721056305
+      spriteID: 7aafbabd0436f0e40800000000000000
+      internalID: 5624823589823576743
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: House Assets_4
+      name: Objects and Decorations 2_5
       rect:
         serializedVersion: 2
-        x: 1117
-        y: 881
-        width: 256
-        height: 168
+        x: 283
+        y: 761
+        width: 203
+        height: 212
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: ddca6874adb3e594981d3591ed243cea
-      internalID: -1186608536
+      spriteID: 98471dca0ff93eed0800000000000000
+      internalID: -2385887521535855479
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: House Assets_5
+      name: Objects and Decorations 2_6
       rect:
         serializedVersion: 2
-        x: 8
-        y: 597
-        width: 293
-        height: 153
+        x: 517
+        y: 761
+        width: 202
+        height: 212
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: 779309119e235664eada5821e537efeb
-      internalID: -1072456166
+      spriteID: b4c32d67b9c54f8d0800000000000000
+      internalID: -2813522044416541621
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: House Assets_6
+      name: Objects and Decorations 2_7
       rect:
         serializedVersion: 2
-        x: 368
-        y: 565
-        width: 141
-        height: 245
+        x: 749
+        y: 760
+        width: 203
+        height: 213
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: b0d54bf92521f8340a61340b7642f989
-      internalID: -1713285342
+      spriteID: 5a24eddea876ec820800000000000000
+      internalID: 2940401453113426597
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: House Assets_7
+      name: Objects and Decorations 2_8
       rect:
         serializedVersion: 2
-        x: 629
-        y: 568
-        width: 133
-        height: 239
+        x: 980
+        y: 761
+        width: 206
+        height: 212
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: 62163f996b4247e419186a102d18656b
-      internalID: 72367751
+      spriteID: 10741d62698093ab0800000000000000
+      internalID: -5027978067993082111
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: House Assets_8
+      name: Objects and Decorations 2_9
       rect:
         serializedVersion: 2
-        x: 861
-        y: 572
-        width: 197
-        height: 224
+        x: 47
+        y: 518
+        width: 204
+        height: 214
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: e0c0b456c56620a438b31a2bfbee6850
-      internalID: 231949010
+      spriteID: d5876f700d07884a0800000000000000
+      internalID: -6590894015867619235
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: House Assets_9
+      name: Objects and Decorations 2_10
       rect:
         serializedVersion: 2
-        x: 1119
-        y: 564
-        width: 238
-        height: 237
+        x: 283
+        y: 518
+        width: 203
+        height: 214
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: f481fb7f57beefd42afb72330c3bffdb
-      internalID: 559570412
+      spriteID: 27e20949b4530e620800000000000000
+      internalID: 2801297566955744882
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: House Assets_10
+      name: Objects and Decorations 2_11
       rect:
         serializedVersion: 2
-        x: 21
-        y: 325
-        width: 255
-        height: 158
+        x: 517
+        y: 518
+        width: 202
+        height: 214
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: 2f61713f5b5341f4d8f9e295c097513e
-      internalID: -1851370262
+      spriteID: 43a104d7902b59290800000000000000
+      internalID: -7884199818816382412
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: House Assets_11
+      name: Objects and Decorations 2_12
       rect:
         serializedVersion: 2
-        x: 323
-        y: 301
-        width: 213
-        height: 217
+        x: 749
+        y: 518
+        width: 203
+        height: 214
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: 78cea63fed2c021479005faa40ef7f90
-      internalID: 700667610
+      spriteID: bd5758e5170b89cc0800000000000000
+      internalID: -3704016692548635173
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: House Assets_12
+      name: Objects and Decorations 2_13
       rect:
         serializedVersion: 2
-        x: 587
-        y: 312
-        width: 221
-        height: 218
+        x: 980
+        y: 518
+        width: 206
+        height: 214
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: 637294fbddacf6c44b0b5237dd9d24a8
-      internalID: -845811254
+      spriteID: f53221fd8b0103df0800000000000000
+      internalID: -202643597029137569
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: House Assets_13
+      name: Objects and Decorations 2_14
       rect:
         serializedVersion: 2
-        x: 861
-        y: 302
-        width: 198
-        height: 209
+        x: 47
+        y: 269
+        width: 237
+        height: 206
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: 1761f349b9c088f438831c1c0ee1ad28
-      internalID: -875138199
+      spriteID: 44a9b5635cd1ebc30800000000000000
+      internalID: 4376968620708436548
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: House Assets_14
+      name: Objects and Decorations 2_15
       rect:
         serializedVersion: 2
-        x: 1124
-        y: 298
-        width: 235
-        height: 219
+        x: 312
+        y: 258
+        width: 215
+        height: 210
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: fa42655ff10b67840aba0293fc7136ac
-      internalID: 1321242163
+      spriteID: ca31f0270878a3500800000000000000
+      internalID: 376762504578012076
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: House Assets_16
+      name: Objects and Decorations 2_16
       rect:
         serializedVersion: 2
-        x: 313
-        y: 49
-        width: 234
-        height: 170
+        x: 552
+        y: 213
+        width: 193
+        height: 282
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: 8915513bec9f0e2408a14071dc131f64
-      internalID: 1446586795
+      spriteID: d3eea8c739d9936c0800000000000000
+      internalID: -4163123123752079811
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: House Assets_17
+      name: Objects and Decorations 2_17
       rect:
         serializedVersion: 2
-        x: 597
-        y: 33
-        width: 207
-        height: 226
+        x: 792
+        y: 221
+        width: 167
+        height: 249
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: f900ad56b61453b4c931c4acded488c4
-      internalID: -792448039
+      spriteID: 25b6865b4bea36b40800000000000000
+      internalID: 5432377666699815762
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: House Assets_18
+      name: Objects and Decorations 2_18
       rect:
         serializedVersion: 2
-        x: 859
-        y: 44
-        width: 186
-        height: 188
+        x: 1028
+        y: 266
+        width: 168
+        height: 193
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: bac03a550d5665040a0230da71fbadef
-      internalID: 1052870944
+      spriteID: 7b04d3052359881f0800000000000000
+      internalID: -1042419270409174857
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: House Assets_19
+      name: Objects and Decorations 2_19
       rect:
         serializedVersion: 2
-        x: 15
-        y: 34
-        width: 250
-        height: 225
+        x: 51
+        y: 37
+        width: 252
+        height: 207
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: 94547f65d5283a64baa67fea0295902f
-      internalID: 1889797671
+      spriteID: 5684fe4a8c0c17050800000000000000
+      internalID: 5796626163395676261
       vertices: []
       indices: 
       edges: []
@@ -521,7 +600,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 5e3a22b6683c5794dbf9611a2218ec63
+    spriteID: 538344c6b4ff682228046b8435872f57
     internalID: 0
     vertices: []
     indices: 
@@ -529,30 +608,28 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries:
-      - key: SpriteEditor.SliceSettings
-        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
+      entries: []
     nameFileIdTable:
-      House Assets_0: -7076782377521751419
-      House Assets_1: -1470219501
-      House Assets_10: -1851370262
-      House Assets_11: 700667610
-      House Assets_12: -845811254
-      House Assets_13: -875138199
-      House Assets_14: 1321242163
-      House Assets_15: 657754895
-      House Assets_16: 1446586795
-      House Assets_17: -792448039
-      House Assets_18: 1052870944
-      House Assets_19: 1889797671
-      House Assets_2: -2128712765
-      House Assets_3: 721056305
-      House Assets_4: -1186608536
-      House Assets_5: -1072456166
-      House Assets_6: -1713285342
-      House Assets_7: 72367751
-      House Assets_8: 231949010
-      House Assets_9: 559570412
+      Objects and Decorations 2_0: 281487119796701091
+      Objects and Decorations 2_1: 8340315136390009958
+      Objects and Decorations 2_10: 2801297566955744882
+      Objects and Decorations 2_11: -7884199818816382412
+      Objects and Decorations 2_12: -3704016692548635173
+      Objects and Decorations 2_13: -202643597029137569
+      Objects and Decorations 2_14: 4376968620708436548
+      Objects and Decorations 2_15: 376762504578012076
+      Objects and Decorations 2_16: -4163123123752079811
+      Objects and Decorations 2_17: 5432377666699815762
+      Objects and Decorations 2_18: -1042419270409174857
+      Objects and Decorations 2_19: 5796626163395676261
+      Objects and Decorations 2_2: 5342133069281479031
+      Objects and Decorations 2_3: -7357888422794522246
+      Objects and Decorations 2_4: 5624823589823576743
+      Objects and Decorations 2_5: -2385887521535855479
+      Objects and Decorations 2_6: -2813522044416541621
+      Objects and Decorations 2_7: 2940401453113426597
+      Objects and Decorations 2_8: -5027978067993082111
+      Objects and Decorations 2_9: -6590894015867619235
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

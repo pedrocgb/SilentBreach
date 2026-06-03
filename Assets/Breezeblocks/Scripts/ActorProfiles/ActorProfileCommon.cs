@@ -340,6 +340,9 @@ public class EnemyMovementSettings
     public CollisionDetectionMode2D RecommendedCollisionDetection = CollisionDetectionMode2D.Continuous;
 
     [FoldoutGroup("Doors")]
+    public bool AllowClosedDoorTraversalWhilePatrol = true;
+
+    [FoldoutGroup("Doors")]
     public bool AllowClosedDoorTraversalWhileAlert = true;
 
     [FoldoutGroup("Doors")]
@@ -359,6 +362,9 @@ public class EnemyMovementSettings
 
     [FoldoutGroup("Doors"), MinValue(0)]
     public int ClosedDoorTagPenalty;
+
+    [FoldoutGroup("Doors"), MinValue(0)]
+    public int ClosedDoorPatrolTagPenalty;
 
     [FoldoutGroup("Doors")]
     public LayerMask DoorDetectionMask = Physics2D.AllLayers;

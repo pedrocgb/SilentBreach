@@ -1424,16 +1424,18 @@ MonoBehaviour:
   aiPath: {fileID: 2075099057516833013}
   aiDestinationSetter: {fileID: 5912923902765099010}
   seeker: {fileID: 3070910149395946080}
+  allowClosedDoorTraversalWhilePatrol: 1
   allowClosedDoorTraversalWhileAlert: 1
   allowClosedDoorTraversalWhileSuspicious: 1
   allowClosedDoorTraversalWhileSearching: 1
   allowClosedDoorTraversalWhileFleeing: 1
-  allowClosedDoorTraversalWhileDetected: 0
+  allowClosedDoorTraversalWhileDetected: 1
   closedDoorPathTag: 1
   closedDoorTagPenalty: 0
+  closedDoorPatrolTagPenalty: 0
   doorDetectionMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 8192
   doorAutoOpenRange: 0.9
   doorAutoOpenRadius: 0.18
   doorAutoOpenCooldown: 0.2

@@ -20,7 +20,7 @@ MonoBehaviour:
     StaggeredMoveSpeed: 0.25
     TurnSpeedReductionPercent: 80
   Movement:
-    StartingState: 0
+    StartingState: 1
     StartingPointFacing:
       FacingMode: 1
       CustomAngle: 0
@@ -40,7 +40,6 @@ MonoBehaviour:
     PreferPathSteeringDirection: 1
     LockRotationWhenIdle: 1
     PatrolMode: 0
-    DetachReferencedPointsToWorldOnAwake: 1
     ReturnToStartAfterTemporaryStates: 1
     Investigate: 0
     ReturnToStartSpeedType: 0
@@ -52,7 +51,7 @@ MonoBehaviour:
     LookAroundTurnInterval: 0.5
     LookAroundRotationSpeed: 360
     RandomLookAngleRange: 180
-    UseItinerary: 0
+    UseItinerary: 1
     LoopItinerary: 1
     DetectionBehavior: 1
     SearchLastKnownTargetPositionWhenTargetLost: 0
@@ -68,6 +67,19 @@ MonoBehaviour:
     ForceZeroGravity: 1
     RecommendedInterpolation: 1
     RecommendedCollisionDetection: 1
+    AllowClosedDoorTraversalWhileAlert: 1
+    AllowClosedDoorTraversalWhileSuspicious: 1
+    AllowClosedDoorTraversalWhileSearching: 1
+    AllowClosedDoorTraversalWhileFleeing: 1
+    AllowClosedDoorTraversalWhileDetected: 1
+    ClosedDoorPathTag: 1
+    ClosedDoorTagPenalty: 0
+    DoorDetectionMask:
+      serializedVersion: 2
+      m_Bits: 8192
+    DoorAutoOpenRange: 0.9
+    DoorAutoOpenRadius: 0.18
+    DoorAutoOpenCooldown: 0.2
   Vision:
     VisionRange: 12
     VisionAngle: 140
@@ -78,7 +90,7 @@ MonoBehaviour:
     RequireLineOfSight: 1
     ObstacleMask:
       serializedVersion: 2
-      m_Bits: 128
+      m_Bits: 8320
     VisibilityThreshold: 0.15
     DetectionSpeed: 1.25
     DetectionDecaySpeed: 0.5
@@ -132,7 +144,7 @@ MonoBehaviour:
     UseObstructionCheck: 1
     ObstructionLayerMask:
       serializedVersion: 2
-      m_Bits: 128
+      m_Bits: 8320
     WallObstructionMultiplier: 0.2
     MaxObstructionChecks: 4
     StackObstructionMultipliers: 1

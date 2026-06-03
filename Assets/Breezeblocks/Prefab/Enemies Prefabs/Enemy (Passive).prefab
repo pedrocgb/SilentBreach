@@ -684,7 +684,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ActorStatsInitializer
   playerProfile: {fileID: 0}
-  enemyProfile: {fileID: 11400000, guid: 96538d2f11ab4412ab361c3decf1e626, type: 2}
+  enemyProfile: {fileID: 11400000, guid: 926e26ff698135a48b031d6675c1a475, type: 2}
 --- !u!114 &2398642840823831577
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -768,16 +768,18 @@ MonoBehaviour:
   aiPath: {fileID: 6274399302257306467}
   aiDestinationSetter: {fileID: 6403266485352651514}
   seeker: {fileID: 2584007086210189965}
+  allowClosedDoorTraversalWhilePatrol: 1
   allowClosedDoorTraversalWhileAlert: 1
   allowClosedDoorTraversalWhileSuspicious: 1
   allowClosedDoorTraversalWhileSearching: 1
   allowClosedDoorTraversalWhileFleeing: 1
-  allowClosedDoorTraversalWhileDetected: 0
+  allowClosedDoorTraversalWhileDetected: 1
   closedDoorPathTag: 1
   closedDoorTagPenalty: 0
+  closedDoorPatrolTagPenalty: 0
   doorDetectionMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 8192
   doorAutoOpenRange: 0.9
   doorAutoOpenRadius: 0.18
   doorAutoOpenCooldown: 0.2

@@ -9,8 +9,13 @@ namespace Breezeblocks.WeaponSystem
 [AddComponentMenu("Breezeblocks/Weapons/Hitscan Projectile")]
 public class HitscanProjectile : MonoBehaviour
 {
+    private const float MinimumDirectionSqr = 0.0001f;
+
     [FoldoutGroup("Raycast"), Tooltip("Optional collision mask. If everything is needed, keep this at Everything.")]
     [SerializeField] private LayerMask hitMask = ~0;
+
+    [FoldoutGroup("Raycast"), MinValue(1)]
+    [SerializeField] private int maxRaycastHits = 16;
 
     [FoldoutGroup("Tracer"), Tooltip("Optional line renderer used to display the bullet tracer.")]
     [SerializeField] private LineRenderer tracerLineRenderer;
@@ -57,24 +62,43 @@ public class HitscanProjectile : MonoBehaviour
     [FoldoutGroup("Debug"), MinValue(0f)]
     [SerializeField] private float defaultDebugDuration = 0.1f;
 
-    private Coroutine _returnRoutine;
+    private Coroutine returnRoutine;
+    private RaycastHit2D[] raycastHitBuffer;
+    private ContactFilter2D hitContactFilter;
+    private GlobalPooledObject pooledObject;
 
+    /// <summary>
+    /// Caches optional local references when component is first added.
+    /// </summary>
     private void Reset()
     {
         tracerLineRenderer = GetComponent<LineRenderer>();
+        pooledObject = GetComponent<GlobalPooledObject>();
         ConfigureTracerDefaults();
+        EnsureRaycastBuffer();
+        RefreshHitContactFilter();
     }
 
+    /// <summary>
+    /// Initializes cached references and reusable physics buffers.
+    /// </summary>
     private void Awake()
     {
         EnsureTracerReference();
+        pooledObject = GetComponent<GlobalPooledObject>();
         ConfigureTracerDefaults();
+        EnsureRaycastBuffer();
+        RefreshHitContactFilter();
         ResolveGlobalObjectPooler();
         RegisterImpactPrefab();
     }
 
+    /// <summary>
+    /// Clamps serialized settings and rebuilds reusable runtime configuration in editor.
+    /// </summary>
     private void OnValidate()
     {
+        maxRaycastHits = Mathf.Max(1, maxRaycastHits);
         tracerWidth = Mathf.Max(0f, tracerWidth);
         tracerTravelSpeed = Mathf.Max(0.01f, tracerTravelSpeed);
         tracerFadeDuration = Mathf.Max(0f, tracerFadeDuration);
@@ -84,46 +108,98 @@ public class HitscanProjectile : MonoBehaviour
 
         EnsureTracerReference();
         ConfigureTracerDefaults();
+        EnsureRaycastBuffer();
+        RefreshHitContactFilter();
     }
 
+    /// <summary>
+    /// Stops active visual routines and hides tracer when pooled object is disabled.
+    /// </summary>
     private void OnDisable()
     {
-        if (_returnRoutine != null)
+        if (returnRoutine != null)
         {
-            StopCoroutine(_returnRoutine);
-            _returnRoutine = null;
+            StopCoroutine(returnRoutine);
+            returnRoutine = null;
         }
 
         if (tracerLineRenderer != null)
             tracerLineRenderer.enabled = false;
     }
 
+    /// <summary>
+    /// Resolves first valid impact, applies damage, and plays optional tracer before returning to pool.
+    /// </summary>
     public void Fire(GameObject shooter, Vector2 origin, Vector2 direction, ProjectileData projectileData, float debugDuration = -1f)
     {
-        if (projectileData == null || direction.sqrMagnitude <= 0.0001f)
+        if (projectileData == null || direction.sqrMagnitude <= MinimumDirectionSqr)
         {
             ReturnToPoolOrDisable();
             return;
         }
+
+        EnsureRaycastBuffer();
+        RefreshHitContactFilter();
 
         direction.Normalize();
 
         float range = projectileData.Range;
         Vector2 endPoint = origin + (direction * range);
         Color debugColor = Color.yellow;
-
-        RaycastHit2D[] hits = Physics2D.RaycastAll(origin, direction, range, hitMask);
+        bool chosenHitWasDamageable = false;
         RaycastHit2D chosenHit = default;
-        bool foundHit = false;
-        CoverUser2D shooterCoverUser = shooter != null ? shooter.GetComponentInParent<CoverUser2D>() : null;
+        bool foundHit = TryResolveImpactHit(
+            shooter,
+            origin,
+            direction,
+            range,
+            out chosenHit,
+            out chosenHitWasDamageable);
+
+        if (foundHit)
+        {
+            endPoint = chosenHit.point;
+            debugColor = ResolveImpact(chosenHit.collider, projectileData, shooter);
+
+            if (ShouldSpawnBulletHit(chosenHitWasDamageable))
+                SpawnBulletHitEffect(endPoint, direction);
+        }
+
+        Debug.DrawLine(origin, endPoint, debugColor, debugDuration >= 0f ? debugDuration : defaultDebugDuration);
+
+        if (returnRoutine != null)
+            StopCoroutine(returnRoutine);
+
+        returnRoutine = ShouldPlayTracer()
+            ? StartCoroutine(PlayTracerAndReturn(origin, endPoint))
+            : StartCoroutine(ReturnNextFrame());
+    }
+
+    /// <summary>
+    /// Finds best hit from reusable raycast buffer while respecting cover logic.
+    /// </summary>
+    private bool TryResolveImpactHit(
+        GameObject shooter,
+        Vector2 origin,
+        Vector2 direction,
+        float range,
+        out RaycastHit2D chosenHit,
+        out bool chosenHitWasDamageable)
+    {
+        chosenHit = default;
+        chosenHitWasDamageable = false;
+
+        int hitCount = Physics2D.Raycast(origin, direction, hitContactFilter, raycastHitBuffer, range);
+        Transform shooterRoot = shooter != null ? shooter.transform.root : null;
+        CoverUser2D shooterCoverUser = shooterRoot != null ? shooterRoot.GetComponent<CoverUser2D>() : null;
         Vector2 threatPoint = origin + (direction * range);
         RaycastHit2D pendingCoverHit = default;
         CombatCover2D pendingCover = null;
 
-        for (int i = 0; i < hits.Length; i++)
+        for (int i = 0; i < hitCount; i++)
         {
-            RaycastHit2D hit = hits[i];
-            if (hit.collider == null || IsShooterCollider(hit.collider, shooter))
+            RaycastHit2D hit = raycastHitBuffer[i];
+            if (hit.collider == null || IsShooterCollider(hit.collider, shooterRoot))
                 continue;
 
             CombatCover2D hitCover = hit.collider.GetComponentInParent<CombatCover2D>();
@@ -142,40 +218,28 @@ public class HitscanProjectile : MonoBehaviour
             if (isDamageableTarget)
             {
                 chosenHit = ResolveTargetImpactHit(origin, hit, pendingCoverHit, pendingCover);
-                foundHit = true;
-                break;
+                chosenHitWasDamageable = chosenHit.collider == hit.collider;
+                return true;
             }
 
             chosenHit = pendingCover != null ? pendingCoverHit : hit;
-            foundHit = true;
-            break;
+            chosenHitWasDamageable = false;
+            return true;
         }
 
-        if (!foundHit && pendingCover != null)
+        if (pendingCover != null && pendingCoverHit.collider != null)
         {
             chosenHit = pendingCoverHit;
-            foundHit = true;
+            chosenHitWasDamageable = false;
+            return true;
         }
 
-        if (foundHit)
-        {
-            endPoint = chosenHit.point;
-            debugColor = ResolveImpact(chosenHit.collider, projectileData, shooter);
-
-            if (ShouldSpawnBulletHit(chosenHit.collider))
-                SpawnBulletHitEffect(endPoint, direction);
-        }
-
-        Debug.DrawLine(origin, endPoint, debugColor, debugDuration >= 0f ? debugDuration : defaultDebugDuration);
-
-        if (_returnRoutine != null)
-            StopCoroutine(_returnRoutine);
-
-        _returnRoutine = ShouldPlayTracer()
-            ? StartCoroutine(PlayTracerAndReturn(origin, endPoint))
-            : StartCoroutine(ReturnNextFrame());
+        return false;
     }
 
+    /// <summary>
+    /// Checks whether collider belongs to damageable actor hierarchy.
+    /// </summary>
     private static bool IsDamageableCollider(Collider2D hitCollider)
     {
         if (hitCollider == null)
@@ -185,6 +249,9 @@ public class HitscanProjectile : MonoBehaviour
                hitCollider.GetComponentInParent<ActorHealth>() != null;
     }
 
+    /// <summary>
+    /// Resolves whether cover or actor should receive final projectile impact.
+    /// </summary>
     private static RaycastHit2D ResolveTargetImpactHit(Vector2 shotOrigin, RaycastHit2D actorHit, RaycastHit2D pendingCoverHit, CombatCover2D pendingCover)
     {
         if (pendingCover == null || pendingCoverHit.collider == null)
@@ -201,15 +268,20 @@ public class HitscanProjectile : MonoBehaviour
         return pendingCoverHit;
     }
 
-    private static bool IsShooterCollider(Collider2D hitCollider, GameObject shooter)
+    /// <summary>
+    /// Checks whether hit collider belongs to shooter root and should be ignored.
+    /// </summary>
+    private static bool IsShooterCollider(Collider2D hitCollider, Transform shooterRoot)
     {
-        if (hitCollider == null || shooter == null)
+        if (hitCollider == null || shooterRoot == null)
             return false;
 
-        Transform shooterRoot = shooter.transform.root;
         return hitCollider.transform.root == shooterRoot;
     }
 
+    /// <summary>
+    /// Applies projectile combat impact and returns debug color for result.
+    /// </summary>
     private static Color ResolveImpact(Collider2D hitCollider, ProjectileData projectileData, GameObject shooter)
     {
         if (projectileData == null || hitCollider == null)
@@ -223,13 +295,19 @@ public class HitscanProjectile : MonoBehaviour
         return armor != null && armor.HasArmor ? Color.red : Color.green;
     }
 
+    /// <summary>
+    /// Returns pooled projectile on next frame when no tracer needs playback.
+    /// </summary>
     private IEnumerator ReturnNextFrame()
     {
         yield return null;
         ReturnToPoolOrDisable();
-        _returnRoutine = null;
+        returnRoutine = null;
     }
 
+    /// <summary>
+    /// Animates tracer travel and fade before returning projectile to pool.
+    /// </summary>
     private IEnumerator PlayTracerAndReturn(Vector2 origin, Vector2 endPoint)
     {
         tracerLineRenderer.enabled = true;
@@ -262,14 +340,20 @@ public class HitscanProjectile : MonoBehaviour
         UpdateTracerVisual(origin, endPoint, 0f, 0f);
         tracerLineRenderer.enabled = false;
         ReturnToPoolOrDisable();
-        _returnRoutine = null;
+        returnRoutine = null;
     }
 
+    /// <summary>
+    /// Reports whether tracer renderer should animate for this shot instance.
+    /// </summary>
     private bool ShouldPlayTracer()
     {
         return enableTracer && tracerLineRenderer != null;
     }
 
+    /// <summary>
+    /// Updates tracer width, alpha, and endpoints for current frame.
+    /// </summary>
     private void UpdateTracerVisual(Vector2 startPoint, Vector2 endPoint, float alphaMultiplier, float widthMultiplier)
     {
         if (tracerLineRenderer == null)
@@ -291,12 +375,18 @@ public class HitscanProjectile : MonoBehaviour
         tracerLineRenderer.endColor = endColor;
     }
 
+    /// <summary>
+    /// Ensures optional tracer renderer reference exists when component has one locally.
+    /// </summary>
     private void EnsureTracerReference()
     {
         if (tracerLineRenderer == null)
             tracerLineRenderer = GetComponent<LineRenderer>();
     }
 
+    /// <summary>
+    /// Applies stable runtime defaults to tracer renderer.
+    /// </summary>
     private void ConfigureTracerDefaults()
     {
         if (tracerLineRenderer == null)
@@ -307,18 +397,45 @@ public class HitscanProjectile : MonoBehaviour
         tracerLineRenderer.enabled = false;
     }
 
-    private bool ShouldSpawnBulletHit(Collider2D hitCollider)
+    /// <summary>
+    /// Keeps reusable raycast buffer sized for configured hit cap.
+    /// </summary>
+    private void EnsureRaycastBuffer()
     {
-        if (hitCollider == null || bulletHitPrefab == null)
-            return false;
-
-        return spawnBulletHitOnDamageableTargets || !IsDamageableCollider(hitCollider);
+        if (raycastHitBuffer == null || raycastHitBuffer.Length != maxRaycastHits)
+            raycastHitBuffer = new RaycastHit2D[Mathf.Max(1, maxRaycastHits)];
     }
 
+    /// <summary>
+    /// Refreshes contact filter used by non-alloc projectile raycasts.
+    /// </summary>
+    private void RefreshHitContactFilter()
+    {
+        hitContactFilter.useLayerMask = true;
+        hitContactFilter.layerMask = hitMask;
+        hitContactFilter.useTriggers = Physics2D.queriesHitTriggers;
+        hitContactFilter.useDepth = false;
+        hitContactFilter.useNormalAngle = false;
+    }
+
+    /// <summary>
+    /// Decides whether impact effect should spawn for resolved hit type.
+    /// </summary>
+    private bool ShouldSpawnBulletHit(bool hitDamageableTarget)
+    {
+        if (bulletHitPrefab == null)
+            return false;
+
+        return spawnBulletHitOnDamageableTargets || !hitDamageableTarget;
+    }
+
+    /// <summary>
+    /// Spawns and plays pooled bullet impact effect at resolved surface point.
+    /// </summary>
     private void SpawnBulletHitEffect(Vector2 impactPoint, Vector2 shotDirection)
     {
         ResolveGlobalObjectPooler();
-        if (globalObjectPooler == null || bulletHitPrefab == null || shotDirection.sqrMagnitude <= 0.0001f)
+        if (globalObjectPooler == null || bulletHitPrefab == null || shotDirection.sqrMagnitude <= MinimumDirectionSqr)
             return;
 
         Vector2 oppositeDirection = (-shotDirection).normalized;
@@ -335,34 +452,46 @@ public class HitscanProjectile : MonoBehaviour
         if (impactInstance == null)
             return;
 
-        BulletHitEffect hitEffect = impactInstance.GetComponent<BulletHitEffect>();
-        if (hitEffect == null)
+        if (!impactInstance.TryGetComponent(out BulletHitEffect hitEffect))
             hitEffect = impactInstance.AddComponent<BulletHitEffect>();
 
         hitEffect.Play();
     }
 
+    /// <summary>
+    /// Resolves shared pooler dependency once before pooled impact usage.
+    /// </summary>
     private void ResolveGlobalObjectPooler()
     {
-        if (globalObjectPooler == null)
-            globalObjectPooler = GlobalObjectPooler.Instance;
+        globalObjectPooler = WeaponRuntimeUtility.ResolveGlobalObjectPooler(globalObjectPooler);
     }
 
+    /// <summary>
+    /// Registers optional impact prefab with shared pooler for warm startup.
+    /// </summary>
     private void RegisterImpactPrefab()
     {
-        if (globalObjectPooler == null || bulletHitPrefab == null)
+        if (bulletHitPrefab == null)
             return;
 
-        globalObjectPooler.RegisterPrefab(bulletHitPrefab, bulletHitPoolPrewarm);
+        ResolveGlobalObjectPooler();
+        globalObjectPooler?.RegisterPrefab(bulletHitPrefab, bulletHitPoolPrewarm);
     }
 
+    /// <summary>
+    /// Returns projectile to pool when available, otherwise disables object.
+    /// </summary>
     private void ReturnToPoolOrDisable()
     {
-        GlobalPooledObject pooledObject = GetComponent<GlobalPooledObject>();
+        pooledObject ??= GetComponent<GlobalPooledObject>();
         if (pooledObject != null)
+        {
             pooledObject.ReturnToPool();
-        else
-            gameObject.SetActive(false);
+            return;
+        }
+
+        gameObject.SetActive(false);
     }
 }
+
 }

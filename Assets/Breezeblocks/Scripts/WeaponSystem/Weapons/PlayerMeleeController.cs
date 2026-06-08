@@ -95,13 +95,13 @@ public class PlayerMeleeController : MonoBehaviour
     {
         CacheReferences();
         EnsureDamageSource();
-        inputReader = new RewiredPlayerInputReader(rewiredPlayerId);
+        inputReader = WeaponRuntimeUtility.EnsureInputReader(inputReader, rewiredPlayerId);
     }
 
     // Executes the OnEnable routine.
     private void OnEnable()
     {
-        inputReader ??= new RewiredPlayerInputReader(rewiredPlayerId);
+        inputReader = WeaponRuntimeUtility.EnsureInputReader(inputReader, rewiredPlayerId);
         UpdateAimCameraState();
     }
 
@@ -130,8 +130,7 @@ public class PlayerMeleeController : MonoBehaviour
             return;
         }
 
-        if (inputReader == null)
-            inputReader = new RewiredPlayerInputReader(rewiredPlayerId);
+        inputReader = WeaponRuntimeUtility.EnsureInputReader(inputReader, rewiredPlayerId);
 
         if (!inputReader.IsReady)
             return;
@@ -309,11 +308,7 @@ public class PlayerMeleeController : MonoBehaviour
         if (playerVisionLight == null)
             playerVisionLight = GetComponentInChildren<PlayerVisionLight>(true);
 
-        if (aimCamera == null && Camera.main != null)
-            aimCamera = Camera.main.GetComponent<PlayerAimCamera2D>();
-
-        if (aimCamera == null)
-            aimCamera = PlayerSceneReferenceUtility.FindPlayerAimCamera(gameObject);
+        aimCamera = WeaponRuntimeUtility.ResolveAimCamera(aimCamera, gameObject);
 
         if (playerNoise == null)
             playerNoise = GetComponent<PlayerNoise>();
@@ -358,8 +353,7 @@ public class PlayerMeleeController : MonoBehaviour
     // Executes the EmitNoiseSpike routine.
     private void EmitNoiseSpike(float amount, float duration, NoiseType noiseType, bool isExtremeNoise)
     {
-        if (playerNoise != null)
-            playerNoise.AddNoiseSpike(amount, duration, noiseType, isExtremeNoise);
+        WeaponRuntimeUtility.EmitNoise(playerNoise, amount, duration, noiseType, isExtremeNoise);
     }
 
     // Executes the NotifyMeleeStateChanged routine.

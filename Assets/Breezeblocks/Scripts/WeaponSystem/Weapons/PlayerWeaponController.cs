@@ -137,19 +137,19 @@ public class PlayerWeaponController : MonoBehaviour
     public bool IsBusy => _weaponRoutine != null;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
-    public int CurrentAmmo => currentLoadedAmmo;
+    public int CurrentAmmo => firearmRuntimeState.LoadedAmmo;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
-    public int CurrentLoadedAmmo => currentLoadedAmmo;
+    public int CurrentLoadedAmmo => firearmRuntimeState.LoadedAmmo;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
-    public int CurrentReserveAmmo => currentReserveAmmo;
+    public int CurrentReserveAmmo => firearmRuntimeState.ReserveAmmo;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public int CurrentAmmoCapacity => EquippedFirearm != null ? EquippedFirearm.AmmoCapacity : 0;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
-    public bool HasReserveAmmo => GameplayConsoleCheatState.InfiniteReserveAmmo || currentReserveAmmo > 0;
+    public bool HasReserveAmmo => GameplayConsoleCheatState.InfiniteReserveAmmo || firearmRuntimeState.ReserveAmmo > 0;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public Vector2 CurrentAimDirection { get; private set; } = Vector2.right;
@@ -179,8 +179,7 @@ public class PlayerWeaponController : MonoBehaviour
     private Coroutine _weaponRoutine;
     private float _accurateAimTimer;
     private float _nextAllowedFireTime;
-    private int currentLoadedAmmo;
-    private int currentReserveAmmo;
+    private readonly FirearmRuntimeState firearmRuntimeState = new();
     private readonly List<FireMode> _availableFireModes = new();
     private PlayerPerkModifierSet perkModifiers = new();
     private bool inputBlocked;
@@ -225,11 +224,7 @@ public class PlayerWeaponController : MonoBehaviour
         if (aimOrigin == null)
             aimOrigin = playerVisionLight != null ? playerVisionLight.transform : transform;
 
-        if (aimCamera == null && Camera.main != null)
-            aimCamera = Camera.main.GetComponent<PlayerAimCamera2D>();
-
-        if (aimCamera == null)
-            aimCamera = PlayerSceneReferenceUtility.FindPlayerAimCamera(gameObject);
+        aimCamera = WeaponRuntimeUtility.ResolveAimCamera(aimCamera, gameObject);
 
         ResolveGlobalObjectPooler();
         ResolveWorldSfxManager();
@@ -238,9 +233,7 @@ public class PlayerWeaponController : MonoBehaviour
         if (aimCamera != null)
             aimCamera.SetFollowTarget(transform);
 
-        RewiredPlayerInputReader rewiredInputReader = new(rewiredPlayerId);
-        inputReader = rewiredInputReader;
-        pointerInputReader = rewiredInputReader;
+        WeaponRuntimeUtility.EnsureCombinedInputReaders(ref inputReader, ref pointerInputReader, rewiredPlayerId);
     }
 
     // Executes the Start routine.
@@ -264,40 +257,20 @@ public class PlayerWeaponController : MonoBehaviour
     // Executes the Update routine.
     private void Update()
     {
-        if (inputReader == null || pointerInputReader == null)
-        {
-            RewiredPlayerInputReader rewiredInputReader = new(rewiredPlayerId);
-            inputReader = rewiredInputReader;
-            pointerInputReader = rewiredInputReader;
-        }
+        WeaponRuntimeUtility.EnsureCombinedInputReaders(ref inputReader, ref pointerInputReader, rewiredPlayerId);
 
         if (!inputReader.IsReady)
             return;
 
         if (inputBlocked)
         {
-            if (IsAiming || IsAccurate)
-            {
-                IsAiming = false;
-                IsAccurate = false;
-                _accurateAimTimer = 0f;
-                UpdateAimCameraState();
-                NotifyWeaponStateChanged();
-            }
-
+            ResetAimRuntimeState();
             return;
         }
 
         if (EquippedFirearm == null)
         {
-            if (IsAiming || IsAccurate)
-            {
-                IsAiming = false;
-                IsAccurate = false;
-                _accurateAimTimer = 0f;
-                NotifyWeaponStateChanged();
-            }
-
+            ResetAimRuntimeState(notifyCameraState: false);
             return;
         }
 
@@ -361,7 +334,9 @@ public class PlayerWeaponController : MonoBehaviour
         if (amount <= 0 || EquippedFirearm == null)
             return false;
 
-        currentReserveAmmo += amount;
+        if (!firearmRuntimeState.AddReserveAmmo(amount))
+            return false;
+
         EnsureConsoleAmmoReserveBuffer();
         NotifyWeaponStateChanged();
         return true;
@@ -373,11 +348,9 @@ public class PlayerWeaponController : MonoBehaviour
         if (!GameplayConsoleCheatState.InfiniteReserveAmmo || EquippedFirearm == null)
             return;
 
-        int bufferedReserveAmmo = Mathf.Max(currentReserveAmmo, Mathf.Max(1, EquippedFirearm.AmmoCapacity));
-        if (bufferedReserveAmmo == currentReserveAmmo)
+        if (!firearmRuntimeState.EnsureReserveBuffer(EquippedFirearm, GameplayConsoleCheatState.InfiniteReserveAmmo))
             return;
 
-        currentReserveAmmo = bufferedReserveAmmo;
         NotifyWeaponStateChanged();
     }
 
@@ -402,13 +375,7 @@ public class PlayerWeaponController : MonoBehaviour
 
         inputBlocked = blocked;
         if (blocked)
-        {
-            IsAiming = false;
-            IsAccurate = false;
-            _accurateAimTimer = 0f;
-            UpdateAimCameraState();
-            NotifyWeaponStateChanged();
-        }
+            ResetAimRuntimeState();
     }
 
     // Executes the EquipWeaponRoutine routine.
@@ -421,8 +388,7 @@ public class PlayerWeaponController : MonoBehaviour
 
         EquippedFirearm = firearm;
         CurrentProjectile = projectile;
-        currentLoadedAmmo = ResolveInitialLoadedAmmo(firearm, startingLoadedAmmo);
-        currentReserveAmmo = ResolveInitialReserveAmmo(firearm, startingReserveAmmo);
+        firearmRuntimeState.Initialize(firearm, startingLoadedAmmo, startingReserveAmmo, GameplayConsoleCheatState.InfiniteReserveAmmo);
         EnsureConsoleAmmoReserveBuffer();
         RebuildAvailableFireModes();
         CurrentAimDirection = ResolveEquipAimDirection();
@@ -446,19 +412,12 @@ public class PlayerWeaponController : MonoBehaviour
         if (weaponBeingHolstered == null)
             yield break;
 
-        IsAiming = false;
-        IsAccurate = false;
-        _accurateAimTimer = 0f;
+        ResetAimRuntimeState(notifyCameraState: false, notifyStateChanged: false);
 
         yield return new WaitForSeconds(weaponBeingHolstered.HolsterTime);
 
         EmitNoiseSpike(weaponBeingHolstered.HolsterNoise, GlobalSettings.Instance != null ? GlobalSettings.Instance.HolsterNoiseDuration : 0.6f, weaponBeingHolstered.HolsterNoiseType, weaponBeingHolstered.HolsterExtremeNoise);
-        EquippedFirearm = null;
-        CurrentProjectile = null;
-        CurrentFireMode = FireMode.None;
-        currentLoadedAmmo = 0;
-        currentReserveAmmo = 0;
-        _availableFireModes.Clear();
+        ClearEquippedWeaponState();
         NotifyWeaponStateChanged();
     }
 
@@ -486,7 +445,7 @@ public class PlayerWeaponController : MonoBehaviour
         if (IsReloading || CurrentProjectile == null)
             return;
 
-        if (currentLoadedAmmo >= CurrentAmmoCapacity || !HasReserveAmmo)
+        if (CurrentLoadedAmmo >= CurrentAmmoCapacity || !HasReserveAmmo)
             return;
 
         if (EquippedFirearm.ReloadStyle == ReloadType.Magazine)
@@ -517,16 +476,9 @@ public class PlayerWeaponController : MonoBehaviour
         if (remainingReloadDelay > 0f)
             yield return new WaitForSeconds(remainingReloadDelay);
 
-        int missingRounds = Mathf.Max(0, CurrentAmmoCapacity - currentLoadedAmmo);
-        int roundsToTransfer = GameplayConsoleCheatState.InfiniteReserveAmmo
-            ? missingRounds
-            : Mathf.Min(missingRounds, currentReserveAmmo);
+        int roundsToTransfer = firearmRuntimeState.TransferMagazineRounds(CurrentAmmoCapacity, GameplayConsoleCheatState.InfiniteReserveAmmo);
         if (roundsToTransfer > 0)
         {
-            currentLoadedAmmo += roundsToTransfer;
-            if (!GameplayConsoleCheatState.InfiniteReserveAmmo)
-                currentReserveAmmo -= roundsToTransfer;
-
             EmitNoiseSpike(EquippedFirearm.ReloadNoise, EquippedFirearm.ReloadNoiseDuration, EquippedFirearm.ReloadNoiseType, EquippedFirearm.ReloadExtremeNoise);
         }
 
@@ -542,13 +494,8 @@ public class PlayerWeaponController : MonoBehaviour
 
         if (EquippedFirearm != null &&
             CurrentProjectile != null &&
-            currentLoadedAmmo < CurrentAmmoCapacity &&
-            HasReserveAmmo)
+            firearmRuntimeState.TryLoadSingleRound(CurrentAmmoCapacity, GameplayConsoleCheatState.InfiniteReserveAmmo))
         {
-            currentLoadedAmmo++;
-            if (!GameplayConsoleCheatState.InfiniteReserveAmmo)
-                currentReserveAmmo--;
-
             PlayBulletReloadSfx();
             EmitNoiseSpike(EquippedFirearm.ReloadNoise, EquippedFirearm.ReloadNoiseDuration, EquippedFirearm.ReloadNoiseType, EquippedFirearm.ReloadExtremeNoise);
             NotifyWeaponStateChanged();
@@ -585,7 +532,7 @@ public class PlayerWeaponController : MonoBehaviour
         if (EquippedFirearm.ReloadStyle == ReloadType.BulletPerBullet && IsReloading)
             CancelBulletPerBulletReload();
 
-        if (!IsAiming || IsBusy || IsReloading || Time.time < _nextAllowedFireTime || currentLoadedAmmo <= 0)
+        if (!CanFireRequestedShot())
             return;
 
         FireCurrentMode();
@@ -615,46 +562,43 @@ public class PlayerWeaponController : MonoBehaviour
     // Executes the FireBurst routine.
     private void FireBurst()
     {
-        int burstShots = Mathf.Max(1, EquippedFirearm.BurstCount);
-        for (int i = 0; i < burstShots; i++)
-        {
-            if (!TryConsumeCurrentRound(out ProjectileData projectile))
-                break;
-
-            SpawnProjectile(projectile, 1);
-            ConsumeAccurateStanceAfterShot();
-        }
+        FireRounds(Mathf.Max(1, EquippedFirearm.BurstCount), 1);
     }
 
     // Executes the FirePumpShot routine.
     private void FirePumpShot()
     {
-        if (!TryConsumeCurrentRound(out ProjectileData projectile))
-            return;
-
-        int pellets = Mathf.Max(1, EquippedFirearm.PelletCount);
-        SpawnProjectile(projectile, pellets);
-        ConsumeAccurateStanceAfterShot();
+        FireRounds(1, Mathf.Max(1, EquippedFirearm.PelletCount));
     }
 
     // Executes the FireSingleRound routine.
     private void FireSingleRound()
     {
-        if (!TryConsumeCurrentRound(out ProjectileData projectile))
-            return;
+        FireRounds(1, 1);
+    }
 
-        SpawnProjectile(projectile, 1);
-        ConsumeAccurateStanceAfterShot();
+    // Executes the FireRounds routine.
+    private void FireRounds(int roundsToConsume, int projectileCount)
+    {
+        int resolvedRounds = Mathf.Max(1, roundsToConsume);
+        int resolvedProjectileCount = Mathf.Max(1, projectileCount);
+        for (int i = 0; i < resolvedRounds; i++)
+        {
+            if (!TryConsumeCurrentRound(out ProjectileData projectile))
+                break;
+
+            SpawnProjectile(projectile, resolvedProjectileCount);
+            ConsumeAccurateStanceAfterShot();
+        }
     }
 
     // Executes the TryConsumeCurrentRound routine.
     private bool TryConsumeCurrentRound(out ProjectileData projectile)
     {
         projectile = CurrentProjectile;
-        if (EquippedFirearm == null || CurrentProjectile == null || currentLoadedAmmo <= 0)
+        if (EquippedFirearm == null || CurrentProjectile == null || !firearmRuntimeState.TryConsumeRound())
             return false;
 
-        currentLoadedAmmo--;
         EmitNoiseSpike(EquippedFirearm.ShootNoise, GlobalSettings.Instance != null ? GlobalSettings.Instance.ShotNoiseDuration : 0.1f, EquippedFirearm.ShootNoiseType, EquippedFirearm.ShootExtremeNoise);
         SpawnMuzzleFlash();
         ApplyShotVisibility();
@@ -935,15 +879,13 @@ public class PlayerWeaponController : MonoBehaviour
     // Executes the ResolveGlobalObjectPooler routine.
     private void ResolveGlobalObjectPooler()
     {
-        if (globalObjectPooler == null)
-            globalObjectPooler = GlobalObjectPooler.Instance;
+        globalObjectPooler = WeaponRuntimeUtility.ResolveGlobalObjectPooler(globalObjectPooler);
     }
 
     // Executes the ResolveWorldSfxManager routine.
     private void ResolveWorldSfxManager()
     {
-        if (worldSfxManager == null)
-            worldSfxManager = WorldSfxManager.Instance;
+        worldSfxManager = WeaponRuntimeUtility.ResolveWorldSfxManager(worldSfxManager);
     }
 
     // Executes the RegisterPooledPrefabs routine.
@@ -1033,8 +975,7 @@ public class PlayerWeaponController : MonoBehaviour
     // Executes the EmitNoiseSpike routine.
     private void EmitNoiseSpike(float amount, float duration, NoiseType noiseType, bool isExtremeNoise)
     {
-        if (playerNoise != null)
-            playerNoise.AddNoiseSpike(amount, duration, noiseType, isExtremeNoise);
+        WeaponRuntimeUtility.EmitNoise(playerNoise, amount, duration, noiseType, isExtremeNoise);
     }
 
     // Executes the ConsumeAccurateStanceAfterShot routine.
@@ -1112,24 +1053,39 @@ public class PlayerWeaponController : MonoBehaviour
             : 1f;
     }
 
-    // Executes the ResolveInitialLoadedAmmo routine.
-    private int ResolveInitialLoadedAmmo(FirearmData firearm, int requestedLoadedAmmo)
+    // Executes the CanFireRequestedShot routine.
+    private bool CanFireRequestedShot()
     {
-        int ammoCapacity = firearm != null ? firearm.AmmoCapacity : 0;
-        int defaultLoadedAmmo = ammoCapacity;
-        int resolvedAmmo = requestedLoadedAmmo < 0 ? defaultLoadedAmmo : requestedLoadedAmmo;
-        return Mathf.Clamp(resolvedAmmo, 0, ammoCapacity);
+        return IsAiming &&
+               !IsBusy &&
+               !IsReloading &&
+               Time.time >= _nextAllowedFireTime &&
+               CurrentLoadedAmmo > 0;
     }
 
-    // Executes the ResolveInitialReserveAmmo routine.
-    private int ResolveInitialReserveAmmo(FirearmData firearm, int requestedReserveAmmo)
+    // Executes the ResetAimRuntimeState routine.
+    private void ResetAimRuntimeState(bool notifyCameraState = true, bool notifyStateChanged = true)
     {
-        int defaultReserveAmmo = firearm != null ? firearm.DefaultReserveAmmo : 0;
-        int resolvedReserveAmmo = requestedReserveAmmo < 0 ? defaultReserveAmmo : requestedReserveAmmo;
-        if (GameplayConsoleCheatState.InfiniteReserveAmmo && firearm != null)
-            resolvedReserveAmmo = Mathf.Max(resolvedReserveAmmo, Mathf.Max(1, firearm.AmmoCapacity));
+        bool wasChanged = IsAiming || IsAccurate || _accurateAimTimer > 0f;
+        IsAiming = false;
+        IsAccurate = false;
+        _accurateAimTimer = 0f;
 
-        return Mathf.Max(0, resolvedReserveAmmo);
+        if (notifyCameraState)
+            UpdateAimCameraState();
+
+        if (notifyStateChanged && wasChanged)
+            NotifyWeaponStateChanged();
+    }
+
+    // Executes the ClearEquippedWeaponState routine.
+    private void ClearEquippedWeaponState()
+    {
+        EquippedFirearm = null;
+        CurrentProjectile = null;
+        CurrentFireMode = FireMode.None;
+        firearmRuntimeState.Clear();
+        _availableFireModes.Clear();
     }
 
     // Executes the NotifyWeaponStateChanged routine.

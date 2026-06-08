@@ -13,11 +13,8 @@ public class MeleeDamageSource : MonoBehaviour
 {
     private const float MinimumDirectionSqr = 0.0001f;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private BoxCollider2D hitboxCollider;
-
-    [FoldoutGroup("References")]
-    [SerializeField] private WorldSfxManager worldSfxManager;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private BoxCollider2D hitboxCollider;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public MeleeWeaponData EquippedWeapon => equippedWeapon;
@@ -27,10 +24,14 @@ public class MeleeDamageSource : MonoBehaviour
 
     private readonly HashSet<ActorHealth> hitTargets = new();
     private readonly HashSet<int> hitColliderIds = new();
+    private WorldSfxManager worldSfxManager;
     private GameObject ownerRoot;
     private MeleeWeaponData equippedWeapon;
     private bool isDamageActive;
 
+    /// <summary>
+    /// Ensures host object has melee damage source so held melee visuals can drive hit detection.
+    /// </summary>
     public static MeleeDamageSource EnsureOn(GameObject host)
     {
         if (host == null)
@@ -47,6 +48,9 @@ public class MeleeDamageSource : MonoBehaviour
         return damageSource;
     }
 
+    /// <summary>
+    /// Caches required collider reference when component is first added.
+    /// </summary>
     private void Reset()
     {
         CacheReferences();
@@ -54,6 +58,9 @@ public class MeleeDamageSource : MonoBehaviour
             hitboxCollider.isTrigger = true;
     }
 
+    /// <summary>
+    /// Initializes required collider reference and disables damage hitbox on startup.
+    /// </summary>
     private void Awake()
     {
         CacheReferences();
@@ -63,11 +70,17 @@ public class MeleeDamageSource : MonoBehaviour
         SetDamageActive(false);
     }
 
+    /// <summary>
+    /// Disables active damage state whenever melee source leaves play.
+    /// </summary>
     private void OnDisable()
     {
         SetDamageActive(false);
     }
 
+    /// <summary>
+    /// Applies owner and weapon data to source before a swing sequence begins.
+    /// </summary>
     public void Configure(GameObject owner, MeleeWeaponData weapon)
     {
         ownerRoot = owner != null ? owner.transform.root.gameObject : null;
@@ -77,12 +90,18 @@ public class MeleeDamageSource : MonoBehaviour
         SetDamageActive(false);
     }
 
+    /// <summary>
+    /// Clears per-swing hit tracking so next attack can affect fresh targets.
+    /// </summary>
     public void BeginSwing()
     {
         hitTargets.Clear();
         hitColliderIds.Clear();
     }
 
+    /// <summary>
+    /// Plays configured swing SFX from current held weapon position.
+    /// </summary>
     public void PlaySwingSfx()
     {
         if (equippedWeapon == null)
@@ -92,6 +111,9 @@ public class MeleeDamageSource : MonoBehaviour
         worldSfxManager?.PlayClipSetAt(transform.position, equippedWeapon.SwingSfx, equippedWeapon.AttackNoiseType);
     }
 
+    /// <summary>
+    /// Enables or disables active damage window and clears previous hit bookkeeping.
+    /// </summary>
     public void SetDamageActive(bool active)
     {
         isDamageActive = active && equippedWeapon != null;
@@ -102,16 +124,25 @@ public class MeleeDamageSource : MonoBehaviour
             hitboxCollider.enabled = isDamageActive;
     }
 
+    /// <summary>
+    /// Processes first trigger contact during active melee damage window.
+    /// </summary>
     private void OnTriggerEnter2D(Collider2D other)
     {
         TryApplyHit(other);
     }
 
+    /// <summary>
+    /// Processes sustained trigger contact during active melee damage window.
+    /// </summary>
     private void OnTriggerStay2D(Collider2D other)
     {
         TryApplyHit(other);
     }
 
+    /// <summary>
+    /// Applies melee impact once per collider while honoring armor, environment, stagger, and push rules.
+    /// </summary>
     private void TryApplyHit(Collider2D other)
     {
         if (!isDamageActive || equippedWeapon == null || other == null)
@@ -121,64 +152,89 @@ public class MeleeDamageSource : MonoBehaviour
         if (hitColliderIds.Contains(otherColliderId))
             return;
 
-        Transform otherRoot = other.transform.root;
-        if (ownerRoot != null && otherRoot == ownerRoot.transform)
+        if (!CombatImpactUtility.TryResolveImpactTarget(other, out CombatImpactUtility.ImpactTargetContext targetContext))
             return;
 
-        ActorHealth health = other.GetComponentInParent<ActorHealth>();
-        ArmorLoadout armorLoadout = other.GetComponentInParent<ArmorLoadout>();
-        bool treatAsEnvironmentHit = !other.isTrigger && health == null && armorLoadout == null;
-        if (health == null && armorLoadout == null && !treatAsEnvironmentHit)
+        if (ownerRoot != null && targetContext.RootTransform == ownerRoot.transform)
             return;
 
-        if (health != null && hitTargets.Contains(health))
+        bool treatAsEnvironmentHit = !other.isTrigger && !targetContext.HasHealth && !targetContext.HasArmor;
+        if (!targetContext.HasHealth && !targetContext.HasArmor && !treatAsEnvironmentHit)
             return;
 
+        if (targetContext.HasHealth && hitTargets.Contains(targetContext.ActorHealth))
+            return;
+
+        bool registeredImpact = TryApplyRegisteredImpact(other, targetContext, treatAsEnvironmentHit);
+        if (!registeredImpact)
+            return;
+
+        hitColliderIds.Add(otherColliderId);
+        if (targetContext.HasHealth)
+            hitTargets.Add(targetContext.ActorHealth);
+
+        ApplyStagger(targetContext);
+        PlayHitSfx(other);
+        ApplyPushForce(targetContext);
+    }
+
+    /// <summary>
+    /// Resolves whether melee hit produced valid gameplay or environment impact.
+    /// </summary>
+    private bool TryApplyRegisteredImpact(
+        Collider2D other,
+        CombatImpactUtility.ImpactTargetContext targetContext,
+        bool treatAsEnvironmentHit)
+    {
         bool registeredImpact = false;
 
-        if (armorLoadout != null)
+        if (targetContext.HasArmor)
         {
-            ArmorImpactResult impact = armorLoadout.ResolveDirectImpact(equippedWeapon.Damage, equippedWeapon.ArmorPenetration);
-            if (impact.DamageToHealth > 0f && health != null)
+            ArmorImpactResult impact = targetContext.ArmorLoadout.ResolveDirectImpact(equippedWeapon.Damage, equippedWeapon.ArmorPenetration);
+            if (impact.DamageToHealth > 0f && targetContext.HasHealth)
             {
-                health.ApplyDamage(impact.DamageToHealth, new ActorDamageContext(ownerRoot, equippedWeapon.IsLethal));
+                targetContext.ActorHealth.ApplyDamage(impact.DamageToHealth, new ActorDamageContext(ownerRoot, equippedWeapon.IsLethal));
                 registeredImpact = true;
             }
 
             if (impact.HadArmor)
                 registeredImpact = true;
         }
-        else if (health != null)
+        else if (targetContext.HasHealth)
         {
-            health.ApplyDamage(equippedWeapon.Damage, new ActorDamageContext(ownerRoot, equippedWeapon.IsLethal));
+            targetContext.ActorHealth.ApplyDamage(equippedWeapon.Damage, new ActorDamageContext(ownerRoot, equippedWeapon.IsLethal));
             registeredImpact = equippedWeapon.Damage > 0f;
         }
 
         if (!registeredImpact && treatAsEnvironmentHit)
             registeredImpact = equippedWeapon.ResolveHitSfxForLayer(other.gameObject.layer) != null;
 
-        if (!registeredImpact)
-            return;
-
-        hitColliderIds.Add(otherColliderId);
-
-        if (health != null)
-            hitTargets.Add(health);
-
-        ActorStaggerController staggerController = other.GetComponentInParent<ActorStaggerController>();
-        if (staggerController != null && equippedWeapon.StaggerDuration > 0f)
-            staggerController.ApplyStagger(equippedWeapon.StaggerDuration);
-
-        PlayHitSfx(other);
-        ApplyPushForce(other);
+        return registeredImpact;
     }
 
+    /// <summary>
+    /// Applies melee stagger to impacted actor when weapon configuration requires it.
+    /// </summary>
+    private void ApplyStagger(CombatImpactUtility.ImpactTargetContext targetContext)
+    {
+        if (equippedWeapon == null || equippedWeapon.StaggerDuration <= 0f)
+            return;
+
+        targetContext.ActorStaggerController?.ApplyStagger(equippedWeapon.StaggerDuration);
+    }
+
+    /// <summary>
+    /// Caches same-object collider reference used for melee trigger shape.
+    /// </summary>
     private void CacheReferences()
     {
         if (hitboxCollider == null)
             hitboxCollider = GetComponent<BoxCollider2D>();
     }
 
+    /// <summary>
+    /// Applies weapon-defined hitbox shape to cached collider.
+    /// </summary>
     private void RefreshHitboxShape()
     {
         if (hitboxCollider == null)
@@ -190,18 +246,19 @@ public class MeleeDamageSource : MonoBehaviour
         hitboxCollider.enabled = false;
     }
 
-    private void ApplyPushForce(Collider2D other)
+    /// <summary>
+    /// Applies configured push force to impacted rigidbody when melee weapon supports knockback.
+    /// </summary>
+    private void ApplyPushForce(CombatImpactUtility.ImpactTargetContext targetContext)
     {
-        if (equippedWeapon == null || !equippedWeapon.AppliesPushForce || equippedWeapon.PushForce <= 0f || other == null)
+        if (equippedWeapon == null || !equippedWeapon.AppliesPushForce || equippedWeapon.PushForce <= 0f)
             return;
 
-        Rigidbody2D targetBody = other.attachedRigidbody != null
-            ? other.attachedRigidbody
-            : other.GetComponentInParent<Rigidbody2D>();
+        Rigidbody2D targetBody = targetContext.Rigidbody2D;
         if (targetBody == null || !targetBody.simulated)
             return;
 
-        Transform targetRoot = targetBody.transform.root;
+        Transform targetRoot = targetContext.RootTransform;
         if (ownerRoot != null && targetRoot == ownerRoot.transform)
             return;
 
@@ -212,6 +269,9 @@ public class MeleeDamageSource : MonoBehaviour
         targetBody.AddForce(pushDirection * equippedWeapon.PushForce, ForceMode2D.Impulse);
     }
 
+    /// <summary>
+    /// Plays impact SFX selected from target layer at closest contact point.
+    /// </summary>
     private void PlayHitSfx(Collider2D other)
     {
         if (equippedWeapon == null || other == null)
@@ -232,12 +292,17 @@ public class MeleeDamageSource : MonoBehaviour
         worldSfxManager.PlayClipSetAt(impactPoint, hitSfx, equippedWeapon.AttackNoiseType);
     }
 
+    /// <summary>
+    /// Resolves shared world SFX manager only when audio playback is needed.
+    /// </summary>
     private void ResolveWorldSfxManager()
     {
-        if (worldSfxManager == null)
-            worldSfxManager = WorldSfxManager.Instance;
+        worldSfxManager = WeaponRuntimeUtility.ResolveWorldSfxManager(worldSfxManager);
     }
 
+    /// <summary>
+    /// Resolves knockback direction from attacker toward target, falling back to weapon or owner facing.
+    /// </summary>
     private Vector2 ResolvePushDirection(Transform targetRoot)
     {
         Vector2 ownerPosition = ownerRoot != null ? ownerRoot.transform.position : transform.position;
@@ -260,4 +325,5 @@ public class MeleeDamageSource : MonoBehaviour
         return Vector2.up;
     }
 }
+
 }

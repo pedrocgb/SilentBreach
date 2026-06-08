@@ -6,8 +6,6 @@ This is a Unity 2D top-down stealth/action game.
 
 The AI coding agent must read and follow this file before making any code changes.
 
-This file is intentionally short. Detailed rules are split into focused files under:
-
 ```text
 tools/ai-harness/rules/
 ```

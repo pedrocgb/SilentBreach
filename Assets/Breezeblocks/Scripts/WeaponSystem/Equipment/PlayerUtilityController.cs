@@ -120,11 +120,7 @@ public class PlayerUtilityController : MonoBehaviour
         if (playerVisionLight == null)
             playerVisionLight = GetComponentInChildren<PlayerVisionLight>();
 
-        if (aimCamera == null && Camera.main != null)
-            aimCamera = Camera.main.GetComponent<PlayerAimCamera2D>();
-
-        if (aimCamera == null)
-            aimCamera = PlayerSceneReferenceUtility.FindPlayerAimCamera(gameObject);
+        aimCamera = WeaponRuntimeUtility.ResolveAimCamera(aimCamera, gameObject);
 
         if (sfxOrigin == null)
             sfxOrigin = transform;
@@ -141,20 +137,17 @@ public class PlayerUtilityController : MonoBehaviour
         if (playerEquipmentController == null)
             playerEquipmentController = GetComponent<PlayerEquipmentController>();
 
-        if (globalObjectPooler == null)
-            globalObjectPooler = GlobalObjectPooler.Instance;
-
-        if (worldSfxManager == null)
-            worldSfxManager = WorldSfxManager.Instance;
+        globalObjectPooler = WeaponRuntimeUtility.ResolveGlobalObjectPooler(globalObjectPooler);
+        worldSfxManager = WeaponRuntimeUtility.ResolveWorldSfxManager(worldSfxManager);
 
         SetFlashlightEnabled(false, playSfx: false);
-        inputReader = new RewiredPlayerInputReader(rewiredPlayerId);
+        inputReader = WeaponRuntimeUtility.EnsureInputReader(inputReader, rewiredPlayerId);
     }
 
     // Executes the OnEnable routine.
     private void OnEnable()
     {
-        inputReader ??= new RewiredPlayerInputReader(rewiredPlayerId);
+        inputReader = WeaponRuntimeUtility.EnsureInputReader(inputReader, rewiredPlayerId);
         UpdateAimCameraState();
     }
 
@@ -196,8 +189,7 @@ public class PlayerUtilityController : MonoBehaviour
             return;
         }
 
-        if (inputReader == null)
-            inputReader = new RewiredPlayerInputReader(rewiredPlayerId);
+        inputReader = WeaponRuntimeUtility.EnsureInputReader(inputReader, rewiredPlayerId);
 
         if (!inputReader.IsReady)
             return;
@@ -463,8 +455,7 @@ public class PlayerUtilityController : MonoBehaviour
         if (throwableData == null || throwableData.ThrowableWorldPrefab == null || !HasThrowableUsesAvailable(throwableData))
             return false;
 
-        if (globalObjectPooler == null)
-            globalObjectPooler = GlobalObjectPooler.Instance;
+        globalObjectPooler = WeaponRuntimeUtility.ResolveGlobalObjectPooler(globalObjectPooler);
 
         if (globalObjectPooler == null)
             return false;
@@ -557,8 +548,7 @@ public class PlayerUtilityController : MonoBehaviour
 
         EmitNoiseSpike(flashlightData.ToggleNoise, flashlightData.ToggleNoiseDuration, flashlightData.ToggleSfxType, flashlightData.ToggleExtremeNoise);
 
-        if (worldSfxManager == null)
-            worldSfxManager = WorldSfxManager.Instance;
+        worldSfxManager = WeaponRuntimeUtility.ResolveWorldSfxManager(worldSfxManager);
 
         if (worldSfxManager == null)
             return;
@@ -589,8 +579,7 @@ public class PlayerUtilityController : MonoBehaviour
         if (throwableData == null || throwableData.ThrowableWorldPrefab == null)
             return;
 
-        if (globalObjectPooler == null)
-            globalObjectPooler = GlobalObjectPooler.Instance;
+        globalObjectPooler = WeaponRuntimeUtility.ResolveGlobalObjectPooler(globalObjectPooler);
 
         globalObjectPooler?.RegisterPrefab(throwableData.ThrowableWorldPrefab.gameObject, throwableData.ThrowablePoolPrewarm);
         if (throwableData.ResolveEffectPrefab != null)
@@ -606,8 +595,7 @@ public class PlayerUtilityController : MonoBehaviour
     // Executes the EmitNoiseSpike routine.
     private void EmitNoiseSpike(float amount, float duration, NoiseType noiseType, bool isExtremeNoise)
     {
-        if (playerNoise != null)
-            playerNoise.AddNoiseSpike(amount, duration, noiseType, isExtremeNoise);
+        WeaponRuntimeUtility.EmitNoise(playerNoise, amount, duration, noiseType, isExtremeNoise);
     }
 
     // Executes the ResetThrowableInputState routine.

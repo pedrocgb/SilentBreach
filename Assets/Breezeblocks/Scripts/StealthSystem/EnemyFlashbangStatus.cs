@@ -26,11 +26,11 @@ public class EnemyFlashbangStatus : MonoBehaviour
     [FoldoutGroup("References")]
     [SerializeField] private EnemyMeleeCombatantAI enemyMeleeCombatantAI;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private AIPath aiPath;
+    [FoldoutGroup("References"), ShowInInspector, ReadOnly]
+    private AIPath aiPath;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private Rigidbody2D movementBody;
+    [FoldoutGroup("References"), ShowInInspector, ReadOnly]
+    private Rigidbody2D movementBody;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly, SuffixLabel("s", true)]
     public float FlashbangTimeRemaining => Mathf.Max(0f, flashbangEndTime - Time.time);
@@ -43,6 +43,9 @@ public class EnemyFlashbangStatus : MonoBehaviour
     private bool cachedCanMove;
     private bool cachedCanMoveValid;
 
+    /// <summary>
+    /// Ensures the target actor has a flashbang status component and returns it.
+    /// </summary>
     public static EnemyFlashbangStatus EnsureOn(GameObject actorRoot)
     {
         if (actorRoot == null)
@@ -56,21 +59,33 @@ public class EnemyFlashbangStatus : MonoBehaviour
         return status;
     }
 
+    /// <summary>
+    /// Refreshes cached references when the component is reset.
+    /// </summary>
     private void Reset()
     {
         CacheReferences();
     }
 
+    /// <summary>
+    /// Caches runtime references used by flashbang behavior.
+    /// </summary>
     private void Awake()
     {
         CacheReferences();
     }
 
+    /// <summary>
+    /// Clears flashbang runtime state when the component is disabled.
+    /// </summary>
     private void OnDisable()
     {
         ClearFlashbangState();
     }
 
+    /// <summary>
+    /// Updates the active flashbang effect and suppresses movement while blinded.
+    /// </summary>
     private void Update()
     {
         if (flashbangEndTime <= float.NegativeInfinity)
@@ -109,6 +124,9 @@ public class EnemyFlashbangStatus : MonoBehaviour
             UpdateAimlessLookAround();
     }
 
+    /// <summary>
+    /// Applies a flashbang effect for the provided duration and recovery timing.
+    /// </summary>
     public void ApplyFlashbang(float duration, float recoveryThreshold, float blindedAimlessRotationSpeed)
     {
         duration = Mathf.Max(0.01f, duration);
@@ -131,6 +149,9 @@ public class EnemyFlashbangStatus : MonoBehaviour
         enemyMeleeCombatantAI?.SetFlashbanged(true);
     }
 
+    /// <summary>
+    /// Caches same-object and sibling references used by the flashbang effect.
+    /// </summary>
     private void CacheReferences()
     {
         if (aiHearing == null)
@@ -148,13 +169,13 @@ public class EnemyFlashbangStatus : MonoBehaviour
         if (enemyMeleeCombatantAI == null)
             enemyMeleeCombatantAI = GetComponent<EnemyMeleeCombatantAI>();
 
-        if (aiPath == null)
-            aiPath = GetComponent<AIPath>();
-
-        if (movementBody == null)
-            movementBody = GetComponent<Rigidbody2D>();
+        aiPath = GetComponent<AIPath>();
+        movementBody = GetComponent<Rigidbody2D>();
     }
 
+    /// <summary>
+    /// Resolves the current perception multiplier during flashbang recovery.
+    /// </summary>
     private float ResolvePerceptionMultiplier()
     {
         if (Time.time <= flashbangRecoveryStartTime)
@@ -166,6 +187,9 @@ public class EnemyFlashbangStatus : MonoBehaviour
         return Mathf.InverseLerp(flashbangRecoveryStartTime, flashbangEndTime, Time.time);
     }
 
+    /// <summary>
+    /// Applies an aimless look-around override while the flashbang is active.
+    /// </summary>
     private void UpdateAimlessLookAround()
     {
         if (enemyMovementController == null)
@@ -189,6 +213,9 @@ public class EnemyFlashbangStatus : MonoBehaviour
         enemyMovementController.SetExternalFacingDirection(currentAimlessLookDirection);
     }
 
+    /// <summary>
+    /// Resolves the interval between aimless look changes while flashbanged.
+    /// </summary>
     private float ResolveAimlessLookTurnInterval()
     {
         if (aimlessRotationSpeed <= 0f)
@@ -198,6 +225,9 @@ public class EnemyFlashbangStatus : MonoBehaviour
         return Mathf.Clamp(intervalFromSpeed, MinimumAimlessTurnInterval, MaximumAimlessTurnInterval);
     }
 
+    /// <summary>
+    /// Rotates a direction vector by the supplied angle in degrees.
+    /// </summary>
     private static Vector2 Rotate(Vector2 direction, float angleDegrees)
     {
         float radians = angleDegrees * Mathf.Deg2Rad;
@@ -208,6 +238,9 @@ public class EnemyFlashbangStatus : MonoBehaviour
             (direction.x * sin) + (direction.y * cos)).normalized;
     }
 
+    /// <summary>
+    /// Clears all active flashbang runtime state and restores cached movement flags.
+    /// </summary>
     private void ClearFlashbangState()
     {
         bool hadActiveState =
@@ -219,22 +252,27 @@ public class EnemyFlashbangStatus : MonoBehaviour
         if (!hadActiveState)
             return;
 
-        if (aiPath != null && cachedCanMoveValid)
-            aiPath.canMove = cachedCanMove;
-
-        cachedCanMoveValid = false;
         flashbangEndTime = float.NegativeInfinity;
         flashbangRecoveryStartTime = float.NegativeInfinity;
         aimlessRotationSpeed = 0f;
         nextAimlessLookTurnTime = float.NegativeInfinity;
         currentAimlessLookDirection = Vector2.up;
 
-        enemyMovementController?.SetExternalTurnSpeedOverride(false, 0f);
-        enemyMovementController?.ClearExternalFacingOverride();
-
         aiHearing?.SetExternalSensitivityMultiplier(1f);
         enemyVisionAI?.SetExternalPerceptionMultiplier(1f);
         enemyCombatantAI?.SetFlashbanged(false, 0f);
         enemyMeleeCombatantAI?.SetFlashbanged(false);
+
+        if (enemyMovementController != null)
+        {
+            enemyMovementController.SetExternalTurnSpeedOverride(false, 0f);
+            enemyMovementController.ClearExternalFacingOverride();
+        }
+
+        if (aiPath != null && cachedCanMoveValid)
+            aiPath.canMove = cachedCanMove;
+
+        cachedCanMove = false;
+        cachedCanMoveValid = false;
     }
 }

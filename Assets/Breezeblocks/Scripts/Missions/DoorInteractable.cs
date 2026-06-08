@@ -8,6 +8,13 @@ using UnityEngine;
 namespace Breezeblocks.Missions
 {
 
+public enum DoorDefaultState
+{
+    None,
+    Open,
+    Closed
+}
+
 [DefaultExecutionOrder(-6000)]
 [DisallowMultipleComponent]
 [AddComponentMenu("Breezeblocks/Missions/Door Interactable")]
@@ -35,6 +42,8 @@ public class DoorInteractable : PlayerWorldInteractable
     }
 
     private const float MinimumAnimationDuration = 0f;
+    private const float MinimumVisibilitySampleInterval = 0.02f;
+    private static readonly System.Collections.Generic.List<DoorInteractable> ActiveDoorsInternal = new();
 
     [FoldoutGroup("References")]
     [SerializeField] private Transform doorPivot;
@@ -54,6 +63,15 @@ public class DoorInteractable : PlayerWorldInteractable
 
     [FoldoutGroup("References")]
     [SerializeField] private WorldSfxManager worldSfxManager;
+
+    [FoldoutGroup("Awareness")]
+    [SerializeField] private DoorDefaultState defaultState = DoorDefaultState.None;
+
+    [FoldoutGroup("Awareness")]
+    [SerializeField] private Transform awarenessSamplePoint;
+
+    [FoldoutGroup("Awareness"), MinValue(MinimumVisibilitySampleInterval), SuffixLabel("s", true)]
+    [SerializeField] private float visibilitySampleInterval = 0.1f;
 
     [FoldoutGroup("State")]
     [SerializeField] private bool startOpen;
@@ -109,6 +127,16 @@ public class DoorInteractable : PlayerWorldInteractable
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsTransitioning => isTransitioning;
 
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly, ProgressBar(0f, 1f)]
+    public float CurrentVisibility => GetCurrentVisibility();
+
+    public static System.Collections.Generic.IReadOnlyList<DoorInteractable> ActiveDoors => ActiveDoorsInternal;
+    public DoorDefaultState DefaultStateTag => defaultState;
+    public bool HasDefaultStateTag => defaultState != DoorDefaultState.None;
+    public bool IsInDefaultState => !HasDefaultStateTag || isOpen == (defaultState == DoorDefaultState.Open);
+    public Vector2 AwarenessSamplePosition => awarenessSamplePoint != null ? (Vector2)awarenessSamplePoint.position : (Vector2)InteractionPosition;
+    public Bounds AwarenessBounds => ResolveAwarenessBounds();
+
     public override string InteractionDisplayName =>
         isOpen
             ? (string.IsNullOrWhiteSpace(closeInteractionLabel) ? base.InteractionDisplayName : closeInteractionLabel)
@@ -124,6 +152,8 @@ public class DoorInteractable : PlayerWorldInteractable
     private bool pendingTargetOpenState;
     private Bounds closedPathBounds;
     private bool hasClosedPathBounds;
+    private float cachedVisibility = 1f;
+    private float nextVisibilitySampleTime = float.NegativeInfinity;
 
     private void Reset()
     {
@@ -133,15 +163,24 @@ public class DoorInteractable : PlayerWorldInteractable
             closedLocalAngle = NormalizeAngle(doorPivot.localEulerAngles.z);
     }
 
+    protected override void OnEnable()
+    {
+        base.OnEnable();
+
+        if (!ActiveDoorsInternal.Contains(this))
+            ActiveDoorsInternal.Add(this);
+    }
+
     private void Awake()
     {
         ResolveReferences();
         ValidateState();
         CacheClosedPathBounds();
-        ApplyDoorVisualStateImmediate(startOpen);
-        isOpen = startOpen;
+        bool initialOpenState = ResolveInitialOpenState();
+        ApplyDoorVisualStateImmediate(initialOpenState);
+        isOpen = initialOpenState;
         isTransitioning = false;
-        pendingTargetOpenState = startOpen;
+        pendingTargetOpenState = initialOpenState;
     }
 
     private void Start()
@@ -152,6 +191,7 @@ public class DoorInteractable : PlayerWorldInteractable
     protected override void OnDisable()
     {
         base.OnDisable();
+        ActiveDoorsInternal.Remove(this);
         rotationTween?.Kill();
         rotationTween = null;
         isTransitioning = false;
@@ -167,7 +207,7 @@ public class DoorInteractable : PlayerWorldInteractable
         closeInteractionLabel = closeInteractionLabel != null ? closeInteractionLabel.Trim() : string.Empty;
 
         if (!Application.isPlaying && doorPivot != null)
-            ApplyDoorVisualStateImmediate(startOpen);
+            ApplyDoorVisualStateImmediate(ResolveInitialOpenState());
     }
 
     public override bool CanInteract(GameObject interactorRoot)
@@ -190,6 +230,27 @@ public class DoorInteractable : PlayerWorldInteractable
     public bool TryOpenForEnemy(EnemyMovementController enemyMovementController)
     {
         return TrySetOpen(true, playFeedback: true, enemyMovementController != null ? enemyMovementController.gameObject : null);
+    }
+
+    public bool TryRestoreDefaultState(GameObject interactorRoot = null)
+    {
+        if (!TryResolveDefaultOpenState(out bool shouldBeOpen))
+            return false;
+
+        return TrySetOpen(shouldBeOpen, playFeedback: true, interactorRoot);
+    }
+
+    public float GetCurrentVisibility(bool forceRefresh = false)
+    {
+        if (!Application.isPlaying)
+            return VisibilityLight2D.EvaluateTotalVisibilityAt(AwarenessSamplePosition, Time.time);
+
+        if (!forceRefresh && Time.time < nextVisibilitySampleTime)
+            return cachedVisibility;
+
+        cachedVisibility = VisibilityLight2D.EvaluateTotalVisibilityAt(AwarenessSamplePosition, Time.time);
+        nextVisibilitySampleTime = Time.time + visibilitySampleInterval;
+        return cachedVisibility;
     }
 
     public bool TrySetOpen(bool open, bool playFeedback = true, GameObject interactorRoot = null)
@@ -246,6 +307,7 @@ public class DoorInteractable : PlayerWorldInteractable
     private void ValidateState()
     {
         animationDuration = Mathf.Max(MinimumAnimationDuration, animationDuration);
+        visibilitySampleInterval = Mathf.Max(MinimumVisibilitySampleInterval, visibilitySampleInterval);
         openAudio ??= new DoorAudioDefinition();
         closeAudio ??= new DoorAudioDefinition();
         openAudio.Validate();
@@ -296,6 +358,15 @@ public class DoorInteractable : PlayerWorldInteractable
         return blockingCollider;
     }
 
+    private Bounds ResolveAwarenessBounds()
+    {
+        Collider2D boundsSource = ResolvePathBoundsSource();
+        if (boundsSource != null)
+            return boundsSource.bounds;
+
+        return new Bounds(transform.position, Vector3.zero);
+    }
+
     private void CompleteDoorStateChange(bool open)
     {
         ApplyDoorVisualStateImmediate(open);
@@ -319,6 +390,34 @@ public class DoorInteractable : PlayerWorldInteractable
     private float ResolveTargetAngle(bool open)
     {
         return NormalizeAngle(open ? closedLocalAngle + openAngleOffset : closedLocalAngle);
+    }
+
+    private bool ResolveInitialOpenState()
+    {
+        return defaultState switch
+        {
+            DoorDefaultState.Open => true,
+            DoorDefaultState.Closed => false,
+            _ => startOpen
+        };
+    }
+
+    private bool TryResolveDefaultOpenState(out bool shouldBeOpen)
+    {
+        shouldBeOpen = false;
+        switch (defaultState)
+        {
+            case DoorDefaultState.Open:
+                shouldBeOpen = true;
+                return true;
+
+            case DoorDefaultState.Closed:
+                shouldBeOpen = false;
+                return true;
+
+            default:
+                return false;
+        }
     }
 
     private void ApplyDoorPathTags(bool flushGraphUpdates, bool repathEnemies)

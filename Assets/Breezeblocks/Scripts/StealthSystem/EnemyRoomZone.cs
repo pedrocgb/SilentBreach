@@ -20,6 +20,9 @@ public class EnemyRoomZone : MonoBehaviour
     [FoldoutGroup("Lights"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
     [SerializeField] private List<GameObject> roomLights = new();
 
+    [FoldoutGroup("Doors"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
+    [SerializeField] private List<DoorInteractable> connectedDoors = new();
+
     [FoldoutGroup("Look Around"), SuffixLabel("deg", true)]
     [SerializeField] private float lookAroundMinAngle = -70f;
 
@@ -47,12 +50,14 @@ public class EnemyRoomZone : MonoBehaviour
     private void Awake()
     {
         CacheReferences();
+        SanitizeConfiguration();
         areLightsOn = ComputeAreLightsOn();
     }
 
     private void OnEnable()
     {
         CacheReferences();
+        SanitizeConfiguration();
         if (!ActiveZonesInternal.Contains(this))
             ActiveZonesInternal.Add(this);
 
@@ -73,8 +78,7 @@ public class EnemyRoomZone : MonoBehaviour
     private void OnValidate()
     {
         CacheReferences();
-        if (roomLights == null)
-            roomLights = new List<GameObject>();
+        SanitizeConfiguration();
 
         if (lookAroundMaxAngle < lookAroundMinAngle)
             lookAroundMaxAngle = lookAroundMinAngle;
@@ -128,6 +132,31 @@ public class EnemyRoomZone : MonoBehaviour
         return bestMatch;
     }
 
+    public void GetConnectedDoors(List<DoorInteractable> results)
+    {
+        if (results == null)
+            return;
+
+        results.Clear();
+        SanitizeConfiguration();
+
+        if (connectedDoors != null && connectedDoors.Count > 0)
+        {
+            results.AddRange(connectedDoors);
+            return;
+        }
+
+        IReadOnlyList<DoorInteractable> activeDoors = DoorInteractable.ActiveDoors;
+        for (int i = 0; i < activeDoors.Count; i++)
+        {
+            DoorInteractable door = activeDoors[i];
+            if (door == null || !door.isActiveAndEnabled || !IsDoorConnectedToRoom(door))
+                continue;
+
+            results.Add(door);
+        }
+    }
+
     public Vector2 ResolveLookAroundBaseDirection(Vector2 fallbackOrigin)
     {
         Vector2 switchPosition = SwitchPosition;
@@ -147,6 +176,24 @@ public class EnemyRoomZone : MonoBehaviour
     {
         if (roomCollider == null)
             roomCollider = GetComponent<Collider2D>();
+    }
+
+    private void SanitizeConfiguration()
+    {
+        roomLights ??= new List<GameObject>();
+        connectedDoors ??= new List<DoorInteractable>();
+
+        for (int i = roomLights.Count - 1; i >= 0; i--)
+        {
+            if (roomLights[i] == null)
+                roomLights.RemoveAt(i);
+        }
+
+        for (int i = connectedDoors.Count - 1; i >= 0; i--)
+        {
+            if (connectedDoors[i] == null)
+                connectedDoors.RemoveAt(i);
+        }
     }
 
     private void HandleLightSwitchStateChanged(LightSwitchInteractable source, bool lightsOn)
@@ -174,14 +221,19 @@ public class EnemyRoomZone : MonoBehaviour
         if (lights == null || lights.Count == 0)
             return true;
 
+        bool hasAnyValidLightReference = false;
         for (int i = 0; i < lights.Count; i++)
         {
             GameObject lightObject = lights[i];
-            if (lightObject != null && lightObject.activeInHierarchy)
+            if (lightObject == null)
+                continue;
+
+            hasAnyValidLightReference = true;
+            if (lightObject.activeInHierarchy)
                 return true;
         }
 
-        return false;
+        return !hasAnyValidLightReference;
     }
 
     private IReadOnlyList<GameObject> ResolveLights()
@@ -212,5 +264,16 @@ public class EnemyRoomZone : MonoBehaviour
 
         Vector3 size = roomCollider.bounds.size;
         return Mathf.Abs(size.x * size.y);
+    }
+
+    private bool IsDoorConnectedToRoom(DoorInteractable door)
+    {
+        if (door == null || roomCollider == null)
+            return false;
+
+        if (roomCollider.OverlapPoint(door.AwarenessSamplePosition))
+            return true;
+
+        return roomCollider.bounds.Intersects(door.AwarenessBounds);
     }
 }

@@ -280,6 +280,31 @@ public class EnemyVisionAI : MonoBehaviour
         externalPerceptionMultiplier = Mathf.Clamp01(multiplier);
     }
 
+    public bool CanPerceiveWorldPoint(Vector2 targetPosition, float targetVisibility = 1f)
+    {
+        float effectiveVisionRange = ResolveEffectiveVisionRange();
+        if (effectiveVisionRange <= 0f)
+            return false;
+
+        Vector2 origin = VisionOriginPosition;
+        Vector2 toTarget = targetPosition - origin;
+        float distance = toTarget.magnitude;
+        if (distance > effectiveVisionRange || toTarget.sqrMagnitude <= MinimumDirectionSqr)
+            return false;
+
+        if (!IsInsideVisionCone(toTarget))
+            return false;
+
+        if (requireLineOfSight && obstacleMask.value != 0)
+        {
+            if (Physics2D.Linecast(origin, targetPosition, obstacleMask).collider != null)
+                return false;
+        }
+
+        float effectiveTargetVisibility = Mathf.Max(0f, targetVisibility) * externalPerceptionMultiplier;
+        return effectiveTargetVisibility > visibilityThreshold;
+    }
+
     public void ClearVisualDetectionForConsoleCheat(bool resumeDefaultState = true)
     {
         currentDetectionValue = 0f;

@@ -508,6 +508,7 @@ public class EnemyMovementController : MonoBehaviour
     private bool doorTraversalPreferenceDirty = true;
     private float nextDoorAutoOpenTime;
     private readonly RaycastHit2D[] doorAutoOpenHits = new RaycastHit2D[8];
+    private ContactFilter2D doorDetectionContactFilter;
 
     private void Reset()
     {
@@ -524,6 +525,7 @@ public class EnemyMovementController : MonoBehaviour
         ConfigureAstarDriver();
         CacheDoorTraversalPreferences();
         ApplyDoorTraversalPreferencesIfNeeded(force: true);
+        RefreshDoorDetectionContactFilter();
         CharacterOrbitHandsAnimator.EnsureOn(gameObject);
 
         if (IsMissionStartupBlockingEnemyRuntime())
@@ -554,6 +556,7 @@ public class EnemyMovementController : MonoBehaviour
             ApplyRigidbodyRecommendations();
 
         ConfigureAstarDriver();
+        RefreshDoorDetectionContactFilter();
         doorTraversalPreferenceDirty = true;
     }
 
@@ -1280,6 +1283,7 @@ public class EnemyMovementController : MonoBehaviour
         ConfigureAstarDriver();
         CacheDoorTraversalPreferences();
         ApplyDoorTraversalPreferencesIfNeeded(force: true);
+        RefreshDoorDetectionContactFilter();
     }
 
     public void HoldDetectedPosition()
@@ -2595,6 +2599,14 @@ public class EnemyMovementController : MonoBehaviour
         return aiPath != null && (!Application.isPlaying || startupCompleted);
     }
 
+    private void RefreshDoorDetectionContactFilter()
+    {
+        doorDetectionContactFilter = default;
+        doorDetectionContactFilter.useLayerMask = true;
+        doorDetectionContactFilter.layerMask = doorDetectionMask;
+        doorDetectionContactFilter.useTriggers = true;
+    }
+
     private void CacheDoorTraversalPreferences()
     {
         if (seeker == null)
@@ -2684,13 +2696,13 @@ public class EnemyMovementController : MonoBehaviour
         if (!TryResolveDoorAutoOpenDirection(out Vector2 direction))
             return false;
 
-        int hitCount = Physics2D.CircleCastNonAlloc(
+        int hitCount = Physics2D.CircleCast(
             CurrentPosition,
             doorAutoOpenRadius,
             direction,
+            doorDetectionContactFilter,
             doorAutoOpenHits,
-            doorAutoOpenRange,
-            doorDetectionMask);
+            doorAutoOpenRange);
 
         DoorInteractable nearestDoor = null;
         float nearestDistance = float.PositiveInfinity;

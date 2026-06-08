@@ -3,6 +3,13 @@ using Breezeblocks.Missions;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
+internal enum EnemyRoomAwarenessReactionType
+{
+    None,
+    Light,
+    DoorState
+}
+
 [DisallowMultipleComponent]
 [RequireComponent(typeof(EnemyMovementController))]
 [AddComponentMenu("Breezeblocks/Stealth/Enemy Room Awareness")]
@@ -16,6 +23,9 @@ public class EnemyRoomAwareness : MonoBehaviour
 
     [FoldoutGroup("References")]
     [SerializeField] private AIHearing aiHearing;
+
+    [FoldoutGroup("References")]
+    [SerializeField] private EnemyVisionAI enemyVisionAI;
 
     [FoldoutGroup("Room Awareness")]
     [SerializeField] private bool roomAwareness = true;
@@ -35,6 +45,12 @@ public class EnemyRoomAwareness : MonoBehaviour
     [FoldoutGroup("Room Awareness"), MinValue(0f), SuffixLabel("deg/s", true)]
     [SerializeField] private float lookAroundRotationSpeed = 420f;
 
+    [FoldoutGroup("Door State Awareness")]
+    [SerializeField] private bool doorStateAwareness = true;
+
+    [FoldoutGroup("Door State Awareness"), MinValue(0f), SuffixLabel("s", true)]
+    [SerializeField] private float waitBeforeDoorStateFixDuration = 1f;
+
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool RoomAwareness => roomAwareness;
 
@@ -45,7 +61,10 @@ public class EnemyRoomAwareness : MonoBehaviour
     public bool CurrentRoomLightsOn => currentRoom == null || currentRoomLightsOn;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
-    public bool IsReactingToDarkRoom => reactionRoutine != null;
+    public bool IsReactingToDarkRoom => reactionRoutine != null && currentReactionType == EnemyRoomAwarenessReactionType.Light;
+
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public bool IsReactingToDoorState => reactionRoutine != null && currentReactionType == EnemyRoomAwarenessReactionType.DoorState;
 
     private EnemyRoomZone currentRoom;
     private Coroutine reactionRoutine;
@@ -54,6 +73,11 @@ public class EnemyRoomAwareness : MonoBehaviour
     private bool cancelReactionRequested;
     private bool cancelReactionKeepCurrentBehavior;
     private EnemyRoomZone reactingRoom;
+    private EnemyRoomAwarenessReactionType currentReactionType;
+    private DoorInteractable reactingDoor;
+    private readonly System.Collections.Generic.List<DoorInteractable> connectedDoorsBuffer = new();
+    private readonly System.Collections.Generic.List<DoorInteractable> visibleIncorrectDoorsBuffer = new();
+    private readonly System.Collections.Generic.List<DoorInteractable> pendingDoorFixes = new();
 
     public static EnemyRoomAwareness EnsureOn(GameObject actorRoot)
     {
@@ -111,6 +135,7 @@ public class EnemyRoomAwareness : MonoBehaviour
         lookAroundDurationAfterTurningLightsOn = Mathf.Max(0f, lookAroundDurationAfterTurningLightsOn);
         lookAroundTurnInterval = Mathf.Max(MinimumInterval, lookAroundTurnInterval);
         lookAroundRotationSpeed = Mathf.Max(0f, lookAroundRotationSpeed);
+        waitBeforeDoorStateFixDuration = Mathf.Max(0f, waitBeforeDoorStateFixDuration);
     }
 
     private void Update()
@@ -155,9 +180,7 @@ public class EnemyRoomAwareness : MonoBehaviour
             return;
 
         if (!lightsOn)
-        {
-            TryStartDarkRoomReaction(room);
-        }
+            RequestCancelReaction(keepCurrentBehavior: false);
     }
 
     private void RefreshCurrentRoom(bool allowImmediateReaction)
@@ -177,8 +200,10 @@ public class EnemyRoomAwareness : MonoBehaviour
             currentRoomLightsOn = currentRoom.AreLightsOn;
         }
 
-        if (allowImmediateReaction && currentRoom != null && !currentRoomLightsOn)
-            TryStartDarkRoomReaction(currentRoom);
+        if (!allowImmediateReaction || currentRoom == null)
+            return;
+
+        TryStartHighestPriorityRoomReaction();
     }
 
     private void SubscribeToCurrentRoom(EnemyRoomZone nextRoom)
@@ -195,7 +220,28 @@ public class EnemyRoomAwareness : MonoBehaviour
         if (room == null || reactionRoutine != null || !CanStartRoomReaction(room))
             return;
 
+        currentReactionType = EnemyRoomAwarenessReactionType.Light;
         reactionRoutine = StartCoroutine(DarkRoomReactionRoutine(room));
+    }
+
+    private void TryStartHighestPriorityRoomReaction()
+    {
+        if (reactionRoutine != null ||
+            !roomAwareness ||
+            currentRoom == null ||
+            enemyMovementController == null ||
+            IsHigherPriorityState(enemyMovementController.CurrentState))
+        {
+            return;
+        }
+
+        if (!currentRoomLightsOn)
+        {
+            TryStartDarkRoomReaction(currentRoom);
+            return;
+        }
+
+        TryStartDoorStateReaction(currentRoom);
     }
 
     private bool CanStartRoomReaction(EnemyRoomZone room)
@@ -212,9 +258,50 @@ public class EnemyRoomAwareness : MonoBehaviour
         };
     }
 
+    private void TryStartDoorStateReaction(EnemyRoomZone room)
+    {
+        if (!doorStateAwareness ||
+            room == null ||
+            reactionRoutine != null ||
+            !CanStartDoorStateReaction(room))
+        {
+            return;
+        }
+
+        pendingDoorFixes.Clear();
+        AppendVisibleIncorrectDoors(room);
+        if (pendingDoorFixes.Count <= 0)
+            return;
+
+        currentReactionType = EnemyRoomAwarenessReactionType.DoorState;
+        reactionRoutine = StartCoroutine(DoorStateReactionRoutine(room));
+    }
+
+    private bool CanStartDoorStateReaction(EnemyRoomZone room)
+    {
+        if (!roomAwareness ||
+            !doorStateAwareness ||
+            enemyMovementController == null ||
+            enemyVisionAI == null ||
+            room == null ||
+            !room.AreLightsOn)
+        {
+            return false;
+        }
+
+        return enemyMovementController.CurrentState switch
+        {
+            EnemyState.Idle => true,
+            EnemyState.Patrol => true,
+            EnemyState.ReturningToStart => true,
+            _ => false
+        };
+    }
+
     private IEnumerator DarkRoomReactionRoutine(EnemyRoomZone room)
     {
         reactingRoom = room;
+        reactingDoor = null;
         cancelReactionRequested = false;
         cancelReactionKeepCurrentBehavior = false;
         bool completedNormally = false;
@@ -234,7 +321,7 @@ public class EnemyRoomAwareness : MonoBehaviour
             enemyMovementController.SetExternalInvestigation(switchPosition, EnemyState.Suspicious);
             while (!cancelReactionRequested && !enemyMovementController.HasReachedDestination)
             {
-                if (!CanContinueCurrentReaction(room, cancelIfLightsTurnOn: true))
+                if (!CanContinueCurrentReaction(room, cancelIfLightsTurnOn: true, cancelIfLightsTurnOff: false))
                     break;
 
                 yield return null;
@@ -258,12 +345,81 @@ public class EnemyRoomAwareness : MonoBehaviour
         FinishReaction(completedNormally);
     }
 
-    private IEnumerator WaitWhileSuspicious(EnemyRoomZone room, float duration, Vector2 facePoint, bool cancelIfLightsTurnOn)
+    private IEnumerator DoorStateReactionRoutine(EnemyRoomZone room)
+    {
+        reactingRoom = room;
+        reactingDoor = null;
+        cancelReactionRequested = false;
+        cancelReactionKeepCurrentBehavior = false;
+        bool completedNormally = false;
+
+        while (!cancelReactionRequested)
+        {
+            AppendVisibleIncorrectDoors(room);
+            if (!TryPopNearestPendingDoor(out DoorInteractable nextDoor))
+            {
+                completedNormally = true;
+                break;
+            }
+
+            reactingDoor = nextDoor;
+
+            if (!reactingDoor.IsInDefaultState)
+            {
+                enemyMovementController.SetExternalInvestigation(transform.position, EnemyState.Suspicious);
+                yield return WaitWhileSuspicious(
+                    room,
+                    waitBeforeDoorStateFixDuration,
+                    reactingDoor.AwarenessSamplePosition,
+                    cancelIfLightsTurnOn: false,
+                    cancelIfLightsTurnOff: true);
+            }
+
+            if (cancelReactionRequested)
+                break;
+
+            if (reactingDoor == null || !reactingDoor.isActiveAndEnabled || reactingDoor.IsInDefaultState)
+            {
+                reactingDoor = null;
+                continue;
+            }
+
+            enemyMovementController.SetExternalInvestigation(reactingDoor.InteractionPosition, EnemyState.Suspicious);
+            while (!cancelReactionRequested && !enemyMovementController.HasReachedDestination)
+            {
+                if (!CanContinueDoorReaction(room, reactingDoor))
+                    break;
+
+                yield return null;
+            }
+
+            if (cancelReactionRequested)
+                break;
+
+            if (reactingDoor != null &&
+                reactingDoor.isActiveAndEnabled &&
+                !reactingDoor.IsInDefaultState)
+            {
+                reactingDoor.TryRestoreDefaultState(gameObject);
+            }
+
+            reactingDoor = null;
+        }
+
+        FinishReaction(completedNormally);
+    }
+
+    private IEnumerator WaitWhileSuspicious(
+        EnemyRoomZone room,
+        float duration,
+        Vector2 facePoint,
+        bool cancelIfLightsTurnOn,
+        bool cancelIfLightsTurnOff = false)
     {
         float endTime = Time.time + Mathf.Max(0f, duration);
         while (!cancelReactionRequested && Time.time < endTime)
         {
-            if (!CanContinueCurrentReaction(room, cancelIfLightsTurnOn))
+            if (!CanContinueCurrentReaction(room, cancelIfLightsTurnOn, cancelIfLightsTurnOff))
                 yield break;
 
             enemyMovementController.SetFacingPoint(facePoint);
@@ -285,7 +441,7 @@ public class EnemyRoomAwareness : MonoBehaviour
         float nextTurnTime = Time.time;
         while (!cancelReactionRequested && Time.time < endTime)
         {
-            if (!CanContinueCurrentReaction(room, cancelIfLightsTurnOn: false))
+            if (!CanContinueCurrentReaction(room, cancelIfLightsTurnOn: false, cancelIfLightsTurnOff: true))
                 yield break;
 
             if (Time.time >= nextTurnTime)
@@ -304,7 +460,80 @@ public class EnemyRoomAwareness : MonoBehaviour
         }
     }
 
-    private bool CanContinueCurrentReaction(EnemyRoomZone room, bool cancelIfLightsTurnOn)
+    private void CollectVisibleIncorrectDoors(EnemyRoomZone room, System.Collections.Generic.List<DoorInteractable> results)
+    {
+        if (results == null)
+            return;
+
+        results.Clear();
+        if (room == null || enemyVisionAI == null)
+            return;
+
+        room.GetConnectedDoors(connectedDoorsBuffer);
+        for (int i = 0; i < connectedDoorsBuffer.Count; i++)
+        {
+            DoorInteractable door = connectedDoorsBuffer[i];
+            if (door == null ||
+                !door.isActiveAndEnabled ||
+                !door.HasDefaultStateTag ||
+                door.IsInDefaultState)
+            {
+                continue;
+            }
+
+            if (!enemyVisionAI.CanPerceiveWorldPoint(door.AwarenessSamplePosition, door.GetCurrentVisibility()))
+                continue;
+
+            results.Add(door);
+        }
+    }
+
+    private void AppendVisibleIncorrectDoors(EnemyRoomZone room)
+    {
+        CollectVisibleIncorrectDoors(room, visibleIncorrectDoorsBuffer);
+        for (int i = 0; i < visibleIncorrectDoorsBuffer.Count; i++)
+        {
+            DoorInteractable door = visibleIncorrectDoorsBuffer[i];
+            if (door == null || pendingDoorFixes.Contains(door) || door == reactingDoor)
+                continue;
+
+            pendingDoorFixes.Add(door);
+        }
+    }
+
+    private bool TryPopNearestPendingDoor(out DoorInteractable closestDoor)
+    {
+        closestDoor = null;
+        int closestIndex = -1;
+        float closestDistanceSqr = float.PositiveInfinity;
+        Vector2 currentPosition = transform.position;
+
+        for (int i = pendingDoorFixes.Count - 1; i >= 0; i--)
+        {
+            DoorInteractable candidateDoor = pendingDoorFixes[i];
+            if (candidateDoor == null || !candidateDoor.isActiveAndEnabled || candidateDoor.IsInDefaultState)
+            {
+                pendingDoorFixes.RemoveAt(i);
+                continue;
+            }
+
+            float distanceSqr = ((Vector2)candidateDoor.InteractionPosition - currentPosition).sqrMagnitude;
+            if (distanceSqr >= closestDistanceSqr)
+                continue;
+
+            closestDistanceSqr = distanceSqr;
+            closestIndex = i;
+            closestDoor = candidateDoor;
+        }
+
+        if (closestIndex < 0)
+            return false;
+
+        pendingDoorFixes.RemoveAt(closestIndex);
+        return true;
+    }
+
+    private bool CanContinueCurrentReaction(EnemyRoomZone room, bool cancelIfLightsTurnOn, bool cancelIfLightsTurnOff)
     {
         if (cancelReactionRequested)
             return false;
@@ -333,7 +562,21 @@ public class EnemyRoomAwareness : MonoBehaviour
             return false;
         }
 
+        if (cancelIfLightsTurnOff && !room.AreLightsOn)
+        {
+            RequestCancelReaction(keepCurrentBehavior: false);
+            return false;
+        }
+
         return true;
+    }
+
+    private bool CanContinueDoorReaction(EnemyRoomZone room, DoorInteractable door)
+    {
+        if (!CanContinueCurrentReaction(room, cancelIfLightsTurnOn: false, cancelIfLightsTurnOff: true))
+            return false;
+
+        return door != null && door.isActiveAndEnabled && !door.IsInDefaultState;
     }
 
     private void RequestCancelReaction(bool keepCurrentBehavior)
@@ -353,6 +596,11 @@ public class EnemyRoomAwareness : MonoBehaviour
 
         reactionRoutine = null;
         reactingRoom = null;
+        reactingDoor = null;
+        currentReactionType = EnemyRoomAwarenessReactionType.None;
+        pendingDoorFixes.Clear();
+        connectedDoorsBuffer.Clear();
+        visibleIncorrectDoorsBuffer.Clear();
         cancelReactionRequested = false;
         cancelReactionKeepCurrentBehavior = false;
     }
@@ -373,6 +621,11 @@ public class EnemyRoomAwareness : MonoBehaviour
 
         reactionRoutine = null;
         reactingRoom = null;
+        reactingDoor = null;
+        currentReactionType = EnemyRoomAwarenessReactionType.None;
+        pendingDoorFixes.Clear();
+        connectedDoorsBuffer.Clear();
+        visibleIncorrectDoorsBuffer.Clear();
         cancelReactionRequested = false;
         cancelReactionKeepCurrentBehavior = false;
     }
@@ -392,6 +645,9 @@ public class EnemyRoomAwareness : MonoBehaviour
 
         if (aiHearing == null)
             aiHearing = GetComponent<AIHearing>();
+
+        if (enemyVisionAI == null)
+            enemyVisionAI = GetComponent<EnemyVisionAI>();
     }
 
     private static Vector2 Rotate(Vector2 direction, float angleDegrees)

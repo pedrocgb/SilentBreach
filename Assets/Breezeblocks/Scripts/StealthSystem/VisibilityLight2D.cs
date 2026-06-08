@@ -10,6 +10,7 @@ public class VisibilityLight2D : MonoBehaviour
 {
     private const float MinimumOuterRadius = 0.01f;
     private const float MinimumScale = 0.0001f;
+    private static readonly List<VisibilityLight2D> ActiveLightsInternal = new();
 
     [FoldoutGroup("Visibility")]
     [Tooltip("If false, this light remains visual only and never affects stealth visibility.")]
@@ -104,6 +105,8 @@ public class VisibilityLight2D : MonoBehaviour
     [FoldoutGroup("State"), ShowIf(nameof(useLineOfSightBlocking)), ShowInInspector, ReadOnly]
     private bool CachedOccluded => _cachedOccluded;
 
+    public static IReadOnlyList<VisibilityLight2D> ActiveLights => ActiveLightsInternal;
+
     private void Reset()
     {
         CacheReferences();
@@ -122,11 +125,15 @@ public class VisibilityLight2D : MonoBehaviour
     {
         CacheReferences();
         SyncTriggerCollider();
+
+        if (!ActiveLightsInternal.Contains(this))
+            ActiveLightsInternal.Add(this);
     }
 
     private void OnDisable()
     {
         UnregisterTrackedPlayers();
+        ActiveLightsInternal.Remove(this);
     }
 
     private void OnValidate()
@@ -152,6 +159,35 @@ public class VisibilityLight2D : MonoBehaviour
 
         float contribution = CalculateDistanceContribution(distance);
         return Mathf.Max(0f, contribution * lightIntensityMultiplier);
+    }
+
+    public static float EvaluateTotalVisibilityAt(Vector2 samplePosition, float currentTime, float maximumVisibility = 1f)
+    {
+        float clampedMaximum = Mathf.Max(0f, maximumVisibility);
+        float combinedContribution = 0f;
+
+        for (int i = ActiveLightsInternal.Count - 1; i >= 0; i--)
+        {
+            VisibilityLight2D light = ActiveLightsInternal[i];
+            if (light == null)
+            {
+                ActiveLightsInternal.RemoveAt(i);
+                continue;
+            }
+
+            if (!light.isActiveAndEnabled)
+                continue;
+
+            float contribution = light.EvaluateContribution(samplePosition, currentTime);
+            if (contribution <= 0f)
+                continue;
+
+            combinedContribution += contribution;
+            if (combinedContribution >= clampedMaximum)
+                return clampedMaximum;
+        }
+
+        return Mathf.Clamp(combinedContribution, 0f, clampedMaximum);
     }
 
     private void OnTriggerEnter2D(Collider2D other)

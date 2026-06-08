@@ -1,6 +1,7 @@
 using Sirenix.OdinInspector;
 using Unity.Cinemachine;
 using UnityEngine;
+using Breezeblocks.Input;
 
 namespace Breezeblocks.WeaponSystem
 {
@@ -71,6 +72,12 @@ public class PlayerAimCamera2D : MonoBehaviour
     [FoldoutGroup("State"), ShowInInspector, ReadOnly, SuffixLabel("s", true)]
     public float ScreenshakeTimeRemaining => Mathf.Max(0f, shakeEndTime - Time.unscaledTime);
 
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly, SuffixLabel("s", true)]
+    public float ConfiguredFallbackFollowSmoothTime => Mathf.Max(0f, followSmoothTime);
+
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public float ConfiguredPointerFollowDeadZoneRatio => Mathf.Clamp01(pointerFollowDeadZoneRatio);
+
     private Vector3 _fallbackVelocity;
     private Vector3 _composerVelocity;
     private Vector3 _baseComposerOffset;
@@ -82,19 +89,25 @@ public class PlayerAimCamera2D : MonoBehaviour
     private float shakeEndTime = float.NegativeInfinity;
     private float shakeAmplitude;
     private float shakeDuration;
+    private IPointerInputReader pointerInputReader;
 
+    // Executes the Awake routine.
     private void Awake()
     {
+        pointerInputReader ??= new RewiredPlayerInputReader();
         CacheReferences();
         CacheBaseComposerOffset();
     }
 
+    // Executes the OnEnable routine.
     private void OnEnable()
     {
+        pointerInputReader ??= new RewiredPlayerInputReader();
         CacheReferences();
         CacheBaseComposerOffset();
     }
 
+    // Executes the LateUpdate routine.
     private void LateUpdate()
     {
         CacheReferences();
@@ -106,6 +119,7 @@ public class PlayerAimCamera2D : MonoBehaviour
         UpdateFallbackTransform();
     }
 
+    // Executes the SetFollowTarget routine.
     public void SetFollowTarget(Transform target)
     {
         followTarget = target;
@@ -114,12 +128,14 @@ public class PlayerAimCamera2D : MonoBehaviour
             cinemachineCamera.Follow = target;
     }
 
+    // Executes the SetAimState routine.
     public void SetAimState(bool isAiming, float maxAimPanDistance)
     {
         IsAiming = isAiming;
         MaxAimPanDistance = Mathf.Max(0f, maxAimPanDistance);
     }
 
+    // Executes the PlayScreenshake routine.
     public void PlayScreenshake(float power, float duration)
     {
         power = Mathf.Max(0f, power);
@@ -134,6 +150,7 @@ public class PlayerAimCamera2D : MonoBehaviour
         shakeEndTime = shakeStartTime + shakeDuration;
     }
 
+    // Executes the CacheReferences routine.
     private void CacheReferences()
     {
         if (targetCamera == null)
@@ -143,7 +160,10 @@ public class PlayerAimCamera2D : MonoBehaviour
         {
             cinemachineCamera = GetComponent<CinemachineCamera>();
             if (cinemachineCamera == null)
-                cinemachineCamera = FindFirstObjectByType<CinemachineCamera>();
+                cinemachineCamera = GetComponentInChildren<CinemachineCamera>(true);
+
+            if (cinemachineCamera == null)
+                cinemachineCamera = PlayerSceneReferenceUtility.FindFirstComponentInLoadedScenes<CinemachineCamera>(gameObject);
         }
 
         if (positionComposer == null)
@@ -166,6 +186,7 @@ public class PlayerAimCamera2D : MonoBehaviour
         CacheBaseNoiseState();
     }
 
+    // Executes the CacheBaseComposerOffset routine.
     private void CacheBaseComposerOffset()
     {
         if (_hasBaseComposerOffset || positionComposer == null)
@@ -175,6 +196,7 @@ public class PlayerAimCamera2D : MonoBehaviour
         _hasBaseComposerOffset = true;
     }
 
+    // Executes the TryUpdateCinemachineAimOffset routine.
     private bool TryUpdateCinemachineAimOffset()
     {
         if (positionComposer == null)
@@ -205,6 +227,7 @@ public class PlayerAimCamera2D : MonoBehaviour
         return true;
     }
 
+    // Executes the UpdateFallbackTransform routine.
     private void UpdateFallbackTransform()
     {
         if (followTarget == null)
@@ -222,6 +245,7 @@ public class PlayerAimCamera2D : MonoBehaviour
         }
     }
 
+    // Executes the CalculateAimPanOffset routine.
     private Vector3 CalculateAimPanOffset()
     {
         if (!IsAiming || MaxAimPanDistance <= 0f || targetCamera == null)
@@ -233,6 +257,7 @@ public class PlayerAimCamera2D : MonoBehaviour
         return CalculateEdgePanOffset();
     }
 
+    // Executes the CalculatePointerFollowOffset routine.
     private Vector3 CalculatePointerFollowOffset()
     {
         if (followTarget == null || targetCamera == null)
@@ -243,7 +268,10 @@ public class PlayerAimCamera2D : MonoBehaviour
             return Vector3.zero;
 
         Vector3 targetScreen = targetCamera.WorldToScreenPoint(followTarget.position);
-        Vector2 screenDelta = (Vector2)Input.mousePosition - new Vector2(targetScreen.x, targetScreen.y);
+        Vector2 pointerScreenPosition = pointerInputReader != null
+            ? pointerInputReader.GetScreenPositionOrDefault()
+            : new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+        Vector2 screenDelta = pointerScreenPosition - new Vector2(targetScreen.x, targetScreen.y);
 
         if (targetCamera.orthographic)
         {
@@ -256,16 +284,20 @@ public class PlayerAimCamera2D : MonoBehaviour
 
         float depth = Mathf.Abs(targetCamera.transform.position.z - followTarget.position.z);
         Vector3 targetWorldOnScreenPlane = targetCamera.ScreenToWorldPoint(new Vector3(targetScreen.x, targetScreen.y, depth));
-        Vector3 mouseWorld = targetCamera.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, depth));
+        Vector3 mouseWorld = targetCamera.ScreenToWorldPoint(new Vector3(pointerScreenPosition.x, pointerScreenPosition.y, depth));
         Vector2 perspectiveOffset = Vector2.ClampMagnitude((Vector2)(mouseWorld - targetWorldOnScreenPlane), maxDistance);
         return new Vector3(perspectiveOffset.x, perspectiveOffset.y, 0f);
     }
 
+    // Executes the CalculateEdgePanOffset routine.
     private Vector3 CalculateEdgePanOffset()
     {
+        Vector2 pointerScreenPosition = pointerInputReader != null
+            ? pointerInputReader.GetScreenPositionOrDefault()
+            : new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
         Vector2 viewport = new Vector2(
-            Screen.width > 0 ? Input.mousePosition.x / Screen.width : 0.5f,
-            Screen.height > 0 ? Input.mousePosition.y / Screen.height : 0.5f);
+            Screen.width > 0 ? pointerScreenPosition.x / Screen.width : 0.5f,
+            Screen.height > 0 ? pointerScreenPosition.y / Screen.height : 0.5f);
 
         Vector2 edgeInput = new Vector2(
             EvaluateEdgePan(viewport.x),
@@ -275,6 +307,7 @@ public class PlayerAimCamera2D : MonoBehaviour
         return new Vector3(edgeInput.x, edgeInput.y, 0f) * (MaxAimPanDistance * panDistanceMultiplier);
     }
 
+    // Executes the ResolveActiveSmoothTime routine.
     private float ResolveActiveSmoothTime()
     {
         return IsAiming
@@ -282,6 +315,7 @@ public class PlayerAimCamera2D : MonoBehaviour
             : Mathf.Max(0f, returnToPlayerSmoothTime);
     }
 
+    // Executes the EvaluateEdgePan routine.
     private float EvaluateEdgePan(float viewportValue)
     {
         if (viewportValue <= edgePanThreshold)
@@ -294,6 +328,7 @@ public class PlayerAimCamera2D : MonoBehaviour
         return 0f;
     }
 
+    // Executes the CacheBaseNoiseState routine.
     private void CacheBaseNoiseState()
     {
         if (_hasBaseNoiseState || noiseComponent == null)
@@ -304,6 +339,7 @@ public class PlayerAimCamera2D : MonoBehaviour
         _hasBaseNoiseState = true;
     }
 
+    // Executes the UpdateScreenshakeState routine.
     private void UpdateScreenshakeState()
     {
         float remainingTime = Mathf.Max(0f, shakeEndTime - Time.unscaledTime);
@@ -329,6 +365,7 @@ public class PlayerAimCamera2D : MonoBehaviour
         }
     }
 
+    // Executes the CalculateScreenshakeOffset routine.
     private Vector3 CalculateScreenshakeOffset()
     {
         if (noiseComponent != null && noiseComponent.IsValid)
@@ -346,6 +383,7 @@ public class PlayerAimCamera2D : MonoBehaviour
         return new Vector3(x, y, 0f) * (shakeAmplitude * shakeFactor);
     }
 
+    // Executes the EvaluateRemainingShakeFactor routine.
     private float EvaluateRemainingShakeFactor(float remainingTime)
     {
         if (remainingTime <= 0f || shakeDuration <= 0f)
@@ -354,6 +392,7 @@ public class PlayerAimCamera2D : MonoBehaviour
         return Mathf.Clamp01(remainingTime / shakeDuration);
     }
 
+    // Executes the UsesExactPointerFollowAim routine.
     private bool UsesExactPointerFollowAim()
     {
         return IsAiming && aimPanMode == AimCameraPanMode.PointerFollow;

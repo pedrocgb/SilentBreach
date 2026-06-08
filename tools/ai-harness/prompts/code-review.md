@@ -1,6 +1,8 @@
 # Code Review Prompt
 
-Use AGENTS.md before reviewing.
+Read `AGENTS.md` first.
+
+Then read the relevant rule files from `tools/ai-harness/rules/`.
 
 ## Review Target
 
@@ -21,6 +23,8 @@ Use AGENTS.md before reviewing.
 - Unnecessary Update loops.
 - Allocations in hot paths.
 - LINQ in hot paths.
+- A* Pathfinding misuse.
+- DOTween misuse or missing cleanup.
 - Possible warnings.
 - Risky Unity serialization changes.
 

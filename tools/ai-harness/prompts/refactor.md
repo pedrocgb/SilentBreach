@@ -1,10 +1,26 @@
 # Refactor Prompt
 
-Use AGENTS.md before doing anything.
+Read `AGENTS.md` first.
+
+Then read the relevant rule files from `tools/ai-harness/rules/`.
 
 ## Refactor Goal
 
 [DESCRIBE REFACTOR HERE]
+
+## Required Before Editing
+
+First provide:
+
+1. Current problem.
+2. Relevant files found.
+3. Existing project patterns.
+4. Rule files read.
+5. Proposed structure.
+6. Files to change.
+7. Compatibility risks.
+
+Do not edit until the plan is clear.
 
 ## Rules
 
@@ -19,17 +35,12 @@ Use AGENTS.md before doing anything.
 - Keep inspector compatibility.
 - Do not rename serialized fields unless necessary.
 - Use Odin Inspector for organization.
-- Add comments to all methods.
+- Use Rewired for input-related code.
+- Use A* Pathfinding Project for AI pathfinding.
+- Use DOTween only when it is the best animation choice.
+- Add XML summary comments to all methods in touched files.
 - Check for obsolete APIs.
 - Remove all new warnings before finishing.
-
-## Before Editing
-
-First provide:
-1. Current problem.
-2. Proposed structure.
-3. Files to change.
-4. Compatibility risks.
 
 ## Done When
 

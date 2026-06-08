@@ -1,5 +1,6 @@
 using Sirenix.OdinInspector;
 using UnityEngine;
+using Breezeblocks.Input;
 
 namespace Breezeblocks.WeaponSystem
 {
@@ -71,15 +72,17 @@ public class DynamicCrosshairUI : MonoBehaviour
     private float currentSpreadPixels;
     private float targetSpreadPixels;
     private bool uiSuppressed;
+    private IPointerInputReader pointerInputReader;
 
+    // Executes the Reset routine.
     private void Reset()
     {
-        weaponController = FindFirstObjectByType<PlayerWeaponController>();
+        weaponController = PlayerSceneReferenceUtility.FindFirstComponentInLoadedScenes<PlayerWeaponController>(gameObject);
         if (equipmentController == null)
-            equipmentController = FindFirstObjectByType<PlayerEquipmentController>();
+            equipmentController = PlayerSceneReferenceUtility.FindFirstComponentInLoadedScenes<PlayerEquipmentController>(gameObject);
 
         if (utilityController == null)
-            utilityController = FindFirstObjectByType<PlayerUtilityController>();
+            utilityController = PlayerSceneReferenceUtility.FindFirstComponentInLoadedScenes<PlayerUtilityController>(gameObject);
 
         if (targetCanvas == null)
             targetCanvas = GetComponentInParent<Canvas>();
@@ -88,16 +91,18 @@ public class DynamicCrosshairUI : MonoBehaviour
             crosshairRoot = transform as RectTransform;
     }
 
+    // Executes the Awake routine.
     private void Awake()
     {
+        pointerInputReader ??= new RewiredPlayerInputReader();
         if (weaponController == null)
-            weaponController = FindFirstObjectByType<PlayerWeaponController>();
+            weaponController = PlayerSceneReferenceUtility.FindFirstComponentInLoadedScenes<PlayerWeaponController>(gameObject);
 
         if (equipmentController == null)
-            equipmentController = FindFirstObjectByType<PlayerEquipmentController>();
+            equipmentController = PlayerSceneReferenceUtility.FindFirstComponentInLoadedScenes<PlayerEquipmentController>(gameObject);
 
         if (utilityController == null)
-            utilityController = FindFirstObjectByType<PlayerUtilityController>();
+            utilityController = PlayerSceneReferenceUtility.FindFirstComponentInLoadedScenes<PlayerUtilityController>(gameObject);
 
         if (targetCanvas == null)
             targetCanvas = GetComponentInParent<Canvas>();
@@ -106,21 +111,25 @@ public class DynamicCrosshairUI : MonoBehaviour
             crosshairRoot = transform as RectTransform;
     }
 
+    // Executes the OnEnable routine.
     private void OnEnable()
     {
         ApplyCursorVisibility(true);
     }
 
+    // Executes the OnDisable routine.
     private void OnDisable()
     {
         ApplyCursorVisibility(false);
     }
 
+    // Executes the OnApplicationFocus routine.
     private void OnApplicationFocus(bool hasFocus)
     {
         ApplyCursorVisibility(hasFocus);
     }
 
+    // Executes the Update routine.
     private void Update()
     {
         if (crosshairRoot == null)
@@ -139,6 +148,7 @@ public class DynamicCrosshairUI : MonoBehaviour
         ApplySpreadToLines();
     }
 
+    // Executes the UpdateCrosshairPosition routine.
     private void UpdateCrosshairPosition()
     {
         RectTransform canvasRect = targetCanvas != null ? targetCanvas.transform as RectTransform : crosshairRoot.parent as RectTransform;
@@ -148,8 +158,11 @@ public class DynamicCrosshairUI : MonoBehaviour
         Camera eventCamera = targetCanvas != null && targetCanvas.renderMode != RenderMode.ScreenSpaceOverlay
             ? targetCanvas.worldCamera
             : null;
+        Vector2 screenPosition = pointerInputReader != null
+            ? pointerInputReader.GetScreenPositionOrDefault()
+            : new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
 
-        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, Input.mousePosition, eventCamera, out Vector2 localPoint))
+        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, screenPosition, eventCamera, out Vector2 localPoint))
             return;
 
         if (mouseFollowLerpSpeed <= 0f)
@@ -164,6 +177,7 @@ public class DynamicCrosshairUI : MonoBehaviour
             1f - Mathf.Exp(-mouseFollowLerpSpeed * Time.unscaledDeltaTime));
     }
 
+    // Executes the UpdateSpread routine.
     private void UpdateSpread()
     {
         targetSpreadPixels = ResolveTargetSpreadPixels();
@@ -180,6 +194,7 @@ public class DynamicCrosshairUI : MonoBehaviour
             1f - Mathf.Exp(-spreadLerpSpeed * Time.unscaledDeltaTime));
     }
 
+    // Executes the ResolveTargetSpreadPixels routine.
     private float ResolveTargetSpreadPixels()
     {
         if (equipmentController != null && equipmentController.CurrentHeldItem is MeleeWeaponData)
@@ -206,6 +221,7 @@ public class DynamicCrosshairUI : MonoBehaviour
         return Mathf.Lerp(closedSpreadPixels, openSpreadPixels, normalizedSpread);
     }
 
+    // Executes the ApplySpreadToLines routine.
     private void ApplySpreadToLines()
     {
         if (topLine != null)
@@ -221,6 +237,7 @@ public class DynamicCrosshairUI : MonoBehaviour
             rightLine.anchoredPosition = Vector2.right * currentSpreadPixels;
     }
 
+    // Executes the ApplyCursorVisibility routine.
     private void ApplyCursorVisibility(bool hasFocus)
     {
         if (!hideSystemCursor)
@@ -230,6 +247,7 @@ public class DynamicCrosshairUI : MonoBehaviour
         Cursor.visible = uiSuppressed || !hasFocus;
     }
 
+    // Executes the SetUiSuppressed routine.
     public void SetUiSuppressed(bool suppressed)
     {
         if (uiSuppressed == suppressed)

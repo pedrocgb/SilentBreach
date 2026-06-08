@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Breezeblocks.HideoutSystem;
+using Breezeblocks.Input;
 using Breezeblocks.WeaponSystem;
-using Rewired;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
@@ -41,7 +41,7 @@ public class GameplayConsoleController : MonoBehaviour
     [FoldoutGroup("Rewired")]
     [SerializeField] private string toggleConsoleAction = DefaultToggleConsoleAction;
 
-    [FoldoutGroup("Rewired")]
+    [FoldoutGroup("Legacy"), HideInInspector]
     [SerializeField] private KeyCode keyboardToggleConsoleFallbackKey = KeyCode.BackQuote;
 
     [FoldoutGroup("References")]
@@ -121,13 +121,14 @@ public class GameplayConsoleController : MonoBehaviour
     private readonly List<Collider2D> cachedGhostModeColliders = new();
     private readonly List<bool> cachedGhostModeColliderStates = new();
 
-    private Player rewiredPlayer;
+    private IPlayerInputReader inputReader;
     private float cachedTimeScaleBeforeConsole = 1f;
     private bool consoleVisible;
     private EquipmentItemRuntimeCatalog equipmentCatalog;
     private bool defaultGlobalLightStateCached;
     private bool defaultGlobalLightEnabled;
 
+    // Executes the EnsureOn routine.
     public static GameplayConsoleController EnsureOn(GameObject host)
     {
         if (host == null)
@@ -137,12 +138,14 @@ public class GameplayConsoleController : MonoBehaviour
         return controller != null ? controller : host.AddComponent<GameplayConsoleController>();
     }
 
+    // Executes the Reset routine.
     private void Reset()
     {
         CacheReferences();
         EnsureCommandHelpEntries();
     }
 
+    // Executes the Awake routine.
     private void Awake()
     {
         CacheReferences();
@@ -150,27 +153,33 @@ public class GameplayConsoleController : MonoBehaviour
         CacheGhostModeColliders();
         EnsureEventSystemExists();
         EnsureConsoleUi();
-        ResolveRewiredPlayer();
+        inputReader = new RewiredPlayerInputReader(rewiredPlayerId);
         SetConsoleVisible(false, force: true);
         ApplyCheatState();
         AppendLog("Console ready.");
     }
 
+    // Executes the OnEnable routine.
     private void OnEnable()
     {
         GameplayConsoleCheatState.StateChanged += HandleCheatStateChanged;
         ApplyCheatState();
     }
 
+    // Executes the OnDisable routine.
     private void OnDisable()
     {
         GameplayConsoleCheatState.StateChanged -= HandleCheatStateChanged;
         SetConsoleVisible(false, force: true);
     }
 
+    // Executes the Update routine.
     private void Update()
     {
-        if (rewiredPlayer == null && !ResolveRewiredPlayer())
+        if (inputReader == null)
+            inputReader = new RewiredPlayerInputReader(rewiredPlayerId);
+
+        if (!inputReader.IsReady)
             return;
 
         if (ResolveToggleConsoleRequested())
@@ -187,11 +196,13 @@ public class GameplayConsoleController : MonoBehaviour
         RefreshSystemTimeLabel();
     }
 
+    // Executes the OnValidate routine.
     private void OnValidate()
     {
         EnsureCommandHelpEntries();
     }
 
+    // Executes the CacheReferences routine.
     private void CacheReferences()
     {
         if (playerMotor == null)
@@ -241,6 +252,7 @@ public class GameplayConsoleController : MonoBehaviour
         CacheDefaultGlobalLightState();
     }
 
+    // Executes the EnsureConsoleUi routine.
     private void EnsureConsoleUi()
     {
         if (consoleCanvas != null &&
@@ -259,6 +271,7 @@ public class GameplayConsoleController : MonoBehaviour
         BuildRuntimeUi();
     }
 
+    // Executes the BuildRuntimeUi routine.
     private void BuildRuntimeUi()
     {
         GameObject canvasObject = new("Gameplay Console Canvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
@@ -426,6 +439,7 @@ public class GameplayConsoleController : MonoBehaviour
         RefreshSystemTimeLabel();
     }
 
+    // Executes the HookInputFieldEvents routine.
     private void HookInputFieldEvents()
     {
         if (commandInputField == null)
@@ -435,6 +449,7 @@ public class GameplayConsoleController : MonoBehaviour
         commandInputField.onSubmit.AddListener(HandleSubmittedCommand);
     }
 
+    // Executes the HandleSubmittedCommand routine.
     private void HandleSubmittedCommand(string submittedText)
     {
         if (!consoleVisible)
@@ -449,6 +464,7 @@ public class GameplayConsoleController : MonoBehaviour
         commandInputField.Select();
     }
 
+    // Executes the ExecuteCommand routine.
     private void ExecuteCommand(string rawCommand)
     {
         string trimmedCommand = rawCommand != null ? rawCommand.Trim() : string.Empty;
@@ -520,6 +536,7 @@ public class GameplayConsoleController : MonoBehaviour
         }
     }
 
+    // Executes the HandleCreateEquipmentCommand routine.
     private void HandleCreateEquipmentCommand(string requestedEquipmentName)
     {
         if (string.IsNullOrWhiteSpace(requestedEquipmentName))
@@ -553,6 +570,7 @@ public class GameplayConsoleController : MonoBehaviour
         });
     }
 
+    // Executes the HandleBooleanCheatCommand routine.
     private void HandleBooleanCheatCommand(string argument, string commandName, Action<bool> setter)
     {
         if (!TryParseBooleanArgument(argument, out bool enabled))
@@ -566,6 +584,7 @@ public class GameplayConsoleController : MonoBehaviour
         AppendLog($"{commandName} set to {enabled.ToString().ToLowerInvariant()}.");
     }
 
+    // Executes the RestartCurrentLevel routine.
     private void RestartCurrentLevel()
     {
         AppendLog("Restarting current level.");
@@ -576,6 +595,7 @@ public class GameplayConsoleController : MonoBehaviour
         SceneManager.LoadScene(activeScene.name);
     }
 
+    // Executes the PrintHelp routine.
     private void PrintHelp()
     {
         EnsureCommandHelpEntries();
@@ -593,6 +613,7 @@ public class GameplayConsoleController : MonoBehaviour
         }
     }
 
+    // Executes the ApplyCheatState routine.
     private void ApplyCheatState()
     {
         CacheReferences();
@@ -631,6 +652,7 @@ public class GameplayConsoleController : MonoBehaviour
         ApplyGlobalLightOverride();
     }
 
+    // Executes the ApplyGhostMode routine.
     private void ApplyGhostMode()
     {
         if (cachedGhostModeColliders.Count == 0)
@@ -647,6 +669,7 @@ public class GameplayConsoleController : MonoBehaviour
         }
     }
 
+    // Executes the CacheGhostModeColliders routine.
     private void CacheGhostModeColliders()
     {
         cachedGhostModeColliders.Clear();
@@ -668,11 +691,13 @@ public class GameplayConsoleController : MonoBehaviour
         }
     }
 
+    // Executes the HandleCheatStateChanged routine.
     private void HandleCheatStateChanged()
     {
         ApplyCheatState();
     }
 
+    // Executes the CanOpenConsole routine.
     private bool CanOpenConsole()
     {
         if (playerHealth != null && (!playerHealth.IsAlive || playerHealth.IsIncapacitated))
@@ -687,6 +712,7 @@ public class GameplayConsoleController : MonoBehaviour
                (playerEquipmentController == null || !playerEquipmentController.IsInputBlocked);
     }
 
+    // Executes the SetConsoleVisible routine.
     private void SetConsoleVisible(bool visible, bool force = false)
     {
         if (!force && consoleVisible == visible)
@@ -732,6 +758,7 @@ public class GameplayConsoleController : MonoBehaviour
         }
     }
 
+    // Executes the SetPlayerInputBlocked routine.
     private void SetPlayerInputBlocked(bool blocked)
     {
         playerEquipmentController?.SetInputBlocked(blocked);
@@ -744,6 +771,7 @@ public class GameplayConsoleController : MonoBehaviour
         playerFocusController?.SetInputBlocked(blocked);
     }
 
+    // Executes the AppendLog routine.
     private void AppendLog(string message)
     {
         if (string.IsNullOrWhiteSpace(message))
@@ -771,6 +799,7 @@ public class GameplayConsoleController : MonoBehaviour
             logScrollRect.verticalNormalizedPosition = 0f;
     }
 
+    // Executes the FormatLogEntry routine.
     private string FormatLogEntry(string message)
     {
         return showSystemTime
@@ -778,6 +807,7 @@ public class GameplayConsoleController : MonoBehaviour
             : message;
     }
 
+    // Executes the RefreshSystemTimeLabel routine.
     private void RefreshSystemTimeLabel()
     {
         if (systemTimeText == null)
@@ -788,6 +818,7 @@ public class GameplayConsoleController : MonoBehaviour
             systemTimeText.text = DateTime.Now.ToString("HH:mm:ss");
     }
 
+    // Executes the ResolveEquipmentByDisplayName routine.
     private EquipmentItemData ResolveEquipmentByDisplayName(string requestedName)
     {
         string normalizedName = EquipmentItemRuntimeCatalog.NormalizeLookupKey(requestedName);
@@ -815,6 +846,7 @@ public class GameplayConsoleController : MonoBehaviour
         return null;
     }
 
+    // Executes the TryParseBooleanArgument routine.
     private static bool TryParseBooleanArgument(string argument, out bool enabled)
     {
         switch ((argument ?? string.Empty).Trim().ToLowerInvariant())
@@ -839,6 +871,7 @@ public class GameplayConsoleController : MonoBehaviour
         }
     }
 
+    // Executes the EnsureEventSystemExists routine.
     private void EnsureEventSystemExists()
     {
         if (EventSystem.current != null || FindFirstObjectByType<EventSystem>() != null)
@@ -848,22 +881,13 @@ public class GameplayConsoleController : MonoBehaviour
         eventSystemObject.transform.SetParent(transform.root, false);
     }
 
-    private bool ResolveRewiredPlayer()
-    {
-        if (!ReInput.isReady)
-            return false;
-
-        rewiredPlayer = ReInput.players.GetPlayer(rewiredPlayerId);
-        return rewiredPlayer != null;
-    }
-
+    // Executes the ResolveToggleConsoleRequested routine.
     private bool ResolveToggleConsoleRequested()
     {
-        bool rewiredRequested = rewiredPlayer != null && rewiredPlayer.GetButtonDown(toggleConsoleAction);
-        bool fallbackKeyRequested = keyboardToggleConsoleFallbackKey != KeyCode.None && Input.GetKeyDown(keyboardToggleConsoleFallbackKey);
-        return rewiredRequested || fallbackKeyRequested;
+        return inputReader != null && inputReader.GetButtonDown(toggleConsoleAction);
     }
 
+    // Executes the EnsureCommandHelpEntries routine.
     private void EnsureCommandHelpEntries()
     {
         commandHelpEntries ??= new List<ConsoleCommandHelpEntry>();
@@ -918,6 +942,7 @@ public class GameplayConsoleController : MonoBehaviour
             "Enables or disables the _GLOBALLIGHT Light2D.");
     }
 
+    // Executes the EnsureCommandHelpEntry routine.
     private void EnsureCommandHelpEntry(string commandId, string commandSyntax, string defaultDescription)
     {
         ConsoleCommandHelpEntry existingEntry = null;
@@ -951,6 +976,7 @@ public class GameplayConsoleController : MonoBehaviour
             existingEntry.description = defaultDescription;
     }
 
+    // Executes the ApplyGlobalLightOverride routine.
     private void ApplyGlobalLightOverride()
     {
         if (globalLight2D == null)
@@ -970,6 +996,7 @@ public class GameplayConsoleController : MonoBehaviour
             globalLight2D.enabled = defaultGlobalLightEnabled;
     }
 
+    // Executes the CacheDefaultGlobalLightState routine.
     private void CacheDefaultGlobalLightState()
     {
         if (defaultGlobalLightStateCached || globalLight2D == null)
@@ -979,6 +1006,7 @@ public class GameplayConsoleController : MonoBehaviour
         defaultGlobalLightStateCached = true;
     }
 
+    // Executes the FindGlobalLight2D routine.
     private static Light2D FindGlobalLight2D()
     {
         Light2D[] lights = FindSceneObjectsIncludingInactive<Light2D>();
@@ -995,6 +1023,7 @@ public class GameplayConsoleController : MonoBehaviour
         return null;
     }
 
+    // Executes the CreateRectTransform routine.
     private static RectTransform CreateRectTransform(
         string objectName,
         Transform parent,
@@ -1013,6 +1042,7 @@ public class GameplayConsoleController : MonoBehaviour
         return rectTransform;
     }
 
+    // Executes the CreateText routine.
     private TMP_Text CreateText(
         string objectName,
         Transform parent,
@@ -1031,6 +1061,7 @@ public class GameplayConsoleController : MonoBehaviour
         return text;
     }
 
+    // Executes the ApplyTextDefaults routine.
     private static void ApplyTextDefaults(TMP_Text text, float fontSize, FontStyles fontStyle, TextAlignmentOptions alignment, Color color)
     {
         if (text == null)
@@ -1045,6 +1076,7 @@ public class GameplayConsoleController : MonoBehaviour
         text.raycastTarget = false;
     }
 
+    // Executes the CreateScrollbar routine.
     private Scrollbar CreateScrollbar(Transform parent)
     {
         RectTransform scrollbarRect = CreateRectTransform(
@@ -1082,6 +1114,7 @@ public class GameplayConsoleController : MonoBehaviour
         return scrollbar;
     }
 
+    // Executes the FindSceneObjectsIncludingInactive routine.
     private static T[] FindSceneObjectsIncludingInactive<T>() where T : UnityEngine.Object
     {
         T[] candidates = Resources.FindObjectsOfTypeAll<T>();

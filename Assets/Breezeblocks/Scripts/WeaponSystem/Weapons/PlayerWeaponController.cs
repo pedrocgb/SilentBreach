@@ -1,8 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Breezeblocks.Input;
 using Breezeblocks.HideoutSystem;
-using Rewired;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -46,14 +46,14 @@ public class PlayerWeaponController : MonoBehaviour
     [FoldoutGroup("References"), Tooltip("Optional stable origin used to resolve mouse aim direction. Defaults to the vision pivot, then this transform.")]
     [SerializeField] private Transform aimOrigin;
 
-    [FoldoutGroup("References"), Tooltip("Optional override. If empty, auto-finds on this GameObject.")]
-    [SerializeField] private PlayerTopDownMotor2D playerMotor;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerTopDownMotor2D playerMotor;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerNoise playerNoise;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerNoise playerNoise;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerVisibility playerVisibility;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerVisibility playerVisibility;
 
     [FoldoutGroup("References")]
     [SerializeField] private PlayerVisionLight playerVisionLight;
@@ -61,11 +61,11 @@ public class PlayerWeaponController : MonoBehaviour
     [FoldoutGroup("References")]
     [SerializeField] private PlayerAimCamera2D aimCamera;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private ArmorLoadout armorLoadout;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private ArmorLoadout armorLoadout;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private ActorStaggerController actorStaggerController;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private ActorStaggerController actorStaggerController;
 
     [FoldoutGroup("Pooling"), Tooltip("Optional explicit reference to the shared global pooler. If empty, the singleton instance is used.")]
     [SerializeField] private GlobalObjectPooler globalObjectPooler;
@@ -172,7 +172,8 @@ public class PlayerWeaponController : MonoBehaviour
     public event Action WeaponStateChanged;
     public event Action WeaponFired;
 
-    private Player _player;
+    private IPlayerInputReader inputReader;
+    private IPointerInputReader pointerInputReader;
     private Camera _mainCamera;
     private Coroutine _reloadRoutine;
     private Coroutine _weaponRoutine;
@@ -184,6 +185,7 @@ public class PlayerWeaponController : MonoBehaviour
     private PlayerPerkModifierSet perkModifiers = new();
     private bool inputBlocked;
 
+    // Executes the Reset routine.
     private void Reset()
     {
         playerMotor = GetComponent<PlayerTopDownMotor2D>();
@@ -196,6 +198,7 @@ public class PlayerWeaponController : MonoBehaviour
         actorStaggerController = GetComponent<ActorStaggerController>();
     }
 
+    // Executes the Awake routine.
     private void Awake()
     {
         if (playerMotor == null)
@@ -226,7 +229,7 @@ public class PlayerWeaponController : MonoBehaviour
             aimCamera = Camera.main.GetComponent<PlayerAimCamera2D>();
 
         if (aimCamera == null)
-            aimCamera = FindFirstObjectByType<PlayerAimCamera2D>();
+            aimCamera = PlayerSceneReferenceUtility.FindPlayerAimCamera(gameObject);
 
         ResolveGlobalObjectPooler();
         ResolveWorldSfxManager();
@@ -235,15 +238,19 @@ public class PlayerWeaponController : MonoBehaviour
         if (aimCamera != null)
             aimCamera.SetFollowTarget(transform);
 
-        ResolveRewiredPlayer();
+        RewiredPlayerInputReader rewiredInputReader = new(rewiredPlayerId);
+        inputReader = rewiredInputReader;
+        pointerInputReader = rewiredInputReader;
     }
 
+    // Executes the Start routine.
     private void Start()
     {
         if (autoEquipDebugWeaponOnStart && debugFirearm != null && GetComponent<PlayerEquipmentController>() == null)
             EquipWeapon(debugFirearm, debugProjectile, debugStartingLoadedAmmo, debugStartingReserveAmmo);
     }
 
+    // Executes the OnValidate routine.
     private void OnValidate()
     {
         lookRotationSpeed = Mathf.Max(0f, lookRotationSpeed);
@@ -254,9 +261,17 @@ public class PlayerWeaponController : MonoBehaviour
         debugReserveAmmoAddAmount = Mathf.Max(0, debugReserveAmmoAddAmount);
     }
 
+    // Executes the Update routine.
     private void Update()
     {
-        if (_player == null && !ResolveRewiredPlayer())
+        if (inputReader == null || pointerInputReader == null)
+        {
+            RewiredPlayerInputReader rewiredInputReader = new(rewiredPlayerId);
+            inputReader = rewiredInputReader;
+            pointerInputReader = rewiredInputReader;
+        }
+
+        if (!inputReader.IsReady)
             return;
 
         if (inputBlocked)
@@ -297,6 +312,7 @@ public class PlayerWeaponController : MonoBehaviour
 
     [Button(ButtonSizes.Medium)]
     [FoldoutGroup("Debug Actions")]
+    // Executes the DebugEquipSelectedWeapon routine.
     public void DebugEquipSelectedWeapon()
     {
         EquipWeapon(debugFirearm, debugProjectile, debugStartingLoadedAmmo, debugStartingReserveAmmo);
@@ -304,6 +320,7 @@ public class PlayerWeaponController : MonoBehaviour
 
     [Button(ButtonSizes.Medium)]
     [FoldoutGroup("Debug Actions")]
+    // Executes the DebugAddReserveAmmo routine.
     public void DebugAddReserveAmmo()
     {
         AddReserveAmmo(debugReserveAmmoAddAmount);
@@ -311,11 +328,13 @@ public class PlayerWeaponController : MonoBehaviour
 
     [Button(ButtonSizes.Medium)]
     [FoldoutGroup("Debug Actions")]
+    // Executes the DebugHolsterWeapon routine.
     public void DebugHolsterWeapon()
     {
         HolsterWeapon();
     }
 
+    // Executes the EquipWeapon routine.
     public void EquipWeapon(FirearmData firearm, ProjectileData requestedProjectile, int startingLoadedAmmo = -1, int startingReserveAmmo = -1)
     {
         if (firearm == null || IsBusy)
@@ -336,6 +355,7 @@ public class PlayerWeaponController : MonoBehaviour
         _weaponRoutine = StartCoroutine(EquipWeaponRoutine(firearm, resolvedProjectile, startingLoadedAmmo, startingReserveAmmo));
     }
 
+    // Executes the AddReserveAmmo routine.
     public bool AddReserveAmmo(int amount)
     {
         if (amount <= 0 || EquippedFirearm == null)
@@ -347,6 +367,7 @@ public class PlayerWeaponController : MonoBehaviour
         return true;
     }
 
+    // Executes the EnsureConsoleAmmoReserveBuffer routine.
     public void EnsureConsoleAmmoReserveBuffer()
     {
         if (!GameplayConsoleCheatState.InfiniteReserveAmmo || EquippedFirearm == null)
@@ -360,6 +381,7 @@ public class PlayerWeaponController : MonoBehaviour
         NotifyWeaponStateChanged();
     }
 
+    // Executes the HolsterWeapon routine.
     public void HolsterWeapon()
     {
         if (EquippedFirearm == null || IsBusy)
@@ -372,6 +394,7 @@ public class PlayerWeaponController : MonoBehaviour
         _weaponRoutine = StartCoroutine(HolsterWeaponRoutine());
     }
 
+    // Executes the SetInputBlocked routine.
     public void SetInputBlocked(bool blocked)
     {
         if (inputBlocked == blocked)
@@ -388,6 +411,7 @@ public class PlayerWeaponController : MonoBehaviour
         }
     }
 
+    // Executes the EquipWeaponRoutine routine.
     private IEnumerator EquipWeaponRoutine(FirearmData firearm, ProjectileData projectile, int startingLoadedAmmo, int startingReserveAmmo)
     {
         if (EquippedFirearm != null)
@@ -408,12 +432,14 @@ public class PlayerWeaponController : MonoBehaviour
         _weaponRoutine = null;
     }
 
+    // Executes the HolsterWeaponRoutine routine.
     private IEnumerator HolsterWeaponRoutine()
     {
         yield return HolsterCurrentWeaponInternal();
         _weaponRoutine = null;
     }
 
+    // Executes the HolsterCurrentWeaponInternal routine.
     private IEnumerator HolsterCurrentWeaponInternal()
     {
         FirearmData weaponBeingHolstered = EquippedFirearm;
@@ -436,9 +462,10 @@ public class PlayerWeaponController : MonoBehaviour
         NotifyWeaponStateChanged();
     }
 
+    // Executes the HandleFireModeInput routine.
     private void HandleFireModeInput()
     {
-        if (EquippedFirearm == null || _availableFireModes.Count <= 1 || !_player.GetButtonDown(cycleFireModeAction))
+        if (EquippedFirearm == null || _availableFireModes.Count <= 1 || !inputReader.GetButtonDown(cycleFireModeAction))
             return;
 
         int currentIndex = _availableFireModes.IndexOf(CurrentFireMode);
@@ -450,9 +477,10 @@ public class PlayerWeaponController : MonoBehaviour
         NotifyWeaponStateChanged();
     }
 
+    // Executes the HandleReloadInput routine.
     private void HandleReloadInput()
     {
-        if (EquippedFirearm == null || !_player.GetButtonDown(reloadAction))
+        if (EquippedFirearm == null || !inputReader.GetButtonDown(reloadAction))
             return;
 
         if (IsReloading || CurrentProjectile == null)
@@ -472,6 +500,7 @@ public class PlayerWeaponController : MonoBehaviour
         NotifyWeaponStateChanged();
     }
 
+    // Executes the MagazineReloadRoutine routine.
     private IEnumerator MagazineReloadRoutine()
     {
         PlayMagazineReloadStartSfx();
@@ -505,6 +534,7 @@ public class PlayerWeaponController : MonoBehaviour
         NotifyWeaponStateChanged();
     }
 
+    // Executes the BulletPerBulletReloadRoutine routine.
     private IEnumerator BulletPerBulletReloadRoutine()
     {
         EmitNoiseSpike(EquippedFirearm.ReloadNoise, EquippedFirearm.ReloadNoiseDuration, EquippedFirearm.ReloadNoiseType, EquippedFirearm.ReloadExtremeNoise);
@@ -528,6 +558,7 @@ public class PlayerWeaponController : MonoBehaviour
         NotifyWeaponStateChanged();
     }
 
+    // Executes the CancelBulletPerBulletReload routine.
     private void CancelBulletPerBulletReload()
     {
         if (_reloadRoutine == null || EquippedFirearm == null || EquippedFirearm.ReloadStyle != ReloadType.BulletPerBullet)
@@ -538,14 +569,15 @@ public class PlayerWeaponController : MonoBehaviour
         NotifyWeaponStateChanged();
     }
 
+    // Executes the HandleFireInput routine.
     private void HandleFireInput()
     {
         if (EquippedFirearm == null || CurrentProjectile == null || CurrentFireMode == FireMode.None)
             return;
 
         bool fireRequested = CurrentFireMode == FireMode.FullAuto
-            ? _player.GetButton(fireAction)
-            : _player.GetButtonDown(fireAction);
+            ? inputReader.GetButton(fireAction)
+            : inputReader.GetButtonDown(fireAction);
 
         if (!fireRequested)
             return;
@@ -559,6 +591,7 @@ public class PlayerWeaponController : MonoBehaviour
         FireCurrentMode();
     }
 
+    // Executes the FireCurrentMode routine.
     private void FireCurrentMode()
     {
         switch (CurrentFireMode)
@@ -579,6 +612,7 @@ public class PlayerWeaponController : MonoBehaviour
         _nextAllowedFireTime = Time.time + (EquippedFirearm.FireRate > 0f ? 1f / EquippedFirearm.FireRate : 0f);
     }
 
+    // Executes the FireBurst routine.
     private void FireBurst()
     {
         int burstShots = Mathf.Max(1, EquippedFirearm.BurstCount);
@@ -592,6 +626,7 @@ public class PlayerWeaponController : MonoBehaviour
         }
     }
 
+    // Executes the FirePumpShot routine.
     private void FirePumpShot()
     {
         if (!TryConsumeCurrentRound(out ProjectileData projectile))
@@ -602,6 +637,7 @@ public class PlayerWeaponController : MonoBehaviour
         ConsumeAccurateStanceAfterShot();
     }
 
+    // Executes the FireSingleRound routine.
     private void FireSingleRound()
     {
         if (!TryConsumeCurrentRound(out ProjectileData projectile))
@@ -611,6 +647,7 @@ public class PlayerWeaponController : MonoBehaviour
         ConsumeAccurateStanceAfterShot();
     }
 
+    // Executes the TryConsumeCurrentRound routine.
     private bool TryConsumeCurrentRound(out ProjectileData projectile)
     {
         projectile = CurrentProjectile;
@@ -628,6 +665,7 @@ public class PlayerWeaponController : MonoBehaviour
         return true;
     }
 
+    // Executes the SpawnProjectile routine.
     private void SpawnProjectile(ProjectileData projectile, int projectileCount)
     {
         if (projectile == null || globalObjectPooler == null || projectilePrefab == null)
@@ -645,6 +683,7 @@ public class PlayerWeaponController : MonoBehaviour
         }
     }
 
+    // Executes the SpawnMuzzleFlash routine.
     private void SpawnMuzzleFlash()
     {
         if (globalObjectPooler == null ||
@@ -660,6 +699,7 @@ public class PlayerWeaponController : MonoBehaviour
             flashEffect.Play(EquippedFirearm.MuzzleFlashSize, EquippedFirearm.MuzzleFlashDuration);
     }
 
+    // Executes the ApplyShotVisibility routine.
     private void ApplyShotVisibility()
     {
         if (EquippedFirearm == null || EquippedFirearm.HideMuzzleFlash || playerVisibility == null)
@@ -668,6 +708,7 @@ public class PlayerWeaponController : MonoBehaviour
         playerVisibility.ApplyMuzzleFlashVisibility();
     }
 
+    // Executes the ApplyScreenshake routine.
     private void ApplyScreenshake()
     {
         if (EquippedFirearm == null || aimCamera == null)
@@ -676,6 +717,7 @@ public class PlayerWeaponController : MonoBehaviour
         aimCamera.PlayScreenshake(EquippedFirearm.ScreenshakePower, EquippedFirearm.ScreenshakeDuration);
     }
 
+    // Executes the ApplySpread routine.
     private Vector2 ApplySpread(Vector2 baseDirection)
     {
         if (baseDirection.sqrMagnitude <= MinDirectionSqr)
@@ -696,6 +738,7 @@ public class PlayerWeaponController : MonoBehaviour
         return new Vector2(Mathf.Cos(radians), Mathf.Sin(radians)).normalized;
     }
 
+    // Executes the UpdateAimDirection routine.
     private void UpdateAimDirection()
     {
         float effectiveSpeed = GetEffectiveLookSpeed();
@@ -716,9 +759,10 @@ public class PlayerWeaponController : MonoBehaviour
         CurrentAimDirection = RotateAimDirectionTowards(CurrentAimDirection, targetDirection, effectiveSpeed, Time.deltaTime);
     }
 
+    // Executes the UpdateAimState routine.
     private void UpdateAimState()
     {
-        bool aimRequested = EquippedFirearm != null && !IsBusy && _player.GetButton(aimAction);
+        bool aimRequested = EquippedFirearm != null && !IsBusy && inputReader.GetButton(aimAction);
 
         if (aimRequested && EquippedFirearm != null && EquippedFirearm.ReloadStyle == ReloadType.BulletPerBullet && IsReloading)
             CancelBulletPerBulletReload();
@@ -726,6 +770,7 @@ public class PlayerWeaponController : MonoBehaviour
         IsAiming = aimRequested && !IsReloading;
     }
 
+    // Executes the UpdateAccurateMode routine.
     private void UpdateAccurateMode()
     {
         if (!IsAiming || EquippedFirearm == null || !IsStandingStill())
@@ -747,6 +792,7 @@ public class PlayerWeaponController : MonoBehaviour
         IsAccurate = _accurateAimTimer >= requiredAimTime;
     }
 
+    // Executes the UpdateAimCameraState routine.
     private void UpdateAimCameraState()
     {
         if (aimCamera == null || EquippedFirearm == null)
@@ -756,6 +802,7 @@ public class PlayerWeaponController : MonoBehaviour
         aimCamera.SetAimState(IsAiming, EquippedFirearm.AimPanDistance);
     }
 
+    // Executes the IsStandingStill routine.
     private bool IsStandingStill()
     {
         if (playerMotor == null)
@@ -764,6 +811,7 @@ public class PlayerWeaponController : MonoBehaviour
         return !playerMotor.HasMovementInput && playerMotor.CurrentPlanarSpeed <= stationarySpeedThreshold;
     }
 
+    // Executes the GetEffectiveLookSpeed routine.
     private float GetEffectiveLookSpeed()
     {
         float speed = IsAiming && EquippedFirearm != null ? EquippedFirearm.AimSpeed : lookRotationSpeed;
@@ -775,6 +823,7 @@ public class PlayerWeaponController : MonoBehaviour
         return effectiveSpeed;
     }
 
+    // Executes the ResolveMouseDirection routine.
     private Vector2 ResolveMouseDirection()
     {
         Camera camera = GetMainCamera();
@@ -783,7 +832,11 @@ public class PlayerWeaponController : MonoBehaviour
         if (camera == null)
             return CurrentAimDirection;
 
-        Vector3 mouseWorld = camera.ScreenToWorldPoint(Input.mousePosition);
+        Vector2 screenPosition = pointerInputReader != null
+            ? pointerInputReader.GetScreenPositionOrDefault()
+            : new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+        float depth = Mathf.Abs(camera.transform.position.z - origin.z);
+        Vector3 mouseWorld = camera.ScreenToWorldPoint(new Vector3(screenPosition.x, screenPosition.y, depth));
         mouseWorld.z = origin.z;
         Vector2 direction = (Vector2)(mouseWorld - origin);
 
@@ -793,6 +846,7 @@ public class PlayerWeaponController : MonoBehaviour
         return direction.normalized;
     }
 
+    // Executes the GetAimOriginPosition routine.
     private Vector3 GetAimOriginPosition()
     {
         if (aimOrigin != null)
@@ -804,6 +858,7 @@ public class PlayerWeaponController : MonoBehaviour
         return transform.position;
     }
 
+    // Executes the ResolveFallbackAimDirection routine.
     private Vector2 ResolveFallbackAimDirection()
     {
         if (CurrentAimDirection.sqrMagnitude > MinDirectionSqr)
@@ -818,6 +873,7 @@ public class PlayerWeaponController : MonoBehaviour
         return Vector2.right;
     }
 
+    // Executes the ResolveEquipAimDirection routine.
     private Vector2 ResolveEquipAimDirection()
     {
         if (playerVisionLight != null && playerVisionLight.FacingDirection.sqrMagnitude > MinDirectionSqr)
@@ -832,6 +888,7 @@ public class PlayerWeaponController : MonoBehaviour
         return Vector2.right;
     }
 
+    // Executes the RotateAimDirectionTowards routine.
     private static Vector2 RotateAimDirectionTowards(Vector2 currentDirection, Vector2 targetDirection, float speedDegreesPerSecond, float deltaTime)
     {
         if (targetDirection.sqrMagnitude <= MinDirectionSqr)
@@ -846,6 +903,7 @@ public class PlayerWeaponController : MonoBehaviour
         return new Vector2(rotatedDirection.x, rotatedDirection.y).normalized;
     }
 
+    // Executes the GetMainCamera routine.
     private Camera GetMainCamera()
     {
         if (_mainCamera == null)
@@ -854,6 +912,7 @@ public class PlayerWeaponController : MonoBehaviour
         return _mainCamera;
     }
 
+    // Executes the RebuildAvailableFireModes routine.
     private void RebuildAvailableFireModes()
     {
         _availableFireModes.Clear();
@@ -873,18 +932,21 @@ public class PlayerWeaponController : MonoBehaviour
         CurrentFireMode = _availableFireModes.Count > 0 ? _availableFireModes[0] : FireMode.None;
     }
 
+    // Executes the ResolveGlobalObjectPooler routine.
     private void ResolveGlobalObjectPooler()
     {
         if (globalObjectPooler == null)
             globalObjectPooler = GlobalObjectPooler.Instance;
     }
 
+    // Executes the ResolveWorldSfxManager routine.
     private void ResolveWorldSfxManager()
     {
         if (worldSfxManager == null)
             worldSfxManager = WorldSfxManager.Instance;
     }
 
+    // Executes the RegisterPooledPrefabs routine.
     private void RegisterPooledPrefabs()
     {
         if (globalObjectPooler == null)
@@ -897,6 +959,7 @@ public class PlayerWeaponController : MonoBehaviour
             globalObjectPooler.RegisterPrefab(muzzleFlashPrefab.gameObject, muzzleFlashPoolPrewarm);
     }
 
+    // Executes the PlayShotSequenceSfx routine.
     private void PlayShotSequenceSfx()
     {
         if (EquippedFirearm == null)
@@ -913,6 +976,7 @@ public class PlayerWeaponController : MonoBehaviour
             worldSfxManager.PlayClipSetAt(origin, EquippedFirearm.CasingSfx, EquippedFirearm.ShootNoiseType, 1f, EquippedFirearm.CasingDelay);
     }
 
+    // Executes the PlayMagazineReloadStartSfx routine.
     private void PlayMagazineReloadStartSfx()
     {
         if (EquippedFirearm == null || EquippedFirearm.ReloadStyle != ReloadType.Magazine)
@@ -925,6 +989,7 @@ public class PlayerWeaponController : MonoBehaviour
         worldSfxManager.PlayClipSetAt(transform.position, EquippedFirearm.ReloadStartSfx, EquippedFirearm.ReloadNoiseType);
     }
 
+    // Executes the PlayMagazineReloadEndSequenceSfx routine.
     private void PlayMagazineReloadEndSequenceSfx()
     {
         if (EquippedFirearm == null || EquippedFirearm.ReloadStyle != ReloadType.Magazine)
@@ -939,6 +1004,7 @@ public class PlayerWeaponController : MonoBehaviour
         worldSfxManager.PlayClipSetAt(origin, EquippedFirearm.ReloadTriggerSfx, EquippedFirearm.ReloadNoiseType, 1f, triggerDelay);
     }
 
+    // Executes the PlayBulletReloadSfx routine.
     private void PlayBulletReloadSfx()
     {
         if (EquippedFirearm == null || EquippedFirearm.ReloadStyle != ReloadType.BulletPerBullet)
@@ -951,23 +1017,27 @@ public class PlayerWeaponController : MonoBehaviour
         worldSfxManager.PlayClipSetAt(transform.position, EquippedFirearm.BulletReloadSfx, EquippedFirearm.ReloadNoiseType);
     }
 
+    // Executes the EmitNoiseSpike routine.
     private void EmitNoiseSpike(float amount, float duration)
     {
         if (playerNoise != null)
             playerNoise.AddNoiseSpike(amount, duration);
     }
 
+    // Executes the EmitNoiseSpike routine.
     private void EmitNoiseSpike(float amount, float duration, NoiseType noiseType)
     {
         EmitNoiseSpike(amount, duration, noiseType, false);
     }
 
+    // Executes the EmitNoiseSpike routine.
     private void EmitNoiseSpike(float amount, float duration, NoiseType noiseType, bool isExtremeNoise)
     {
         if (playerNoise != null)
             playerNoise.AddNoiseSpike(amount, duration, noiseType, isExtremeNoise);
     }
 
+    // Executes the ConsumeAccurateStanceAfterShot routine.
     private void ConsumeAccurateStanceAfterShot()
     {
         if (!IsAccurate)
@@ -977,6 +1047,7 @@ public class PlayerWeaponController : MonoBehaviour
         _accurateAimTimer = 0f;
     }
 
+    // Executes the ResolveCurrentRequiredAimTime routine.
     private float ResolveCurrentRequiredAimTime()
     {
         if (EquippedFirearm == null)
@@ -985,6 +1056,7 @@ public class PlayerWeaponController : MonoBehaviour
         return Mathf.Max(0f, EquippedFirearm.AimTime * perkModifiers.AccurateAimTimeMultiplier);
     }
 
+    // Executes the ResolveCurrentAccuracyProgress01 routine.
     private float ResolveCurrentAccuracyProgress01()
     {
         if (!IsAiming || EquippedFirearm == null || !IsStandingStill())
@@ -997,6 +1069,7 @@ public class PlayerWeaponController : MonoBehaviour
         return Mathf.Clamp01(_accurateAimTimer / requiredAimTime);
     }
 
+    // Executes the ResolveCurrentSpreadAngle routine.
     private float ResolveCurrentSpreadAngle()
     {
         if (EquippedFirearm == null)
@@ -1006,12 +1079,14 @@ public class PlayerWeaponController : MonoBehaviour
         return ResolvePerkAdjustedSpreadAngle() * Mathf.Lerp(1f, accurateSpreadMultiplier, ResolveCurrentAccuracyProgress01());
     }
 
+    // Executes the ApplyPerkModifiers routine.
     public void ApplyPerkModifiers(PlayerPerkModifierSet modifiers)
     {
         perkModifiers = modifiers != null ? modifiers.Clone() : new PlayerPerkModifierSet();
         NotifyWeaponStateChanged();
     }
 
+    // Executes the ResolveCurrentReloadDuration routine.
     private float ResolveCurrentReloadDuration()
     {
         if (EquippedFirearm == null)
@@ -1020,6 +1095,7 @@ public class PlayerWeaponController : MonoBehaviour
         return Mathf.Max(0f, EquippedFirearm.ReloadTime * perkModifiers.ReloadTimeMultiplier);
     }
 
+    // Executes the ResolvePerkAdjustedSpreadAngle routine.
     private float ResolvePerkAdjustedSpreadAngle()
     {
         if (EquippedFirearm == null)
@@ -1028,6 +1104,7 @@ public class PlayerWeaponController : MonoBehaviour
         return Mathf.Max(0f, EquippedFirearm.Spread * ResolveFirearmSpreadMultiplier());
     }
 
+    // Executes the ResolveFirearmSpreadMultiplier routine.
     private float ResolveFirearmSpreadMultiplier()
     {
         return perkModifiers != null
@@ -1035,6 +1112,7 @@ public class PlayerWeaponController : MonoBehaviour
             : 1f;
     }
 
+    // Executes the ResolveInitialLoadedAmmo routine.
     private int ResolveInitialLoadedAmmo(FirearmData firearm, int requestedLoadedAmmo)
     {
         int ammoCapacity = firearm != null ? firearm.AmmoCapacity : 0;
@@ -1043,6 +1121,7 @@ public class PlayerWeaponController : MonoBehaviour
         return Mathf.Clamp(resolvedAmmo, 0, ammoCapacity);
     }
 
+    // Executes the ResolveInitialReserveAmmo routine.
     private int ResolveInitialReserveAmmo(FirearmData firearm, int requestedReserveAmmo)
     {
         int defaultReserveAmmo = firearm != null ? firearm.DefaultReserveAmmo : 0;
@@ -1053,18 +1132,11 @@ public class PlayerWeaponController : MonoBehaviour
         return Mathf.Max(0, resolvedReserveAmmo);
     }
 
+    // Executes the NotifyWeaponStateChanged routine.
     private void NotifyWeaponStateChanged()
     {
         WeaponStateChanged?.Invoke();
     }
 
-    private bool ResolveRewiredPlayer()
-    {
-        if (!ReInput.isReady)
-            return false;
-
-        _player = ReInput.players.GetPlayer(rewiredPlayerId);
-        return _player != null;
-    }
 }
 }

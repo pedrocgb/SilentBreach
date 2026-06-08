@@ -1,6 +1,8 @@
 # Bugfix Prompt
 
-Use AGENTS.md before doing anything.
+Read `AGENTS.md` first.
+
+Then read the relevant rule files from `tools/ai-harness/rules/`.
 
 ## Bug
 
@@ -10,18 +12,28 @@ Use AGENTS.md before doing anything.
 
 [DESCRIBE EXPECTED BEHAVIOR HERE]
 
+## Required Before Editing
+
+First provide:
+
+1. Relevant files found.
+2. Likely root cause.
+3. Rule files read.
+4. Short fix plan.
+5. Risks or assumptions.
+
 ## Rules
 
-- Inspect the relevant files first.
-- Identify the likely root cause.
+- Follow `AGENTS.md`.
+- Follow the relevant rule files.
 - Make the smallest safe fix.
+- Do not rewrite unrelated systems.
 - Do not create scene objects.
 - Do not modify scenes or prefabs.
 - Use Rewired for input-related fixes.
-- Use Odin Inspector for organization if editing inspector-facing code.
-- Keep code S.O.L.I.D.
-- Do not repeat code.
-- Add comments to all methods.
+- Use A* Pathfinding Project for AI pathfinding fixes.
+- Use Odin Inspector for inspector-facing code.
+- Add XML summary comments to all methods in touched files.
 - Check for obsolete APIs.
 - Remove all new warnings before finishing.
 

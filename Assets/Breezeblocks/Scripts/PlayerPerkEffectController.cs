@@ -12,32 +12,34 @@ public sealed class PlayerPerkEffectController : MonoBehaviour
 {
     private const float RevealSyncInterval = 1f;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerStaminaController playerStaminaController;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerStaminaController playerStaminaController;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerFocusController playerFocusController;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerFocusController playerFocusController;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerNoise playerNoise;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerNoise playerNoise;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private ArmorLoadout armorLoadout;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private ArmorLoadout armorLoadout;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerWeaponController playerWeaponController;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerWeaponController playerWeaponController;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerMeleeController playerMeleeController;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerMeleeController playerMeleeController;
 
     [FoldoutGroup("Visuals")]
     [SerializeField] private Color armedAgentRevealTint = new(1f, 0.22f, 0.22f, 1f);
 
     private readonly List<FocusRevealTarget> tintedRevealTargets = new();
+    private readonly List<EnemyCombatantAI> armedAgentsBuffer = new();
     private PlayerPerkModifierSet activeModifiers = new();
     private float nextRevealSyncTime;
     private bool appliedOnce;
 
+    // Executes the EnsureOn routine.
     public static PlayerPerkEffectController EnsureOn(GameObject actorRoot)
     {
         if (actorRoot == null)
@@ -51,27 +53,32 @@ public sealed class PlayerPerkEffectController : MonoBehaviour
         return controller;
     }
 
+    // Executes the Reset routine.
     private void Reset()
     {
         CacheReferences();
     }
 
+    // Executes the Awake routine.
     private void Awake()
     {
         CacheReferences();
     }
 
+    // Executes the OnEnable routine.
     private void OnEnable()
     {
         if (appliedOnce)
             ApplyRuntimePerks();
     }
 
+    // Executes the Start routine.
     private void Start()
     {
         ApplyRuntimePerks();
     }
 
+    // Executes the Update routine.
     private void Update()
     {
         if (!activeModifiers.RevealArmedAgentsDuringFocus || Time.unscaledTime < nextRevealSyncTime)
@@ -80,11 +87,13 @@ public sealed class PlayerPerkEffectController : MonoBehaviour
         SyncArmedRevealTargets();
     }
 
+    // Executes the OnDisable routine.
     private void OnDisable()
     {
         ClearArmedRevealTargets();
     }
 
+    // Executes the ApplyRuntimePerks routine.
     public void ApplyRuntimePerks()
     {
         CacheReferences();
@@ -107,6 +116,7 @@ public sealed class PlayerPerkEffectController : MonoBehaviour
         appliedOnce = true;
     }
 
+    // Executes the CacheReferences routine.
     private void CacheReferences()
     {
         if (playerStaminaController == null)
@@ -128,14 +138,15 @@ public sealed class PlayerPerkEffectController : MonoBehaviour
             playerMeleeController = GetComponent<PlayerMeleeController>();
     }
 
+    // Executes the SyncArmedRevealTargets routine.
     private void SyncArmedRevealTargets()
     {
         ClearArmedRevealTargets();
 
-        EnemyCombatantAI[] armedAgents = FindObjectsByType<EnemyCombatantAI>(FindObjectsSortMode.None);
-        for (int i = 0; i < armedAgents.Length; i++)
+        PlayerSceneReferenceUtility.CollectComponentsInLoadedScenes(armedAgentsBuffer, includeInactive: false);
+        for (int i = 0; i < armedAgentsBuffer.Count; i++)
         {
-            EnemyCombatantAI armedAgent = armedAgents[i];
+            EnemyCombatantAI armedAgent = armedAgentsBuffer[i];
             if (armedAgent == null)
                 continue;
 
@@ -151,8 +162,10 @@ public sealed class PlayerPerkEffectController : MonoBehaviour
         }
 
         nextRevealSyncTime = Time.unscaledTime + RevealSyncInterval;
+        armedAgentsBuffer.Clear();
     }
 
+    // Executes the ClearArmedRevealTargets routine.
     private void ClearArmedRevealTargets()
     {
         for (int i = tintedRevealTargets.Count - 1; i >= 0; i--)

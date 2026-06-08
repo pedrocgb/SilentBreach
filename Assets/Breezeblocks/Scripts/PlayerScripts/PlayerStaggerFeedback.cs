@@ -6,10 +6,11 @@ using UnityEngine.Rendering.Universal;
 
 [DisallowMultipleComponent]
 [AddComponentMenu("Breezeblocks/Player/Player Stagger Feedback")]
+[RequireComponent(typeof(ActorStaggerController))]
 public class PlayerStaggerFeedback : MonoBehaviour
 {
-    [FoldoutGroup("References")]
-    [SerializeField] private ActorStaggerController actorStaggerController;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private ActorStaggerController actorStaggerController;
 
     [FoldoutGroup("References")]
     [SerializeField] private Volume targetVolume;
@@ -41,30 +42,34 @@ public class PlayerStaggerFeedback : MonoBehaviour
     private float baseChromaticAberrationIntensity;
     private float baseLensDistortionIntensity;
 
+    // Executes the Reset routine.
     private void Reset()
     {
         actorStaggerController = GetComponent<ActorStaggerController>();
         if (targetVolume == null)
-            targetVolume = FindFirstObjectByType<Volume>();
+            targetVolume = PlayerSceneReferenceUtility.FindPlayerVolume(gameObject);
     }
 
+    // Executes the Awake routine.
     private void Awake()
     {
         if (actorStaggerController == null)
             actorStaggerController = GetComponent<ActorStaggerController>();
 
         if (targetVolume == null)
-            targetVolume = FindFirstObjectByType<Volume>();
+            targetVolume = PlayerSceneReferenceUtility.FindPlayerVolume(gameObject);
 
         CacheVolumeOverrides();
         ApplyEffectStrength(0f);
     }
 
+    // Executes the OnDisable routine.
     private void OnDisable()
     {
         ApplyEffectStrength(0f);
     }
 
+    // Executes the Update routine.
     private void Update()
     {
         float targetStrength = 0f;
@@ -79,6 +84,7 @@ public class PlayerStaggerFeedback : MonoBehaviour
         ApplyEffectStrength(currentEffectStrength);
     }
 
+    // Executes the CacheVolumeOverrides routine.
     private void CacheVolumeOverrides()
     {
         if (targetVolume == null)
@@ -102,6 +108,7 @@ public class PlayerStaggerFeedback : MonoBehaviour
         baseLensDistortionIntensity = lensDistortion != null ? lensDistortion.intensity.value : 0f;
     }
 
+    // Executes the ApplyEffectStrength routine.
     private void ApplyEffectStrength(float strength)
     {
         if (runtimeProfile == null)

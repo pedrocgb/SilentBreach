@@ -38,13 +38,7 @@ echo "$UNITY_EXECUTABLE"
 echo ""
 echo "Running EditMode tests..."
 
-"$UNITY_EXECUTABLE" \
-    -batchmode \
-    -projectPath "$PROJECT_ROOT" \
-    -runTests \
-    -testPlatform EditMode \
-    -testResults "$RESULTS_PATH" \
-    -quit
+"$UNITY_EXECUTABLE"     -batchmode     -projectPath "$PROJECT_ROOT"     -runTests     -testPlatform EditMode     -testResults "$RESULTS_PATH"     -quit
 
 echo ""
 echo "Test results saved to:"

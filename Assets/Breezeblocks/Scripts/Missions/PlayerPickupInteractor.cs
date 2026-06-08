@@ -1,5 +1,5 @@
 using System;
-using Rewired;
+using Breezeblocks.Input;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -8,6 +8,7 @@ namespace Breezeblocks.Missions
 
 [DisallowMultipleComponent]
 [AddComponentMenu("Breezeblocks/Missions/Player Interactor")]
+[RequireComponent(typeof(PlayerPickupInventory))]
 public class PlayerPickupInteractor : MonoBehaviour
 {
     private const float MinimumRange = 0.01f;
@@ -23,8 +24,8 @@ public class PlayerPickupInteractor : MonoBehaviour
     [FoldoutGroup("References")]
     [SerializeField] private Transform interactionOrigin;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerPickupInventory pickupInventory;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerPickupInventory pickupInventory;
 
     [FoldoutGroup("Detection"), MinValue(MinimumRange), LabelText("Interaction Range")]
     [SerializeField] private float pickupRange = 1.25f;
@@ -43,32 +44,35 @@ public class PlayerPickupInteractor : MonoBehaviour
     public event Action<PlayerWorldInteractable> Interacted;
     public event Action<PickableItemWorld> PickedUp;
 
-    private Player rewiredPlayer;
+    private IPlayerInputReader inputReader;
     private PlayerWorldInteractable currentInteractable;
     private PickableItemWorld currentPickable;
     private bool inputBlocked;
 
+    // Executes the Reset routine.
     private void Reset()
     {
         if (interactionOrigin == null)
             interactionOrigin = transform;
 
         if (pickupInventory == null)
-            pickupInventory = GetComponent<PlayerPickupInventory>() ?? gameObject.AddComponent<PlayerPickupInventory>();
+            pickupInventory = GetComponent<PlayerPickupInventory>();
     }
 
+    // Executes the Awake routine.
     private void Awake()
     {
         if (interactionOrigin == null)
             interactionOrigin = transform;
 
         if (pickupInventory == null)
-            pickupInventory = GetComponent<PlayerPickupInventory>() ?? gameObject.AddComponent<PlayerPickupInventory>();
+            pickupInventory = GetComponent<PlayerPickupInventory>();
 
         MigrateLegacyActionName();
-        ResolveRewiredPlayer();
+        inputReader = new RewiredPlayerInputReader(rewiredPlayerId);
     }
 
+    // Executes the Update routine.
     private void Update()
     {
         RefreshCurrentInteractable();
@@ -76,13 +80,17 @@ public class PlayerPickupInteractor : MonoBehaviour
         if (inputBlocked)
             return;
 
-        if (rewiredPlayer == null && !ResolveRewiredPlayer())
+        if (inputReader == null)
+            inputReader = new RewiredPlayerInputReader(rewiredPlayerId);
+
+        if (!inputReader.IsReady)
             return;
 
-        if (currentInteractable != null && rewiredPlayer.GetButtonDown(pickUpAction))
+        if (currentInteractable != null && inputReader.GetButtonDown(pickUpAction))
             TryInteractCurrent();
     }
 
+    // Executes the SetInputBlocked routine.
     public void SetInputBlocked(bool blocked)
     {
         inputBlocked = blocked;
@@ -90,22 +98,26 @@ public class PlayerPickupInteractor : MonoBehaviour
         CurrentPickableChanged?.Invoke(currentPickable);
     }
 
+    // Executes the HasCollectedItem routine.
     public bool HasCollectedItem(string itemId)
     {
         return pickupInventory != null && pickupInventory.HasItem(itemId);
     }
 
+    // Executes the GetCollectedItemCount routine.
     public int GetCollectedItemCount(string itemId)
     {
         return pickupInventory != null ? pickupInventory.GetItemCount(itemId) : 0;
     }
 
+    // Executes the OnValidate routine.
     private void OnValidate()
     {
         pickupRange = Mathf.Max(MinimumRange, pickupRange);
         MigrateLegacyActionName();
     }
 
+    // Executes the RefreshCurrentInteractable routine.
     private void RefreshCurrentInteractable()
     {
         PlayerWorldInteractable bestInteractable = null;
@@ -137,6 +149,7 @@ public class PlayerPickupInteractor : MonoBehaviour
         CurrentPickableChanged?.Invoke(currentPickable);
     }
 
+    // Executes the TryInteractCurrent routine.
     private void TryInteractCurrent()
     {
         if (currentInteractable == null)
@@ -156,15 +169,7 @@ public class PlayerPickupInteractor : MonoBehaviour
         RefreshCurrentInteractable();
     }
 
-    private bool ResolveRewiredPlayer()
-    {
-        if (!ReInput.isReady)
-            return false;
-
-        rewiredPlayer = ReInput.players.GetPlayer(rewiredPlayerId);
-        return rewiredPlayer != null;
-    }
-
+    // Executes the MigrateLegacyActionName routine.
     private void MigrateLegacyActionName()
     {
         if (string.IsNullOrWhiteSpace(pickUpAction) || string.Equals(pickUpAction, LegacyPickUpActionName, StringComparison.OrdinalIgnoreCase))

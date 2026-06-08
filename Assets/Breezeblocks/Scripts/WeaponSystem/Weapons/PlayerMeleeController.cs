@@ -1,7 +1,7 @@
 using System;
 using System.Collections;
+using Breezeblocks.Input;
 using Breezeblocks.HideoutSystem;
-using Rewired;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -10,6 +10,7 @@ namespace Breezeblocks.WeaponSystem
 
 [DisallowMultipleComponent]
 [AddComponentMenu("Breezeblocks/Weapons/Player Melee Controller")]
+[RequireComponent(typeof(CharacterOrbitHandsAnimator))]
 public class PlayerMeleeController : MonoBehaviour
 {
     [FoldoutGroup("Rewired"), MinValue(0)]
@@ -27,17 +28,17 @@ public class PlayerMeleeController : MonoBehaviour
     [FoldoutGroup("References")]
     [SerializeField] private PlayerAimCamera2D aimCamera;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerNoise playerNoise;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerNoise playerNoise;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private ActorStaggerController actorStaggerController;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private ActorStaggerController actorStaggerController;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerStaminaController playerStaminaController;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerStaminaController playerStaminaController;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private CharacterOrbitHandsAnimator orbitHandsAnimator;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private CharacterOrbitHandsAnimator orbitHandsAnimator;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public MeleeWeaponData EquippedMeleeWeapon { get; private set; }
@@ -60,6 +61,7 @@ public class PlayerMeleeController : MonoBehaviour
     public event Action MeleeStateChanged;
     public event Action AttackStarted;
 
+    // Executes the EnsureOn routine.
     public static PlayerMeleeController EnsureOn(GameObject actorRoot)
     {
         if (actorRoot == null)
@@ -74,32 +76,36 @@ public class PlayerMeleeController : MonoBehaviour
         return meleeController;
     }
 
-    private Player rewiredPlayer;
+    private IPlayerInputReader inputReader;
     private Coroutine busyRoutine;
     private MeleeDamageSource meleeDamageSource;
     private bool inputBlocked;
     private float defaultLookRotationSpeed = -1f;
     private float perkMeleeStaminaCostMultiplier = 1f;
 
+    // Executes the Reset routine.
     private void Reset()
     {
         CacheReferences();
         EnsureDamageSource();
     }
 
+    // Executes the Awake routine.
     private void Awake()
     {
         CacheReferences();
         EnsureDamageSource();
-        ResolveRewiredPlayer();
+        inputReader = new RewiredPlayerInputReader(rewiredPlayerId);
     }
 
+    // Executes the OnEnable routine.
     private void OnEnable()
     {
-        ResolveRewiredPlayer();
+        inputReader ??= new RewiredPlayerInputReader(rewiredPlayerId);
         UpdateAimCameraState();
     }
 
+    // Executes the OnDisable routine.
     private void OnDisable()
     {
         if (busyRoutine != null)
@@ -115,6 +121,7 @@ public class PlayerMeleeController : MonoBehaviour
         UpdateAimCameraState();
     }
 
+    // Executes the Update routine.
     private void Update()
     {
         if (inputBlocked || EquippedMeleeWeapon == null)
@@ -123,17 +130,20 @@ public class PlayerMeleeController : MonoBehaviour
             return;
         }
 
-        if (rewiredPlayer == null && !ResolveRewiredPlayer())
+        if (inputReader == null)
+            inputReader = new RewiredPlayerInputReader(rewiredPlayerId);
+
+        if (!inputReader.IsReady)
             return;
 
-        bool aimHeld = !IsBusy && rewiredPlayer.GetButton(aimAction);
+        bool aimHeld = !IsBusy && inputReader.GetButton(aimAction);
         SetAimState(aimHeld);
         UpdateLookDirection(EquippedMeleeWeapon);
 
         if (IsBusy)
             return;
 
-        if (rewiredPlayer.GetButtonDown(fireAction))
+        if (inputReader.GetButtonDown(fireAction))
         {
             if (!CanSpendAttackStamina(EquippedMeleeWeapon))
             {
@@ -146,6 +156,7 @@ public class PlayerMeleeController : MonoBehaviour
         }
     }
 
+    // Executes the EquipWeapon routine.
     public void EquipWeapon(MeleeWeaponData meleeWeapon)
     {
         if (meleeWeapon == null || IsBusy)
@@ -155,6 +166,7 @@ public class PlayerMeleeController : MonoBehaviour
         busyRoutine = StartCoroutine(EquipWeaponRoutine(meleeWeapon));
     }
 
+    // Executes the HolsterWeapon routine.
     public void HolsterWeapon()
     {
         if (EquippedMeleeWeapon == null || IsBusy)
@@ -164,6 +176,7 @@ public class PlayerMeleeController : MonoBehaviour
         busyRoutine = StartCoroutine(HolsterWeaponRoutine());
     }
 
+    // Executes the SetInputBlocked routine.
     public void SetInputBlocked(bool blocked)
     {
         inputBlocked = blocked;
@@ -171,11 +184,13 @@ public class PlayerMeleeController : MonoBehaviour
             SetAimState(false);
     }
 
+    // Executes the ApplyPerkModifiers routine.
     public void ApplyPerkModifiers(PlayerPerkModifierSet modifiers)
     {
         perkMeleeStaminaCostMultiplier = modifiers != null ? Mathf.Max(0f, modifiers.MeleeStaminaCostMultiplier) : 1f;
     }
 
+    // Executes the EquipWeaponRoutine routine.
     private IEnumerator EquipWeaponRoutine(MeleeWeaponData meleeWeapon)
     {
         if (EquippedMeleeWeapon != null)
@@ -194,12 +209,14 @@ public class PlayerMeleeController : MonoBehaviour
         busyRoutine = null;
     }
 
+    // Executes the HolsterWeaponRoutine routine.
     private IEnumerator HolsterWeaponRoutine()
     {
         yield return HolsterCurrentWeaponInternal();
         busyRoutine = null;
     }
 
+    // Executes the HolsterCurrentWeaponInternal routine.
     private IEnumerator HolsterCurrentWeaponInternal()
     {
         MeleeWeaponData weaponBeingHolstered = EquippedMeleeWeapon;
@@ -221,6 +238,7 @@ public class PlayerMeleeController : MonoBehaviour
         NotifyMeleeStateChanged();
     }
 
+    // Executes the AttackRoutine routine.
     private IEnumerator AttackRoutine()
     {
         MeleeWeaponData meleeWeapon = EquippedMeleeWeapon;
@@ -285,6 +303,7 @@ public class PlayerMeleeController : MonoBehaviour
         busyRoutine = null;
     }
 
+    // Executes the CacheReferences routine.
     private void CacheReferences()
     {
         if (playerVisionLight == null)
@@ -294,7 +313,7 @@ public class PlayerMeleeController : MonoBehaviour
             aimCamera = Camera.main.GetComponent<PlayerAimCamera2D>();
 
         if (aimCamera == null)
-            aimCamera = FindFirstObjectByType<PlayerAimCamera2D>();
+            aimCamera = PlayerSceneReferenceUtility.FindPlayerAimCamera(gameObject);
 
         if (playerNoise == null)
             playerNoise = GetComponent<PlayerNoise>();
@@ -306,12 +325,13 @@ public class PlayerMeleeController : MonoBehaviour
             playerStaminaController = GetComponent<PlayerStaminaController>();
 
         if (orbitHandsAnimator == null)
-            orbitHandsAnimator = CharacterOrbitHandsAnimator.EnsureOn(gameObject);
+            orbitHandsAnimator = GetComponent<CharacterOrbitHandsAnimator>();
 
         if (defaultLookRotationSpeed < 0f && playerVisionLight != null)
             defaultLookRotationSpeed = playerVisionLight.RotationSmoothing;
     }
 
+    // Executes the EnsureDamageSource routine.
     private void EnsureDamageSource()
     {
         CacheReferences();
@@ -321,6 +341,7 @@ public class PlayerMeleeController : MonoBehaviour
         meleeDamageSource = MeleeDamageSource.EnsureOn(orbitHandsAnimator.HeldItemTransform.gameObject);
     }
 
+    // Executes the RefreshDamageSource routine.
     private void RefreshDamageSource()
     {
         EnsureDamageSource();
@@ -328,22 +349,26 @@ public class PlayerMeleeController : MonoBehaviour
             meleeDamageSource.Configure(gameObject, EquippedMeleeWeapon);
     }
 
+    // Executes the EmitNoiseSpike routine.
     private void EmitNoiseSpike(float amount, float duration, NoiseType noiseType)
     {
         EmitNoiseSpike(amount, duration, noiseType, false);
     }
 
+    // Executes the EmitNoiseSpike routine.
     private void EmitNoiseSpike(float amount, float duration, NoiseType noiseType, bool isExtremeNoise)
     {
         if (playerNoise != null)
             playerNoise.AddNoiseSpike(amount, duration, noiseType, isExtremeNoise);
     }
 
+    // Executes the NotifyMeleeStateChanged routine.
     private void NotifyMeleeStateChanged()
     {
         MeleeStateChanged?.Invoke();
     }
 
+    // Executes the SetAimState routine.
     private void SetAimState(bool aiming)
     {
         if (IsAiming == aiming)
@@ -354,6 +379,7 @@ public class PlayerMeleeController : MonoBehaviour
         NotifyMeleeStateChanged();
     }
 
+    // Executes the UpdateLookDirection routine.
     private void UpdateLookDirection(MeleeWeaponData meleeWeapon)
     {
         if (playerVisionLight == null || meleeWeapon == null)
@@ -366,6 +392,7 @@ public class PlayerMeleeController : MonoBehaviour
         playerVisionLight.DriveMouseLook(lookSpeed, Time.deltaTime);
     }
 
+    // Executes the UpdateAimCameraState routine.
     private void UpdateAimCameraState()
     {
         if (aimCamera == null)
@@ -375,15 +402,7 @@ public class PlayerMeleeController : MonoBehaviour
         aimCamera.SetAimState(IsAiming, EquippedMeleeWeapon != null ? EquippedMeleeWeapon.AimPanDistance : 0f);
     }
 
-    private bool ResolveRewiredPlayer()
-    {
-        if (!ReInput.isReady)
-            return false;
-
-        rewiredPlayer = ReInput.players.GetPlayer(rewiredPlayerId);
-        return rewiredPlayer != null;
-    }
-
+    // Executes the CanSpendAttackStamina routine.
     private bool CanSpendAttackStamina(MeleeWeaponData meleeWeapon)
     {
         if (meleeWeapon == null)
@@ -396,6 +415,7 @@ public class PlayerMeleeController : MonoBehaviour
         return playerStaminaController.HasStamina(staminaCost);
     }
 
+    // Executes the SpendAttackStamina routine.
     private bool SpendAttackStamina(MeleeWeaponData meleeWeapon)
     {
         if (meleeWeapon == null)
@@ -408,6 +428,7 @@ public class PlayerMeleeController : MonoBehaviour
         return playerStaminaController.TrySpendStamina(staminaCost, playFeedbackOnFailure: false);
     }
 
+    // Executes the ResolveAttackStaminaCost routine.
     private float ResolveAttackStaminaCost(MeleeWeaponData meleeWeapon)
     {
         return meleeWeapon == null

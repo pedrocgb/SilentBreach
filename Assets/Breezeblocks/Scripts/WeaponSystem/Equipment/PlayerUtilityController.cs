@@ -1,6 +1,6 @@
 using System;
 using System.Collections;
-using Rewired;
+using Breezeblocks.Input;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
@@ -39,14 +39,14 @@ public class PlayerUtilityController : MonoBehaviour
     [FoldoutGroup("References")]
     [SerializeField] private Transform throwableSpawnOrigin;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private ActorStaggerController actorStaggerController;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private ActorStaggerController actorStaggerController;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerNoise playerNoise;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerNoise playerNoise;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerEquipmentController playerEquipmentController;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerEquipmentController playerEquipmentController;
 
     [FoldoutGroup("Flashlight")]
     [Tooltip("Dedicated Light2D used by the flashlight utility. Assign this explicitly instead of the player vision light.")]
@@ -94,12 +94,13 @@ public class PlayerUtilityController : MonoBehaviour
     public event Action UtilityStateChanged;
     public event Action UtilityActivated;
 
-    private Player rewiredPlayer;
+    private IPlayerInputReader inputReader;
     private Coroutine busyRoutine;
     private bool inputBlocked;
     private bool isChargingThrowable;
     private float throwableChargeStartedAt;
 
+    // Executes the Reset routine.
     private void Reset()
     {
         playerVisionLight = GetComponentInChildren<PlayerVisionLight>();
@@ -113,6 +114,7 @@ public class PlayerUtilityController : MonoBehaviour
         playerEquipmentController = GetComponent<PlayerEquipmentController>();
     }
 
+    // Executes the Awake routine.
     private void Awake()
     {
         if (playerVisionLight == null)
@@ -122,7 +124,7 @@ public class PlayerUtilityController : MonoBehaviour
             aimCamera = Camera.main.GetComponent<PlayerAimCamera2D>();
 
         if (aimCamera == null)
-            aimCamera = FindFirstObjectByType<PlayerAimCamera2D>();
+            aimCamera = PlayerSceneReferenceUtility.FindPlayerAimCamera(gameObject);
 
         if (sfxOrigin == null)
             sfxOrigin = transform;
@@ -146,15 +148,17 @@ public class PlayerUtilityController : MonoBehaviour
             worldSfxManager = WorldSfxManager.Instance;
 
         SetFlashlightEnabled(false, playSfx: false);
-        ResolveRewiredPlayer();
+        inputReader = new RewiredPlayerInputReader(rewiredPlayerId);
     }
 
+    // Executes the OnEnable routine.
     private void OnEnable()
     {
-        ResolveRewiredPlayer();
+        inputReader ??= new RewiredPlayerInputReader(rewiredPlayerId);
         UpdateAimCameraState();
     }
 
+    // Executes the OnDisable routine.
     private void OnDisable()
     {
         IsAiming = false;
@@ -162,6 +166,7 @@ public class PlayerUtilityController : MonoBehaviour
         UpdateAimCameraState();
     }
 
+    // Executes the Update routine.
     private void Update()
     {
         if (inputBlocked)
@@ -191,10 +196,13 @@ public class PlayerUtilityController : MonoBehaviour
             return;
         }
 
-        if (rewiredPlayer == null && !ResolveRewiredPlayer())
+        if (inputReader == null)
+            inputReader = new RewiredPlayerInputReader(rewiredPlayerId);
+
+        if (!inputReader.IsReady)
             return;
 
-        bool aimHeld = busyRoutine == null && rewiredPlayer.GetButton(aimAction);
+        bool aimHeld = busyRoutine == null && inputReader.GetButton(aimAction);
         if (aimHeld != IsAiming)
         {
             IsAiming = aimHeld;
@@ -218,10 +226,11 @@ public class PlayerUtilityController : MonoBehaviour
             return;
         }
 
-        if (busyRoutine == null && rewiredPlayer.GetButtonDown(primaryAction))
+        if (busyRoutine == null && inputReader.GetButtonDown(primaryAction))
             HandlePrimaryAction();
     }
 
+    // Executes the EquipUtility routine.
     public void EquipUtility(UtilityItemData utilityItem)
     {
         if (utilityItem == null || IsBusy)
@@ -230,6 +239,7 @@ public class PlayerUtilityController : MonoBehaviour
         busyRoutine = StartCoroutine(EquipUtilityRoutine(utilityItem));
     }
 
+    // Executes the HolsterCurrentUtility routine.
     public void HolsterCurrentUtility()
     {
         if (EquippedUtility == null || IsBusy)
@@ -238,6 +248,7 @@ public class PlayerUtilityController : MonoBehaviour
         busyRoutine = StartCoroutine(HolsterUtilityRoutine());
     }
 
+    // Executes the SetInputBlocked routine.
     public void SetInputBlocked(bool blocked)
     {
         if (inputBlocked == blocked)
@@ -255,6 +266,7 @@ public class PlayerUtilityController : MonoBehaviour
             NotifyUtilityStateChanged();
     }
 
+    // Executes the TryGetActiveFlashlightCone routine.
     public bool TryGetActiveFlashlightCone(out Vector2 source, out Vector2 direction, out float outerRadius, out float outerAngle)
     {
         source = FlashlightWorldPosition;
@@ -268,6 +280,7 @@ public class PlayerUtilityController : MonoBehaviour
                direction.sqrMagnitude > MinimumFlashlightDirectionSqr;
     }
 
+    // Executes the ClearEquippedUtilityFromConsumption routine.
     public void ClearEquippedUtilityFromConsumption(UtilityItemData consumedUtility)
     {
         if (EquippedUtility == null || consumedUtility == null || EquippedUtility != consumedUtility)
@@ -282,6 +295,7 @@ public class PlayerUtilityController : MonoBehaviour
         NotifyUtilityStateChanged();
     }
 
+    // Executes the EquipUtilityRoutine routine.
     private IEnumerator EquipUtilityRoutine(UtilityItemData utilityItem)
     {
         if (EquippedUtility != null)
@@ -298,12 +312,14 @@ public class PlayerUtilityController : MonoBehaviour
         busyRoutine = null;
     }
 
+    // Executes the HolsterUtilityRoutine routine.
     private IEnumerator HolsterUtilityRoutine()
     {
         yield return HolsterCurrentUtilityInternal();
         busyRoutine = null;
     }
 
+    // Executes the HolsterCurrentUtilityInternal routine.
     private IEnumerator HolsterCurrentUtilityInternal()
     {
         UtilityItemData utilityBeingHolstered = EquippedUtility;
@@ -328,6 +344,7 @@ public class PlayerUtilityController : MonoBehaviour
         NotifyUtilityStateChanged();
     }
 
+    // Executes the ApplyInitialUtilityState routine.
     private void ApplyInitialUtilityState(UtilityItemData utilityItem)
     {
         bool enableFlashlight = utilityItem is FlashlightUtilityData flashlightData && flashlightData.StartEnabledWhenEquipped;
@@ -339,6 +356,7 @@ public class PlayerUtilityController : MonoBehaviour
         UpdateAimCameraState();
     }
 
+    // Executes the UpdateThrowableInput routine.
     private void UpdateThrowableInput(ThrowableUtilityData throwableData)
     {
         if (throwableData == null)
@@ -362,13 +380,13 @@ public class PlayerUtilityController : MonoBehaviour
         {
             ThrowableChargeProgress01 = ResolveThrowableChargeProgress01(throwableData);
 
-            if (rewiredPlayer.GetButtonDown(cancelThrowableAction))
+            if (inputReader.GetButtonDown(cancelThrowableAction))
             {
                 CancelThrowableCharge();
                 return;
             }
 
-            if (rewiredPlayer.GetButtonUp(primaryAction))
+            if (inputReader.GetButtonUp(primaryAction))
             {
                 busyRoutine = StartCoroutine(ThrowThrowableRoutine(throwableData, ThrowableChargeProgress01));
                 return;
@@ -377,10 +395,11 @@ public class PlayerUtilityController : MonoBehaviour
             return;
         }
 
-        if (rewiredPlayer.GetButtonDown(primaryAction))
+        if (inputReader.GetButtonDown(primaryAction))
             BeginThrowableCharge();
     }
 
+    // Executes the BeginThrowableCharge routine.
     private void BeginThrowableCharge()
     {
         isChargingThrowable = true;
@@ -390,6 +409,7 @@ public class PlayerUtilityController : MonoBehaviour
         UtilityActivated?.Invoke();
     }
 
+    // Executes the CancelThrowableCharge routine.
     private void CancelThrowableCharge()
     {
         if (!isChargingThrowable)
@@ -399,6 +419,7 @@ public class PlayerUtilityController : MonoBehaviour
         NotifyUtilityStateChanged();
     }
 
+    // Executes the ThrowThrowableRoutine routine.
     private IEnumerator ThrowThrowableRoutine(ThrowableUtilityData throwableData, float chargeProgress01)
     {
         ResetThrowableInputState();
@@ -436,6 +457,7 @@ public class PlayerUtilityController : MonoBehaviour
         busyRoutine = null;
     }
 
+    // Executes the TrySpawnThrowable routine.
     private bool TrySpawnThrowable(ThrowableUtilityData throwableData, float chargeProgress01)
     {
         if (throwableData == null || throwableData.ThrowableWorldPrefab == null || !HasThrowableUsesAvailable(throwableData))
@@ -462,6 +484,7 @@ public class PlayerUtilityController : MonoBehaviour
         return true;
     }
 
+    // Executes the ResolveThrowableAimDirection routine.
     private Vector2 ResolveThrowableAimDirection()
     {
         if (playerVisionLight != null && playerVisionLight.FacingDirection.sqrMagnitude > MinimumThrowDirectionSqr)
@@ -471,6 +494,7 @@ public class PlayerUtilityController : MonoBehaviour
         return transformUp.sqrMagnitude > MinimumThrowDirectionSqr ? transformUp.normalized : Vector2.up;
     }
 
+    // Executes the ResolveThrowableChargeProgress01 routine.
     private float ResolveThrowableChargeProgress01(ThrowableUtilityData throwableData)
     {
         if (throwableData == null)
@@ -480,6 +504,7 @@ public class PlayerUtilityController : MonoBehaviour
         return Mathf.Clamp01((Time.time - throwableChargeStartedAt) / threshold);
     }
 
+    // Executes the HasThrowableUsesAvailable routine.
     private bool HasThrowableUsesAvailable(ThrowableUtilityData throwableData)
     {
         if (throwableData == null)
@@ -494,6 +519,7 @@ public class PlayerUtilityController : MonoBehaviour
         return remainingUses > 0;
     }
 
+    // Executes the HandlePrimaryAction routine.
     private void HandlePrimaryAction()
     {
         if (EquippedUtility is not FlashlightUtilityData flashlightData)
@@ -502,6 +528,7 @@ public class PlayerUtilityController : MonoBehaviour
         SetFlashlightEnabled(!IsFlashlightOn, playSfx: true, flashlightData);
     }
 
+    // Executes the SetFlashlightEnabled routine.
     private void SetFlashlightEnabled(bool enabled, bool playSfx, FlashlightUtilityData flashlightData = null)
     {
         bool previousState = IsFlashlightOn;
@@ -540,6 +567,7 @@ public class PlayerUtilityController : MonoBehaviour
         worldSfxManager.PlayClipSetAt(origin, flashlightData.ToggleSfx, flashlightData.ToggleSfxType);
     }
 
+    // Executes the UpdateAimCameraState routine.
     private void UpdateAimCameraState()
     {
         if (aimCamera == null)
@@ -549,20 +577,13 @@ public class PlayerUtilityController : MonoBehaviour
         aimCamera.SetAimState(IsAiming, EquippedUtility != null ? EquippedUtility.AimPanDistance : 0f);
     }
 
+    // Executes the NotifyUtilityStateChanged routine.
     private void NotifyUtilityStateChanged()
     {
         UtilityStateChanged?.Invoke();
     }
 
-    private bool ResolveRewiredPlayer()
-    {
-        if (!ReInput.isReady)
-            return false;
-
-        rewiredPlayer = ReInput.players.GetPlayer(rewiredPlayerId);
-        return rewiredPlayer != null;
-    }
-
+    // Executes the RegisterThrowablePrefab routine.
     private void RegisterThrowablePrefab(ThrowableUtilityData throwableData)
     {
         if (throwableData == null || throwableData.ThrowableWorldPrefab == null)
@@ -576,17 +597,20 @@ public class PlayerUtilityController : MonoBehaviour
             globalObjectPooler?.RegisterPrefab(throwableData.ResolveEffectPrefab, throwableData.ResolveEffectPoolPrewarm);
     }
 
+    // Executes the EmitNoiseSpike routine.
     private void EmitNoiseSpike(float amount, float duration, NoiseType noiseType)
     {
         EmitNoiseSpike(amount, duration, noiseType, false);
     }
 
+    // Executes the EmitNoiseSpike routine.
     private void EmitNoiseSpike(float amount, float duration, NoiseType noiseType, bool isExtremeNoise)
     {
         if (playerNoise != null)
             playerNoise.AddNoiseSpike(amount, duration, noiseType, isExtremeNoise);
     }
 
+    // Executes the ResetThrowableInputState routine.
     private void ResetThrowableInputState()
     {
         isChargingThrowable = false;
@@ -595,6 +619,7 @@ public class PlayerUtilityController : MonoBehaviour
         ThrowableThrowProgress01 = 0f;
     }
 
+    // Executes the MaintainMouseLookWhenNoUtilityIsHeld routine.
     private void MaintainMouseLookWhenNoUtilityIsHeld()
     {
         if (playerVisionLight == null || inputBlocked)

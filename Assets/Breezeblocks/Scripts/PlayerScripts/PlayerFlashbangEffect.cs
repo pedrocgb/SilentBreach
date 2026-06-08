@@ -1,3 +1,4 @@
+using System;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Audio;
@@ -45,6 +46,7 @@ public class PlayerFlashbangEffect : MonoBehaviour
     private float effectEndTime = float.NegativeInfinity;
     private float recoveryStartTime = float.NegativeInfinity;
 
+    // Executes the EnsureOn routine.
     public static PlayerFlashbangEffect EnsureOn(GameObject actorRoot)
     {
         if (actorRoot == null)
@@ -58,6 +60,7 @@ public class PlayerFlashbangEffect : MonoBehaviour
         return effect;
     }
 
+    // Executes the Awake routine.
     private void Awake()
     {
         EnsureRuntimePresentation();
@@ -65,11 +68,13 @@ public class PlayerFlashbangEffect : MonoBehaviour
         SetWhiteoutAlpha(0f);
     }
 
+    // Executes the OnDisable routine.
     private void OnDisable()
     {
         StopEffect();
     }
 
+    // Executes the Update routine.
     private void Update()
     {
         if (effectEndTime <= float.NegativeInfinity)
@@ -93,6 +98,7 @@ public class PlayerFlashbangEffect : MonoBehaviour
         }
     }
 
+    // Executes the ApplyFlashbang routine.
     public void ApplyFlashbang(float duration, float recoveryThreshold, AudioClip ringingLoopClip, float ringingSpatialBlend)
     {
         duration = Mathf.Max(0.01f, duration);
@@ -122,6 +128,7 @@ public class PlayerFlashbangEffect : MonoBehaviour
         }
     }
 
+    // Executes the ResolveRecoveryProgress routine.
     private float ResolveRecoveryProgress()
     {
         if (Time.unscaledTime <= recoveryStartTime)
@@ -133,6 +140,7 @@ public class PlayerFlashbangEffect : MonoBehaviour
         return Mathf.InverseLerp(recoveryStartTime, effectEndTime, Time.unscaledTime);
     }
 
+    // Executes the StopEffect routine.
     private void StopEffect()
     {
         effectEndTime = float.NegativeInfinity;
@@ -144,22 +152,19 @@ public class PlayerFlashbangEffect : MonoBehaviour
             ringingAudioSource.Stop();
     }
 
+    // Executes the EnsureRuntimePresentation routine.
     private void EnsureRuntimePresentation()
     {
         if (overlayCanvas == null)
         {
-            GameObject canvasObject = GameObject.Find(RuntimeCanvasName);
-            if (canvasObject == null)
+            Canvas[] canvases = transform.root.GetComponentsInChildren<Canvas>(true);
+            for (int i = 0; i < canvases.Length; i++)
             {
-                canvasObject = new GameObject(RuntimeCanvasName);
-                overlayCanvas = canvasObject.AddComponent<Canvas>();
-                overlayCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                canvasObject.AddComponent<CanvasScaler>();
-                canvasObject.AddComponent<GraphicRaycaster>();
-            }
-            else
-            {
-                overlayCanvas = canvasObject.GetComponent<Canvas>();
+                if (canvases[i] != null && string.Equals(canvases[i].name, RuntimeCanvasName, StringComparison.Ordinal))
+                {
+                    overlayCanvas = canvases[i];
+                    break;
+                }
             }
         }
 
@@ -167,37 +172,14 @@ public class PlayerFlashbangEffect : MonoBehaviour
         {
             Transform existingImage = overlayCanvas.transform.Find(RuntimeImageName);
             if (existingImage != null)
-            {
                 whiteoutImage = existingImage.GetComponent<Image>();
-            }
-            else
-            {
-                GameObject imageObject = new GameObject(RuntimeImageName);
-                imageObject.transform.SetParent(overlayCanvas.transform, false);
-                RectTransform rectTransform = imageObject.AddComponent<RectTransform>();
-                rectTransform.anchorMin = Vector2.zero;
-                rectTransform.anchorMax = Vector2.one;
-                rectTransform.offsetMin = Vector2.zero;
-                rectTransform.offsetMax = Vector2.zero;
-                whiteoutImage = imageObject.AddComponent<Image>();
-                whiteoutImage.color = Color.white;
-                whiteoutImage.raycastTarget = false;
-            }
         }
 
         if (ringingAudioSource == null)
         {
             Transform existingAudio = transform.Find(RuntimeAudioName);
             if (existingAudio != null)
-            {
                 ringingAudioSource = existingAudio.GetComponent<AudioSource>();
-            }
-            else
-            {
-                GameObject audioObject = new GameObject(RuntimeAudioName);
-                audioObject.transform.SetParent(transform, false);
-                ringingAudioSource = audioObject.AddComponent<AudioSource>();
-            }
         }
 
         if (ringingAudioSource != null)
@@ -216,6 +198,7 @@ public class PlayerFlashbangEffect : MonoBehaviour
         }
     }
 
+    // Executes the ResolveAudioRouting routine.
     private void ResolveAudioRouting()
     {
         if (worldSfxManager == null)
@@ -225,17 +208,19 @@ public class PlayerFlashbangEffect : MonoBehaviour
             outputMixerGroup = worldSfxManager.OutputMixerGroup;
     }
 
+    // Executes the ResolveManagedAudioControllers routine.
     private void ResolveManagedAudioControllers()
     {
         ResolveAudioRouting();
 
         if (missionMusicController == null)
-            missionMusicController = FindFirstObjectByType<MissionMusicController>();
+            missionMusicController = PlayerSceneReferenceUtility.FindFirstComponentInLoadedScenes<MissionMusicController>(gameObject);
 
         if (gameplayMissionController == null)
-            gameplayMissionController = FindFirstObjectByType<GameplayMissionController>();
+            gameplayMissionController = PlayerSceneReferenceUtility.FindFirstComponentInLoadedScenes<GameplayMissionController>(gameObject);
     }
 
+    // Executes the ApplyAudioSuppression routine.
     private void ApplyAudioSuppression(float recoveryProgress)
     {
         float volumeMultiplier = Mathf.Clamp01(recoveryProgress);
@@ -244,10 +229,10 @@ public class PlayerFlashbangEffect : MonoBehaviour
             worldSfxManager = WorldSfxManager.Instance;
 
         if (missionMusicController == null)
-            missionMusicController = FindFirstObjectByType<MissionMusicController>();
+            missionMusicController = PlayerSceneReferenceUtility.FindFirstComponentInLoadedScenes<MissionMusicController>(gameObject);
 
         if (gameplayMissionController == null)
-            gameplayMissionController = FindFirstObjectByType<GameplayMissionController>();
+            gameplayMissionController = PlayerSceneReferenceUtility.FindFirstComponentInLoadedScenes<GameplayMissionController>(gameObject);
 
         if (worldSfxManager != null)
             worldSfxManager.SetExternalVolumeMultiplier(volumeMultiplier);
@@ -259,6 +244,7 @@ public class PlayerFlashbangEffect : MonoBehaviour
             gameplayMissionController.SetExternalCarAudioVolumeMultiplier(volumeMultiplier);
     }
 
+    // Executes the SetWhiteoutAlpha routine.
     private void SetWhiteoutAlpha(float alpha)
     {
         if (whiteoutImage == null)

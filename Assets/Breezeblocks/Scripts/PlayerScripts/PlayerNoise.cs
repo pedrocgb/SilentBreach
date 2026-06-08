@@ -14,14 +14,14 @@ public class PlayerNoise : MonoBehaviour
     [FoldoutGroup("References"), Required]
     [SerializeField] private SoundMeterUI soundMeterUI;
 
-    [FoldoutGroup("References"), Tooltip("If empty, auto-finds on this GameObject.")]
-    [SerializeField] private PlayerTopDownMotor2D playerMotor;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerTopDownMotor2D playerMotor;
 
-    [FoldoutGroup("References"), Tooltip("Optional helper used to broadcast noise events to AI hearing.")]
-    [SerializeField] private PlayerNoiseEmitter noiseEmitter;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerNoiseEmitter noiseEmitter;
 
-    [FoldoutGroup("References"), Tooltip("Optional armor loadout used to scale movement noise.")]
-    [SerializeField] private ArmorLoadout armorLoadout;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private ArmorLoadout armorLoadout;
 
     private float idleNoise;
 
@@ -75,6 +75,7 @@ public class PlayerNoise : MonoBehaviour
         public float EndTime;
     }
 
+    // Executes the Reset routine.
     private void Reset()
     {
         if (playerMotor == null)
@@ -90,6 +91,7 @@ public class PlayerNoise : MonoBehaviour
         ResetPerkWalkNoiseMultipliers();
     }
 
+    // Executes the Awake routine.
     private void Awake()
     {
         if (playerMotor == null)
@@ -105,6 +107,7 @@ public class PlayerNoise : MonoBehaviour
         ResetPerkWalkNoiseMultipliers();
     }
 
+    // Executes the OnValidate routine.
     private void OnValidate()
     {
         walkNoiseAtMaxSpeed = Mathf.Max(walkNoiseAtMinSpeed, walkNoiseAtMaxSpeed);
@@ -113,6 +116,7 @@ public class PlayerNoise : MonoBehaviour
         movementNoiseIntensityMultiplier = Mathf.Max(0f, movementNoiseIntensityMultiplier);
     }
 
+    // Executes the Update routine.
     private void Update()
     {
         if (playerMotor == null)
@@ -128,16 +132,19 @@ public class PlayerNoise : MonoBehaviour
         TryEmitMovementNoiseEvent();
     }
 
+    // Executes the AddNoiseSpike routine.
     public void AddNoiseSpike(float amount, float duration)
     {
         AddNoiseSpike(amount, duration, NoiseType.Common);
     }
 
+    // Executes the AddNoiseSpike routine.
     public void AddNoiseSpike(float amount, float duration, NoiseType noiseType)
     {
         AddNoiseSpike(amount, duration, noiseType, false);
     }
 
+    // Executes the AddNoiseSpike routine.
     public void AddNoiseSpike(float amount, float duration, NoiseType noiseType, bool isExtremeNoise)
     {
         if (amount <= 0f || duration <= 0f)
@@ -152,11 +159,13 @@ public class PlayerNoise : MonoBehaviour
         EmitInstantNoise(amount, noiseType, isExtremeNoise);
     }
 
+    // Executes the EmitInstantNoise routine.
     public void EmitInstantNoise(float amount, NoiseType noiseType)
     {
         EmitInstantNoise(amount, noiseType, false);
     }
 
+    // Executes the EmitInstantNoise routine.
     public void EmitInstantNoise(float amount, NoiseType noiseType, bool isExtremeNoise)
     {
         if (amount <= 0f || noiseEmitter == null)
@@ -165,6 +174,7 @@ public class PlayerNoise : MonoBehaviour
         noiseEmitter.EmitNoise(amount, noiseType, isExtremeNoise);
     }
 
+    // Executes the ApplySettings routine.
     public void ApplySettings(PlayerNoiseSettings settings)
     {
         if (settings == null)
@@ -184,6 +194,7 @@ public class PlayerNoise : MonoBehaviour
         walkNoiseAtMaxSpeed = Mathf.Max(walkNoiseAtMinSpeed, walkNoiseAtMaxSpeed);
     }
 
+    // Executes the ApplyPerkModifiers routine.
     public void ApplyPerkModifiers(PlayerPerkModifierSet modifiers)
     {
         perkSprintNoiseMultiplier = modifiers != null ? Mathf.Max(0f, modifiers.SprintNoiseMultiplier) : 1f;
@@ -196,6 +207,7 @@ public class PlayerNoise : MonoBehaviour
             perkWalkNoiseSpeedLevelMultipliers[i] = modifiers.GetWalkNoiseMultiplierForSpeedLevel(i + 1);
     }
 
+    // Executes the CalculateNoiseFromMotor routine.
     private float CalculateNoiseFromMotor()
     {
         if (!playerMotor.HasMovementInput)
@@ -219,6 +231,7 @@ public class PlayerNoise : MonoBehaviour
                ResolveWalkNoiseSpeedLevelMultiplier();
     }
 
+    // Executes the SafeInverseLerp routine.
     private static float SafeInverseLerp(float a, float b, float value)
     {
         if (Mathf.Approximately(a, b))
@@ -227,6 +240,7 @@ public class PlayerNoise : MonoBehaviour
         return Mathf.InverseLerp(a, b, value);
     }
 
+    // Executes the CalculateSpikeNoise routine.
     private float CalculateSpikeNoise()
     {
         if (_noiseSpikes.Count <= 0)
@@ -250,6 +264,7 @@ public class PlayerNoise : MonoBehaviour
         return spikeTotal;
     }
 
+    // Executes the TryEmitMovementNoiseEvent routine.
     private void TryEmitMovementNoiseEvent()
     {
         if (!emitMovementNoiseEvents || noiseEmitter == null || !playerMotor.HasMovementInput)
@@ -271,6 +286,7 @@ public class PlayerNoise : MonoBehaviour
         _nextMovementNoiseEventTime = Time.time + movementNoiseEventInterval;
     }
 
+    // Executes the ResolveMovementNoiseType routine.
     private NoiseType ResolveMovementNoiseType()
     {
         if (playerMotor.IsSprinting)
@@ -279,6 +295,7 @@ public class PlayerNoise : MonoBehaviour
         return walkMovementNoiseType;
     }
 
+    // Executes the ResolveWalkNoiseSpeedLevelMultiplier routine.
     private float ResolveWalkNoiseSpeedLevelMultiplier()
     {
         if (playerMotor == null || perkWalkNoiseSpeedLevelMultipliers == null || perkWalkNoiseSpeedLevelMultipliers.Length <= 0)
@@ -288,6 +305,7 @@ public class PlayerNoise : MonoBehaviour
         return Mathf.Max(0f, perkWalkNoiseSpeedLevelMultipliers[index]);
     }
 
+    // Executes the ResetPerkWalkNoiseMultipliers routine.
     private void ResetPerkWalkNoiseMultipliers()
     {
         if (perkWalkNoiseSpeedLevelMultipliers == null || perkWalkNoiseSpeedLevelMultipliers.Length != SpeedLevelsCount)
@@ -297,6 +315,7 @@ public class PlayerNoise : MonoBehaviour
             perkWalkNoiseSpeedLevelMultipliers[i] = 1f;
     }
 
+    // Executes the CreateDefaultWalkNoiseSpeedLevelMultipliers routine.
     private static float[] CreateDefaultWalkNoiseSpeedLevelMultipliers()
     {
         float[] multipliers = new float[SpeedLevelsCount];

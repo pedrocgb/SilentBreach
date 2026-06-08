@@ -1,6 +1,7 @@
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
+using Breezeblocks.Input;
 using Breezeblocks.WeaponSystem;
 
 [ExecuteAlways]
@@ -54,6 +55,7 @@ public class PlayerVisionLight : MonoBehaviour
     private Light2D _light2D;
     private Camera _cam;
     private ArmorLoadout _armorLoadout;
+    private IPointerInputReader _pointerInputReader;
     private bool _externallyDrivenThisFrame;
     private bool _inputBlocked;
     private bool _medusaVisionOverride;
@@ -66,8 +68,10 @@ public class PlayerVisionLight : MonoBehaviour
     private float _defaultOuterAngle;
     private float _defaultInnerAngle;
 
+    // Executes the OnEnable routine.
     private void OnEnable()
     {
+        _pointerInputReader ??= new RewiredPlayerInputReader();
         CacheRefs();
         ApplyShapeIfChanged(force: true);
 
@@ -77,8 +81,10 @@ public class PlayerVisionLight : MonoBehaviour
         }
     }
 
+    // Executes the Awake routine.
     private void Awake()
     {
+        _pointerInputReader ??= new RewiredPlayerInputReader();
         CacheRefs();
         CacheDefaultAngles();
         ApplyShapeIfChanged(force: true);
@@ -89,6 +95,7 @@ public class PlayerVisionLight : MonoBehaviour
         }
     }
 
+    // Executes the OnValidate routine.
     private void OnValidate()
     {
         CacheRefs();
@@ -103,6 +110,7 @@ public class PlayerVisionLight : MonoBehaviour
         }
     }
 
+    // Executes the Update routine.
     private void Update()
     {
         if (!Application.isPlaying)
@@ -125,17 +133,20 @@ public class PlayerVisionLight : MonoBehaviour
         ApplyShapeIfChanged(force: false);
     }
 
+    // Executes the SetVisionLevel01 routine.
     public void SetVisionLevel01(float t)
     {
         visionLevel01 = Mathf.Clamp01(t);
     }
 
+    // Executes the SetExternalDirection routine.
     public void SetExternalDirection(Vector2 dir)
     {
         if (dir.sqrMagnitude > MinDirectionSqr)
             externalDirection = dir.normalized;
     }
 
+    // Executes the DriveExternalDirection routine.
     public Vector2 DriveExternalDirection(Vector2 dir, float smoothing, float deltaTime)
     {
         if (dir.sqrMagnitude <= MinDirectionSqr)
@@ -145,6 +156,7 @@ public class PlayerVisionLight : MonoBehaviour
         return FacingDirection;
     }
 
+    // Executes the DriveMouseLook routine.
     public Vector2 DriveMouseLook(float smoothing, float deltaTime)
     {
         if (_inputBlocked)
@@ -156,6 +168,7 @@ public class PlayerVisionLight : MonoBehaviour
         return FacingDirection;
     }
 
+    // Executes the ApplyExternalDirection routine.
     public void ApplyExternalDirection(Vector2 dir, float smoothing, float deltaTime)
     {
         if (dir.sqrMagnitude <= MinDirectionSqr)
@@ -167,6 +180,7 @@ public class PlayerVisionLight : MonoBehaviour
         _externallyDrivenThisFrame = true;
     }
 
+    // Executes the SetInputBlocked routine.
     public void SetInputBlocked(bool blocked)
     {
         _inputBlocked = blocked;
@@ -182,6 +196,7 @@ public class PlayerVisionLight : MonoBehaviour
         ApplyRotationImmediate();
     }
 
+    // Executes the ApplySettings routine.
     public void ApplySettings(PlayerVisionLightSettings settings)
     {
         if (settings == null)
@@ -206,12 +221,14 @@ public class PlayerVisionLight : MonoBehaviour
         ApplyRotationImmediate();
     }
 
+    // Executes the SetMedusaVisionOverride routine.
     public void SetMedusaVisionOverride(bool enabled)
     {
         _medusaVisionOverride = enabled;
         ApplyShapeIfChanged(force: true);
     }
 
+    // Executes the CacheRefs routine.
     private void CacheRefs()
     {
         if (_light2D == null)
@@ -224,6 +241,7 @@ public class PlayerVisionLight : MonoBehaviour
             _armorLoadout = GetComponentInParent<ArmorLoadout>();
     }
 
+    // Executes the CacheDefaultAngles routine.
     private void CacheDefaultAngles()
     {
         if (_defaultAnglesCached)
@@ -237,6 +255,7 @@ public class PlayerVisionLight : MonoBehaviour
         _defaultAnglesCached = true;
     }
 
+    // Executes the UpdateRotation routine.
     private void UpdateRotation(float deltaTime, float? requestedSmoothing = null)
     {
         if (!ResolveDirection(allowMouseWhenNotPlaying: false, out var dir))
@@ -257,6 +276,7 @@ public class PlayerVisionLight : MonoBehaviour
         transform.rotation = Quaternion.Euler(0f, 0f, newAngle);
     }
 
+    // Executes the GetEffectiveRotationSmoothing routine.
     private float GetEffectiveRotationSmoothing(float? requestedSmoothing = null)
     {
         float multiplier = _armorLoadout != null ? _armorLoadout.RotationSpeedMultiplier : 1f;
@@ -264,6 +284,7 @@ public class PlayerVisionLight : MonoBehaviour
         return Mathf.Max(0f, baseSmoothing) * multiplier;
     }
 
+    // Executes the ApplyRotationImmediate routine.
     private void ApplyRotationImmediate()
     {
         if (!ResolveDirection(allowMouseWhenNotPlaying: false, out var dir))
@@ -273,13 +294,18 @@ public class PlayerVisionLight : MonoBehaviour
         transform.rotation = Quaternion.Euler(0f, 0f, angle);
     }
 
+    // Executes the ResolveDirection routine.
     private bool ResolveDirection(bool allowMouseWhenNotPlaying, out Vector2 dir)
     {
         dir = Vector2.zero;
 
         if (lookAtMouse && _cam != null && (Application.isPlaying || allowMouseWhenNotPlaying))
         {
-            Vector3 mouseWorld = _cam.ScreenToWorldPoint(Input.mousePosition);
+            Vector2 screenPosition = _pointerInputReader != null
+                ? _pointerInputReader.GetScreenPositionOrDefault()
+                : new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+            float depth = Mathf.Abs(_cam.transform.position.z - transform.position.z);
+            Vector3 mouseWorld = _cam.ScreenToWorldPoint(new Vector3(screenPosition.x, screenPosition.y, depth));
             Vector2 origin = transform.position;
             dir = (Vector2)mouseWorld - origin;
 
@@ -297,6 +323,7 @@ public class PlayerVisionLight : MonoBehaviour
         return true;
     }
 
+    // Executes the ApplyShapeIfChanged routine.
     private void ApplyShapeIfChanged(bool force)
     {
         if (_light2D == null)
@@ -328,6 +355,7 @@ public class PlayerVisionLight : MonoBehaviour
         _lastInnerAngle = innerAngle;
     }
 
+    // Executes the ResolveDefaultOuterAngle routine.
     private float ResolveDefaultOuterAngle()
     {
         if (_defaultAnglesCached)
@@ -336,6 +364,7 @@ public class PlayerVisionLight : MonoBehaviour
         return viewAngle;
     }
 
+    // Executes the ResolveDefaultInnerAngle routine.
     private float ResolveDefaultInnerAngle()
     {
         if (_defaultAnglesCached)

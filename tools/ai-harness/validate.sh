@@ -5,6 +5,8 @@ set -Eeuo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$PROJECT_ROOT"
 
+SCRIPT_ROOT="${SCRIPT_ROOT:-Assets/Scripts}"
+
 echo "AI Harness Validation"
 echo "====================="
 
@@ -13,12 +15,36 @@ echo "Project root:"
 echo "$PROJECT_ROOT"
 
 echo ""
+echo "Validation target:"
+echo "$SCRIPT_ROOT"
+
+if [[ ! -d "$SCRIPT_ROOT" ]]; then
+    echo ""
+    echo "WARNING: $SCRIPT_ROOT does not exist."
+    echo "Falling back to Assets while excluding known third-party folders."
+    SCRIPT_ROOT="Assets"
+fi
+
+COMMON_GREP_EXCLUDES=(
+    --exclude-dir="AstarPathfindingProject"
+    --exclude-dir="Demigiant"
+    --exclude-dir="DOTween"
+    --exclude-dir="Plugins"
+    --exclude-dir="Rewired"
+    --exclude-dir="Sirenix"
+    --exclude-dir="ThirdParty"
+    --exclude-dir="ExternalDependencyManager"
+    --exclude-dir="TextMesh Pro"
+)
+
+echo ""
 echo "Checking git status..."
 git status --short
 
 echo ""
 echo "Checking for merge conflict markers..."
-if grep -RInE "<<<<<<<|=======|>>>>>>>" Assets --include="*.cs" --include="*.asmdef" --include="*.json" --include="*.md" >/tmp/ai_harness_conflicts.txt; then
+if grep -RInE "^(<<<<<<< .+|=======|>>>>>>> .+)$" "$SCRIPT_ROOT"     --include="*.cs"     --include="*.asmdef"     --include="*.json"     --include="*.md"     "${COMMON_GREP_EXCLUDES[@]}"     >/tmp/ai_harness_conflicts.txt; then
+
     cat /tmp/ai_harness_conflicts.txt
     echo ""
     echo "ERROR: Merge conflict markers found."
@@ -29,7 +55,8 @@ fi
 
 echo ""
 echo "Checking for direct Unity old input usage..."
-if grep -RInE "Input\.GetKey|Input\.GetAxis|Input\.GetButton|Input\.GetMouseButton|UnityEngine\.Input" Assets --include="*.cs" >/tmp/ai_harness_input.txt; then
+if grep -RInE "Input\.GetKey|Input\.GetAxis|Input\.GetButton|Input\.GetMouseButton|UnityEngine\.Input" "$SCRIPT_ROOT"     --include="*.cs"     "${COMMON_GREP_EXCLUDES[@]}"     >/tmp/ai_harness_input.txt; then
+
     cat /tmp/ai_harness_input.txt
     echo ""
     echo "ERROR: Direct Unity Input usage found. Use Rewired instead."
@@ -51,7 +78,8 @@ fi
 
 echo ""
 echo "Checking for risky runtime object searches..."
-if grep -RInE "FindObjectOfType|FindObjectsOfType|FindFirstObjectByType|FindAnyObjectByType|GameObject\.Find|FindGameObjectWithTag|FindGameObjectsWithTag" Assets --include="*.cs" >/tmp/ai_harness_finds.txt; then
+if grep -RInE "FindObjectOfType|FindObjectsOfType|FindFirstObjectByType|FindAnyObjectByType|GameObject\.Find|FindGameObjectWithTag|FindGameObjectsWithTag" "$SCRIPT_ROOT"     --include="*.cs"     "${COMMON_GREP_EXCLUDES[@]}"     >/tmp/ai_harness_finds.txt; then
+
     cat /tmp/ai_harness_finds.txt
     echo ""
     echo "ERROR: Risky object search API found. Avoid runtime scene searches."
@@ -62,7 +90,8 @@ fi
 
 echo ""
 echo "Checking for obsolete markers in source..."
-if grep -RInE "\[Obsolete|System\.Obsolete" Assets --include="*.cs" >/tmp/ai_harness_obsolete_markers.txt; then
+if grep -RInE "\[Obsolete|System\.Obsolete" "$SCRIPT_ROOT"     --include="*.cs"     "${COMMON_GREP_EXCLUDES[@]}"     >/tmp/ai_harness_obsolete_markers.txt; then
+
     cat /tmp/ai_harness_obsolete_markers.txt
     echo ""
     echo "WARNING: Obsolete markers found. Review whether this is intentional."
@@ -72,7 +101,8 @@ fi
 
 echo ""
 echo "Checking for TODO/FIXME notes..."
-if grep -RInE "TODO|FIXME" Assets --include="*.cs" >/tmp/ai_harness_todos.txt; then
+if grep -RInE "TODO|FIXME" "$SCRIPT_ROOT"     --include="*.cs"     "${COMMON_GREP_EXCLUDES[@]}"     >/tmp/ai_harness_todos.txt; then
+
     cat /tmp/ai_harness_todos.txt
     echo ""
     echo "WARNING: TODO/FIXME notes found. Review before finishing."

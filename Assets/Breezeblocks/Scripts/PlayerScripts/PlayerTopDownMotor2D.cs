@@ -1,11 +1,12 @@
 using System;
+using Breezeblocks.Input;
 using Breezeblocks.WeaponSystem;
-using Rewired;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.UI;
 
 [RequireComponent(typeof(Rigidbody2D))]
+[RequireComponent(typeof(CoverUser2D))]
 [AddComponentMenu("Breezeblocks/Player Top Down Motor 2D")]
 public class PlayerTopDownMotor2D : MonoBehaviour
 {
@@ -48,11 +49,11 @@ public class PlayerTopDownMotor2D : MonoBehaviour
 
     private bool normalizeInput = true;
 
-    [FoldoutGroup("Physics"), Tooltip("Optional override. If empty, uses Rigidbody2D on this object.")]
-    [SerializeField] private Rigidbody2D movementBody;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private Rigidbody2D movementBody;
 
-    [FoldoutGroup("Physics"), Tooltip("Optional override. If empty, uses ArmorLoadout on this object.")]
-    [SerializeField] private ArmorLoadout armorLoadout;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private ArmorLoadout armorLoadout;
 
     private bool forceZeroGravity = true;
 
@@ -114,9 +115,11 @@ public class PlayerTopDownMotor2D : MonoBehaviour
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsSpeedSelectionLocked => speedSelectionLockedExternally || hasExternalSpeedOverride;
 
+    public int RewiredPlayerId => rewiredPlayerId;
+
     public event Action<int> ManualSpeedLevelChanged;
 
-    private Player _player;
+    private IPlayerInputReader inputReader;
     private Vector2 _targetVelocity;
     private bool _sprintToggleState;
     private bool hasExternalSpeedOverride;
@@ -126,6 +129,7 @@ public class PlayerTopDownMotor2D : MonoBehaviour
     private bool inputBlocked;
     private bool sprintRequested;
 
+    // Executes the Reset routine.
     private void Reset()
     {
         movementBody = GetComponent<Rigidbody2D>();
@@ -136,6 +140,7 @@ public class PlayerTopDownMotor2D : MonoBehaviour
         ApplyPhysicsDefaults();
     }
 
+    // Executes the Awake routine.
     private void Awake()
     {
         if (movementBody == null)
@@ -147,10 +152,11 @@ public class PlayerTopDownMotor2D : MonoBehaviour
         EnsureCoverUser();
         EnsureSpeedArrays();
         ApplyPhysicsDefaults();
-        ResolveRewiredPlayer();
+        inputReader = new RewiredPlayerInputReader(rewiredPlayerId);
         RefreshUi();
     }
 
+    // Executes the OnValidate routine.
     private void OnValidate()
     {
         EnsureSpeedArrays();
@@ -169,9 +175,13 @@ public class PlayerTopDownMotor2D : MonoBehaviour
         }
     }
 
+    // Executes the Update routine.
     private void Update()
     {
-        if (_player == null && !ResolveRewiredPlayer())
+        if (inputReader == null)
+            inputReader = new RewiredPlayerInputReader(rewiredPlayerId);
+
+        if (!inputReader.IsReady)
             return;
 
         if (inputBlocked)
@@ -187,9 +197,7 @@ public class PlayerTopDownMotor2D : MonoBehaviour
 
         HandleSpeedLevelInput();
 
-        float moveX = _player.GetAxis(moveHorizontalAction);
-        float moveY = _player.GetAxis(moveVerticalAction);
-        Vector2 move = new Vector2(moveX, moveY);
+        Vector2 move = inputReader.GetAxis2D(moveHorizontalAction, moveVerticalAction);
 
         if (normalizeInput && move.sqrMagnitude > 1f)
             move.Normalize();
@@ -208,6 +216,7 @@ public class PlayerTopDownMotor2D : MonoBehaviour
         RefreshUi();
     }
 
+    // Executes the FixedUpdate routine.
     private void FixedUpdate()
     {
         if (movementBody == null)
@@ -220,6 +229,7 @@ public class PlayerTopDownMotor2D : MonoBehaviour
 
     [Button(ButtonSizes.Small)]
     [FoldoutGroup("Debug")]
+    // Executes the SetSpeedLevelToMin routine.
     public void SetSpeedLevelToMin()
     {
         selectedSpeedLevel = 1;
@@ -228,12 +238,14 @@ public class PlayerTopDownMotor2D : MonoBehaviour
 
     [Button(ButtonSizes.Small)]
     [FoldoutGroup("Debug")]
+    // Executes the SetSpeedLevelToMax routine.
     public void SetSpeedLevelToMax()
     {
         selectedSpeedLevel = SpeedLevelsCount;
         RefreshUi();
     }
 
+    // Executes the SetExternalSpeedOverride routine.
     public void SetExternalSpeedOverride(bool enabled, float speed, bool lockSpeedSelection)
     {
         hasExternalSpeedOverride = enabled;
@@ -246,6 +258,7 @@ public class PlayerTopDownMotor2D : MonoBehaviour
         RefreshUi();
     }
 
+    // Executes the SetInputBlocked routine.
     public void SetInputBlocked(bool blocked)
     {
         inputBlocked = blocked;
@@ -265,6 +278,7 @@ public class PlayerTopDownMotor2D : MonoBehaviour
         RefreshUi();
     }
 
+    // Executes the ApplySettings routine.
     public void ApplySettings(PlayerMovementSettings settings)
     {
         if (settings == null)
@@ -289,6 +303,7 @@ public class PlayerTopDownMotor2D : MonoBehaviour
         RefreshUi();
     }
 
+    // Executes the SetSprintBlocked routine.
     public void SetSprintBlocked(bool blocked)
     {
         sprintBlockedExternally = blocked;
@@ -296,19 +311,20 @@ public class PlayerTopDownMotor2D : MonoBehaviour
             _sprintToggleState = false;
     }
 
+    // Executes the HandleSpeedLevelInput routine.
     private void HandleSpeedLevelInput()
     {
         if (IsSpeedSelectionLocked)
             return;
 
         int previousSpeedLevel = selectedSpeedLevel;
-        float scroll = _player.GetAxis(mouseWheelAxisAction);
+        float scroll = inputReader != null ? inputReader.GetAxis(mouseWheelAxisAction) : 0f;
         if (scroll > MinScrollDelta)
             selectedSpeedLevel = Mathf.Min(SpeedLevelsCount, selectedSpeedLevel + 1);
         else if (scroll < -MinScrollDelta)
             selectedSpeedLevel = Mathf.Max(1, selectedSpeedLevel - 1);
 
-        if (_player.GetButtonDown(toggleMinMaxSpeedAction))
+        if (inputReader != null && inputReader.GetButtonDown(toggleMinMaxSpeedAction))
         {
             selectedSpeedLevel = selectedSpeedLevel <= 1 ? SpeedLevelsCount : 1;
         }
@@ -317,6 +333,7 @@ public class PlayerTopDownMotor2D : MonoBehaviour
             ManualSpeedLevelChanged?.Invoke(selectedSpeedLevel);
     }
 
+    // Executes the GetTargetSpeed routine.
     private float GetTargetSpeed(int levelIndex)
     {
         if (hasExternalSpeedOverride)
@@ -329,14 +346,17 @@ public class PlayerTopDownMotor2D : MonoBehaviour
         return walkSpeedLevels[levelIndex] * armorSpeedMultiplier;
     }
 
+    // Executes the UpdateSprintState routine.
     private void UpdateSprintState()
     {
         bool sprintToggleMode = ReadSprintToggleMode();
 
-        if (sprintToggleMode && _player.GetButtonDown(sprintAction))
+        if (sprintToggleMode && inputReader != null && inputReader.GetButtonDown(sprintAction))
             _sprintToggleState = !_sprintToggleState;
 
-        bool requestedByInput = sprintToggleMode ? _sprintToggleState : _player.GetButton(sprintAction);
+        bool requestedByInput = sprintToggleMode
+            ? _sprintToggleState
+            : inputReader != null && inputReader.GetButton(sprintAction);
         sprintRequested = requestedByInput;
         bool resolvedSprintRequested = requestedByInput;
 
@@ -355,6 +375,7 @@ public class PlayerTopDownMotor2D : MonoBehaviour
             _sprintToggleState = false;
     }
 
+    // Executes the ReadSprintToggleMode routine.
     private static bool ReadSprintToggleMode()
     {
         return GlobalSettings.Instance != null
@@ -362,15 +383,7 @@ public class PlayerTopDownMotor2D : MonoBehaviour
             : DefaultSprintToggleMode;
     }
 
-    private bool ResolveRewiredPlayer()
-    {
-        if (!ReInput.isReady)
-            return false;
-
-        _player = ReInput.players.GetPlayer(rewiredPlayerId);
-        return _player != null;
-    }
-
+    // Executes the ApplyPhysicsDefaults routine.
     private void ApplyPhysicsDefaults()
     {
         if (movementBody == null)
@@ -383,11 +396,13 @@ public class PlayerTopDownMotor2D : MonoBehaviour
             movementBody.freezeRotation = true;
     }
 
+    // Executes the EnsureSpeedArrays routine.
     private void EnsureSpeedArrays()
     {
         walkSpeedLevels = EnsureArraySize(walkSpeedLevels, SpeedLevelsCount, 1f, 0.2f);
     }
 
+    // Executes the EnsureArraySize routine.
     private static float[] EnsureArraySize(float[] source, int size, float startValue, float step)
     {
         if (source != null && source.Length == size)
@@ -405,6 +420,7 @@ public class PlayerTopDownMotor2D : MonoBehaviour
         return resized;
     }
 
+    // Executes the ClampNonNegative routine.
     private static void ClampNonNegative(float[] values)
     {
         if (values == null)
@@ -414,18 +430,20 @@ public class PlayerTopDownMotor2D : MonoBehaviour
             values[i] = Mathf.Max(0f, values[i]);
     }
 
+    // Executes the EnsureCoverUser routine.
     private void EnsureCoverUser()
     {
-        if (GetComponent<CoverUser2D>() == null)
-            gameObject.AddComponent<CoverUser2D>();
+        _ = GetComponent<CoverUser2D>();
     }
 
+    // Executes the RefreshUi routine.
     private void RefreshUi()
     {
         if (velocityFillImage != null)
             velocityFillImage.fillAmount = CalculateVelocityFill();
     }
 
+    // Executes the CalculateVelocityFill routine.
     private float CalculateVelocityFill()
     {
         float minSpeed = MinWalkSpeed;
@@ -442,6 +460,7 @@ public class PlayerTopDownMotor2D : MonoBehaviour
         return Mathf.InverseLerp(minSpeed, maxSpeed, CurrentTargetSpeed);
     }
 
+    // Executes the GetArmorMovementSpeedMultiplier routine.
     private float GetArmorMovementSpeedMultiplier()
     {
         return armorLoadout != null ? armorLoadout.MovementSpeedMultiplier : 1f;

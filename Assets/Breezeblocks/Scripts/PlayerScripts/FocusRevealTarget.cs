@@ -18,9 +18,6 @@ public class FocusRevealTarget : MonoBehaviour
     private static bool globalFocusVisible;
 
     [FoldoutGroup("Reveal"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
-    [SerializeField] private List<SpriteRenderer> revealRenderers = new();
-
-    [FoldoutGroup("Reveal"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
     [SerializeField] private List<GameObject> revealObjects = new();
 
     private readonly List<TintTarget> tintTargets = new();
@@ -30,12 +27,14 @@ public class FocusRevealTarget : MonoBehaviour
     public static bool GlobalFocusVisible => globalFocusVisible;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    // Executes the ResetStatics routine.
     private static void ResetStatics()
     {
         globalFocusVisible = false;
         ActiveTargetsInternal.Clear();
     }
 
+    // Executes the OnEnable routine.
     private void OnEnable()
     {
         if (!ActiveTargetsInternal.Contains(this))
@@ -46,6 +45,7 @@ public class FocusRevealTarget : MonoBehaviour
         ApplyVisibility(globalFocusVisible);
     }
 
+    // Executes the OnDisable routine.
     private void OnDisable()
     {
         ActiveTargetsInternal.Remove(this);
@@ -53,12 +53,14 @@ public class FocusRevealTarget : MonoBehaviour
         ClearRevealTintOverride();
     }
 
+    // Executes the Awake routine.
     private void Awake()
     {
         CacheTintTargets();
         ApplyRevealTint();
     }
 
+    // Executes the SetGlobalFocusVisible routine.
     public static void SetGlobalFocusVisible(bool visible)
     {
         globalFocusVisible = visible;
@@ -70,6 +72,7 @@ public class FocusRevealTarget : MonoBehaviour
         }
     }
 
+    // Executes the ResetRuntimeState routine.
     public static void ResetRuntimeState()
     {
         globalFocusVisible = false;
@@ -88,6 +91,7 @@ public class FocusRevealTarget : MonoBehaviour
         }
     }
 
+    // Executes the SetRevealTintOverride routine.
     public void SetRevealTintOverride(Color tintColor)
     {
         hasRevealTintOverride = true;
@@ -95,34 +99,31 @@ public class FocusRevealTarget : MonoBehaviour
         ApplyRevealTint();
     }
 
+    // Executes the ClearRevealTintOverride routine.
     public void ClearRevealTintOverride()
     {
         hasRevealTintOverride = false;
         ApplyRevealTint();
     }
 
+    // Executes the ApplyVisibility routine.
     private void ApplyVisibility(bool visible)
     {
-        for (int i = 0; i < revealRenderers.Count; i++)
-        {
-            if (revealRenderers[i] != null)
-                revealRenderers[i].enabled = visible;
-        }
-
         for (int i = 0; i < revealObjects.Count; i++)
         {
-            if (revealObjects[i] != null)
-                revealObjects[i].SetActive(visible);
+            GameObject revealObject = revealObjects[i];
+            if (revealObject == null)
+                continue;
+
+            revealObject.SetActive(visible);
         }
     }
 
+    // Executes the CacheTintTargets routine.
     private void CacheTintTargets()
     {
         tintTargets.Clear();
         HashSet<int> cachedInstanceIds = new();
-
-        for (int i = 0; i < revealRenderers.Count; i++)
-            TryAddTintTarget(revealRenderers[i], cachedInstanceIds);
 
         for (int i = 0; i < revealObjects.Count; i++)
         {
@@ -140,6 +141,7 @@ public class FocusRevealTarget : MonoBehaviour
         }
     }
 
+    // Executes the ApplyRevealTint routine.
     private void ApplyRevealTint()
     {
         for (int i = 0; i < tintTargets.Count; i++)
@@ -155,6 +157,7 @@ public class FocusRevealTarget : MonoBehaviour
         }
     }
 
+    // Executes the TryAddTintTarget routine.
     private void TryAddTintTarget(SpriteRenderer renderer, HashSet<int> cachedInstanceIds)
     {
         if (renderer == null || cachedInstanceIds == null || !cachedInstanceIds.Add(renderer.GetInstanceID()))
@@ -167,6 +170,7 @@ public class FocusRevealTarget : MonoBehaviour
         });
     }
 
+    // Executes the TryAddTintTarget routine.
     private void TryAddTintTarget(Graphic graphic, HashSet<int> cachedInstanceIds)
     {
         if (graphic == null || cachedInstanceIds == null || !cachedInstanceIds.Add(graphic.GetInstanceID()))

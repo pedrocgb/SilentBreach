@@ -9,21 +9,22 @@ using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 [AddComponentMenu("Breezeblocks/Player/Player Stamina Controller")]
+[RequireComponent(typeof(PlayerTopDownMotor2D))]
 public class PlayerStaminaController : MonoBehaviour
 {
     private const float MinimumThreshold = 0.0001f;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerTopDownMotor2D playerMotor;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerTopDownMotor2D playerMotor;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerWeaponController playerWeaponController;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerWeaponController playerWeaponController;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerUtilityController playerUtilityController;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerUtilityController playerUtilityController;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private ActorStaggerController actorStaggerController;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private ActorStaggerController actorStaggerController;
 
     [FoldoutGroup("UI")]
     [SerializeField] private Image staminaFillImage;
@@ -82,6 +83,7 @@ public class PlayerStaminaController : MonoBehaviour
     private Vector2 staminaFeedbackDefaultAnchoredPosition;
     private bool sprintInsufficientFeedbackActive;
 
+    // Executes the Reset routine.
     private void Reset()
     {
         playerMotor = GetComponent<PlayerTopDownMotor2D>();
@@ -91,6 +93,7 @@ public class PlayerStaminaController : MonoBehaviour
         CacheFeedbackRoot();
     }
 
+    // Executes the Awake routine.
     private void Awake()
     {
         if (playerMotor == null)
@@ -109,6 +112,7 @@ public class PlayerStaminaController : MonoBehaviour
         RestoreStamina();
     }
 
+    // Executes the OnEnable routine.
     private void OnEnable()
     {
         if (actorStaggerController != null)
@@ -117,6 +121,7 @@ public class PlayerStaminaController : MonoBehaviour
         RefreshUi();
     }
 
+    // Executes the OnDisable routine.
     private void OnDisable()
     {
         if (playerMotor != null)
@@ -131,6 +136,7 @@ public class PlayerStaminaController : MonoBehaviour
         ResetFeedbackRootPosition();
     }
 
+    // Executes the OnValidate routine.
     private void OnValidate()
     {
         maxStamina = Mathf.Max(0f, maxStamina);
@@ -145,6 +151,7 @@ public class PlayerStaminaController : MonoBehaviour
         CacheFeedbackRoot();
     }
 
+    // Executes the Update routine.
     private void Update()
     {
         float currentMaxStamina = ResolveMaxStamina();
@@ -167,6 +174,7 @@ public class PlayerStaminaController : MonoBehaviour
 
     [Button(ButtonSizes.Small)]
     [FoldoutGroup("Debug")]
+    // Executes the RestoreStamina routine.
     public void RestoreStamina()
     {
         CurrentStamina = ResolveMaxStamina();
@@ -176,6 +184,7 @@ public class PlayerStaminaController : MonoBehaviour
         RefreshUi();
     }
 
+    // Executes the SpendStamina routine.
     public void SpendStamina(float amount)
     {
         if (GameplayConsoleCheatState.AthleteMode)
@@ -203,6 +212,7 @@ public class PlayerStaminaController : MonoBehaviour
         RefreshUi();
     }
 
+    // Executes the HasStamina routine.
     public bool HasStamina(float amount)
     {
         if (amount <= 0f)
@@ -211,6 +221,7 @@ public class PlayerStaminaController : MonoBehaviour
         return CurrentStamina + MinimumThreshold >= amount;
     }
 
+    // Executes the TrySpendStamina routine.
     public bool TrySpendStamina(float amount, bool playFeedbackOnFailure = true)
     {
         if (GameplayConsoleCheatState.AthleteMode)
@@ -235,6 +246,7 @@ public class PlayerStaminaController : MonoBehaviour
         return true;
     }
 
+    // Executes the PlayInsufficientStaminaFeedback routine.
     public void PlayInsufficientStaminaFeedback()
     {
         if (staminaFeedbackRoot == null || insufficientStaminaShakeDuration <= 0f || insufficientStaminaShakeStrength <= 0f)
@@ -258,6 +270,7 @@ public class PlayerStaminaController : MonoBehaviour
             });
     }
 
+    // Executes the ApplySettings routine.
     public void ApplySettings(PlayerStaminaSettings settings, bool restoreToFull = false)
     {
         if (settings == null)
@@ -280,6 +293,7 @@ public class PlayerStaminaController : MonoBehaviour
         RefreshUi();
     }
 
+    // Executes the ApplyPerkModifiers routine.
     public void ApplyPerkModifiers(PlayerPerkModifierSet modifiers, bool restoreToFull = false)
     {
         perkMaxStaminaFlatBonus = modifiers != null ? Mathf.Max(0f, modifiers.MaxStaminaFlatBonus) : 0f;
@@ -295,6 +309,7 @@ public class PlayerStaminaController : MonoBehaviour
         RefreshUi();
     }
 
+    // Executes the DrainSprintStamina routine.
     private bool DrainSprintStamina()
     {
         if (playerMotor == null || !playerMotor.IsSprinting || !IsMoving())
@@ -308,6 +323,7 @@ public class PlayerStaminaController : MonoBehaviour
         return true;
     }
 
+    // Executes the UpdateSprintInsufficientFeedback routine.
     private void UpdateSprintInsufficientFeedback()
     {
         bool shouldPlayFeedback = playerMotor != null &&
@@ -322,6 +338,7 @@ public class PlayerStaminaController : MonoBehaviour
         sprintInsufficientFeedbackActive = shouldPlayFeedback;
     }
 
+    // Executes the CanRegenerate routine.
     private bool CanRegenerate()
     {
         float currentMaxStamina = ResolveMaxStamina();
@@ -349,6 +366,7 @@ public class PlayerStaminaController : MonoBehaviour
         return true;
     }
 
+    // Executes the IsMoving routine.
     private bool IsMoving()
     {
         if (playerMotor == null)
@@ -357,6 +375,7 @@ public class PlayerStaminaController : MonoBehaviour
         return playerMotor.HasMovementInput || playerMotor.CurrentPlanarSpeed > movementThreshold;
     }
 
+    // Executes the HandleStaggerApplied routine.
     private void HandleStaggerApplied(float duration)
     {
         float currentMaxStamina = ResolveMaxStamina();
@@ -366,6 +385,7 @@ public class PlayerStaminaController : MonoBehaviour
         SpendStamina(currentMaxStamina * (staggerStaminaLossPercent / 100f));
     }
 
+    // Executes the RefreshUi routine.
     private void RefreshUi()
     {
         float currentMaxStamina = ResolveMaxStamina();
@@ -376,16 +396,19 @@ public class PlayerStaminaController : MonoBehaviour
             staminaText.text = string.Format(staminaTextFormat, CurrentStamina, currentMaxStamina);
     }
 
+    // Executes the ResolveMaxStamina routine.
     private float ResolveMaxStamina()
     {
         return Mathf.Max(0f, maxStamina + perkMaxStaminaFlatBonus);
     }
 
+    // Executes the ResolveSprintDrainPerSecond routine.
     private float ResolveSprintDrainPerSecond()
     {
         return Mathf.Max(0f, sprintDrainPerSecond * perkSprintDrainMultiplier);
     }
 
+    // Executes the CacheFeedbackRoot routine.
     private void CacheFeedbackRoot()
     {
         if (staminaFeedbackRoot == null)
@@ -400,6 +423,7 @@ public class PlayerStaminaController : MonoBehaviour
             staminaFeedbackDefaultAnchoredPosition = staminaFeedbackRoot.anchoredPosition;
     }
 
+    // Executes the ResetFeedbackRootPosition routine.
     private void ResetFeedbackRootPosition()
     {
         if (staminaFeedbackRoot != null)

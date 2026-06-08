@@ -1,8 +1,8 @@
 using System;
 using System.Collections;
+using Breezeblocks.Input;
 using Breezeblocks.HideoutSystem;
 using Breezeblocks.Missions;
-using Rewired;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -11,6 +11,7 @@ namespace Breezeblocks.WeaponSystem
 
 [DisallowMultipleComponent]
 [AddComponentMenu("Breezeblocks/Equipment/Player Equipment Controller")]
+[RequireComponent(typeof(PlayerMeleeController))]
 public class PlayerEquipmentController : MonoBehaviour
 {
     private static readonly EquipmentSlotType[] ConsoleSlotPreferenceOrder =
@@ -65,23 +66,23 @@ public class PlayerEquipmentController : MonoBehaviour
     [FoldoutGroup("Rewired")]
     [SerializeField] private string aimAction = "Aim";
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerWeaponController playerWeaponController;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerWeaponController playerWeaponController;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerUtilityController playerUtilityController;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerUtilityController playerUtilityController;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerMeleeController playerMeleeController;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerMeleeController playerMeleeController;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerPickupInteractor playerPickupInteractor;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerPickupInteractor playerPickupInteractor;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerFocusController playerFocusController;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerFocusController playerFocusController;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private ArmorLoadout armorLoadout;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private ArmorLoadout armorLoadout;
 
     [FoldoutGroup("References")]
     [SerializeField] private PlayerEquipmentPanelUI equipmentPanelUI;
@@ -95,8 +96,8 @@ public class PlayerEquipmentController : MonoBehaviour
     [FoldoutGroup("References")]
     [SerializeField] private PlayerAimCamera2D aimCamera;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private ActorStaggerController actorStaggerController;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private ActorStaggerController actorStaggerController;
 
     [FoldoutGroup("Starting Equipment/Hand Slots"), LabelText("Primary")]
     [SerializeField] private HandEquipmentSlotDefinition primaryEquipment = new();
@@ -141,12 +142,13 @@ public class PlayerEquipmentController : MonoBehaviour
     public float CurrentUnarmedAimPanDistance => IsUnarmedAiming ? unarmedAimPanDistance : 0f;
 
     public ArmorData EquippedArmorItem => startingArmor;
+    public int RewiredPlayerId => rewiredPlayerId;
 
     public event Action EquipmentChanged;
     public event Action<EquipmentItemData, float> HeldItemEquipping;
     public event Action<EquipmentItemData, float> HeldItemHolstering;
 
-    private Player rewiredPlayer;
+    private IPlayerInputReader inputReader;
     private Coroutine switchRoutine;
     private bool suppressWeaponStateSync;
     private RuntimeHandSlotState primaryRuntime;
@@ -158,11 +160,12 @@ public class PlayerEquipmentController : MonoBehaviour
     private float unarmedAimPanDistance;
     private PlayerPerkEffectController playerPerkEffectController;
 
+    // Executes the Reset routine.
     private void Reset()
     {
         playerWeaponController = GetComponent<PlayerWeaponController>();
         playerUtilityController = GetComponent<PlayerUtilityController>();
-        playerMeleeController = PlayerMeleeController.EnsureOn(gameObject);
+        playerMeleeController = GetComponent<PlayerMeleeController>();
         playerPickupInteractor = GetComponent<PlayerPickupInteractor>();
         playerFocusController = GetComponent<PlayerFocusController>();
         armorLoadout = GetComponent<ArmorLoadout>();
@@ -172,6 +175,7 @@ public class PlayerEquipmentController : MonoBehaviour
         actorStaggerController = GetComponent<ActorStaggerController>();
     }
 
+    // Executes the Awake routine.
     private void Awake()
     {
         if (playerWeaponController == null)
@@ -180,7 +184,8 @@ public class PlayerEquipmentController : MonoBehaviour
         if (playerUtilityController == null)
             playerUtilityController = GetComponent<PlayerUtilityController>();
 
-        playerMeleeController = PlayerMeleeController.EnsureOn(gameObject);
+        if (playerMeleeController == null)
+            playerMeleeController = GetComponent<PlayerMeleeController>();
 
         if (armorLoadout == null)
             armorLoadout = GetComponent<ArmorLoadout>();
@@ -192,10 +197,10 @@ public class PlayerEquipmentController : MonoBehaviour
             playerFocusController = GetComponent<PlayerFocusController>();
 
         if (equipmentPanelUI == null)
-            equipmentPanelUI = FindSceneObjectIncludingInactive<PlayerEquipmentPanelUI>();
+            equipmentPanelUI = PlayerSceneReferenceUtility.FindFirstComponentInLoadedScenes<PlayerEquipmentPanelUI>(gameObject);
 
         if (dynamicCrosshairUI == null)
-            dynamicCrosshairUI = FindSceneObjectIncludingInactive<DynamicCrosshairUI>();
+            dynamicCrosshairUI = PlayerSceneReferenceUtility.FindFirstComponentInLoadedScenes<DynamicCrosshairUI>(gameObject);
 
         if (playerVisionLight == null)
             playerVisionLight = GetComponentInChildren<PlayerVisionLight>();
@@ -204,20 +209,20 @@ public class PlayerEquipmentController : MonoBehaviour
             aimCamera = Camera.main.GetComponent<PlayerAimCamera2D>();
 
         if (aimCamera == null)
-            aimCamera = FindFirstObjectByType<PlayerAimCamera2D>();
+            aimCamera = PlayerSceneReferenceUtility.FindPlayerAimCamera(gameObject);
 
         if (actorStaggerController == null)
             actorStaggerController = GetComponent<ActorStaggerController>();
 
         playerPerkEffectController = PlayerPerkEffectController.EnsureOn(gameObject);
+        inputReader = new RewiredPlayerInputReader(rewiredPlayerId);
         InitializeRuntimeSlots();
-        ResolveRewiredPlayer();
-        CharacterOrbitHandsAnimator.EnsureOn(gameObject);
 
         if (playerWeaponController != null)
             playerWeaponController.WeaponStateChanged += HandleWeaponStateChanged;
     }
 
+    // Executes the Start routine.
     private void Start()
     {
         ApplyPendingRuntimeLoadoutIfAvailable();
@@ -231,12 +236,14 @@ public class PlayerEquipmentController : MonoBehaviour
         playerPerkEffectController?.ApplyRuntimePerks();
     }
 
+    // Executes the OnDestroy routine.
     private void OnDestroy()
     {
         if (playerWeaponController != null)
             playerWeaponController.WeaponStateChanged -= HandleWeaponStateChanged;
     }
 
+    // Executes the OnValidate routine.
     private void OnValidate()
     {
         startingHeldSlot = startingHeldSlot.IsHandSlot() ? startingHeldSlot : EquipmentSlotType.Primary;
@@ -245,15 +252,16 @@ public class PlayerEquipmentController : MonoBehaviour
         ValidateSlotAssignment(beltEquipment, EquipmentSlotType.Belt);
 
         if (!Application.isPlaying)
-            playerMeleeController = PlayerMeleeController.EnsureOn(gameObject);
-
-        if (!Application.isPlaying)
-            CharacterOrbitHandsAnimator.EnsureOn(gameObject);
+            playerMeleeController = GetComponent<PlayerMeleeController>();
     }
 
+    // Executes the Update routine.
     private void Update()
     {
-        if (rewiredPlayer == null && !ResolveRewiredPlayer())
+        if (inputReader == null)
+            inputReader = new RewiredPlayerInputReader(rewiredPlayerId);
+
+        if (!inputReader.IsReady)
             return;
 
         if (inputBlocked)
@@ -264,22 +272,23 @@ public class PlayerEquipmentController : MonoBehaviour
 
         UpdateUnarmedAimState();
 
-        if (rewiredPlayer.GetButtonDown(toggleEquipmentPanelAction))
+        if (inputReader.GetButtonDown(toggleEquipmentPanelAction))
             ToggleEquipmentPanel();
 
         if (IsSwitchingEquipment)
             return;
 
-        if (rewiredPlayer.GetButtonDown(equipPrimaryAction))
+        if (inputReader.GetButtonDown(equipPrimaryAction))
             TryEquipSlot(EquipmentSlotType.Primary);
-        else if (rewiredPlayer.GetButtonDown(equipSecondaryAction))
+        else if (inputReader.GetButtonDown(equipSecondaryAction))
             TryEquipSlot(EquipmentSlotType.Secondary);
-        else if (rewiredPlayer.GetButtonDown(equipBeltAction))
+        else if (inputReader.GetButtonDown(equipBeltAction))
             TryEquipSlot(EquipmentSlotType.Belt);
     }
 
     [Button(ButtonSizes.Medium)]
     [FoldoutGroup("Debug")]
+    // Executes the DebugEquipPrimary routine.
     public void DebugEquipPrimary()
     {
         TryEquipSlot(EquipmentSlotType.Primary);
@@ -287,6 +296,7 @@ public class PlayerEquipmentController : MonoBehaviour
 
     [Button(ButtonSizes.Medium)]
     [FoldoutGroup("Debug")]
+    // Executes the DebugEquipSecondary routine.
     public void DebugEquipSecondary()
     {
         TryEquipSlot(EquipmentSlotType.Secondary);
@@ -294,11 +304,13 @@ public class PlayerEquipmentController : MonoBehaviour
 
     [Button(ButtonSizes.Medium)]
     [FoldoutGroup("Debug")]
+    // Executes the DebugEquipBelt routine.
     public void DebugEquipBelt()
     {
         TryEquipSlot(EquipmentSlotType.Belt);
     }
 
+    // Executes the GetItemInSlot routine.
     public EquipmentItemData GetItemInSlot(EquipmentSlotType slotType)
     {
         RuntimeHandSlotState runtimeSlot = GetRuntimeSlot(slotType);
@@ -308,11 +320,13 @@ public class PlayerEquipmentController : MonoBehaviour
         return ResolveDefinitionItem(slotType);
     }
 
+    // Executes the IsSlotCurrentlyHeld routine.
     public bool IsSlotCurrentlyHeld(EquipmentSlotType slotType)
     {
         return CurrentHeldSlot == slotType;
     }
 
+    // Executes the TryEquipSlot routine.
     public bool TryEquipSlot(EquipmentSlotType slotType)
     {
         if (!slotType.IsHandSlot() || IsSwitchingEquipment)
@@ -335,11 +349,12 @@ public class PlayerEquipmentController : MonoBehaviour
         return true;
     }
 
+    // Executes the ToggleEquipmentPanel routine.
     public void ToggleEquipmentPanel()
     {
         if (equipmentPanelUI == null)
         {
-            equipmentPanelUI = FindSceneObjectIncludingInactive<PlayerEquipmentPanelUI>();
+            equipmentPanelUI = PlayerSceneReferenceUtility.FindFirstComponentInLoadedScenes<PlayerEquipmentPanelUI>(gameObject);
             if (equipmentPanelUI == null)
                 return;
         }
@@ -347,6 +362,7 @@ public class PlayerEquipmentController : MonoBehaviour
         SetEquipmentPanelVisible(!equipmentPanelUI.IsVisible);
     }
 
+    // Executes the SetEquipmentPanelVisible routine.
     public void SetEquipmentPanelVisible(bool visible)
     {
         if (equipmentPanelUI == null)
@@ -357,6 +373,7 @@ public class PlayerEquipmentController : MonoBehaviour
         ApplyPanelPresentation(resolvedVisible);
     }
 
+    // Executes the SetInputBlocked routine.
     public void SetInputBlocked(bool blocked)
     {
         inputBlocked = blocked;
@@ -371,6 +388,7 @@ public class PlayerEquipmentController : MonoBehaviour
         ApplyPanelPresentation(false);
     }
 
+    // Executes the TryGetRuntimeFirearmState routine.
     public bool TryGetRuntimeFirearmState(EquipmentSlotType slotType, out int loadedAmmo, out int reserveAmmo)
     {
         RuntimeHandSlotState slotState = GetRuntimeSlot(slotType);
@@ -386,6 +404,7 @@ public class PlayerEquipmentController : MonoBehaviour
         return true;
     }
 
+    // Executes the ApplyUnarmedAimSettings routine.
     public void ApplyUnarmedAimSettings(float rotationSpeed, float panDistance)
     {
         unarmedAimRotationSpeed = Mathf.Max(0f, rotationSpeed);
@@ -393,6 +412,7 @@ public class PlayerEquipmentController : MonoBehaviour
         UpdateUnarmedAimCameraState();
     }
 
+    // Executes the TryGetRuntimeFirearmProjectile routine.
     public bool TryGetRuntimeFirearmProjectile(EquipmentSlotType slotType, out ProjectileData projectile)
     {
         RuntimeHandSlotState slotState = GetRuntimeSlot(slotType);
@@ -406,6 +426,7 @@ public class PlayerEquipmentController : MonoBehaviour
         return projectile != null;
     }
 
+    // Executes the TryGetRuntimeThrowableState routine.
     public bool TryGetRuntimeThrowableState(EquipmentSlotType slotType, out int remainingUses, out int maxUses)
     {
         RuntimeHandSlotState slotState = GetRuntimeSlot(slotType);
@@ -421,6 +442,7 @@ public class PlayerEquipmentController : MonoBehaviour
         return true;
     }
 
+    // Executes the TryMoveItemBetweenSlots routine.
     public bool TryMoveItemBetweenSlots(EquipmentSlotType fromSlotType, EquipmentSlotType toSlotType)
     {
         if (!fromSlotType.IsHandSlot() || !toSlotType.IsHandSlot())
@@ -472,6 +494,7 @@ public class PlayerEquipmentController : MonoBehaviour
         return true;
     }
 
+    // Executes the CaptureRuntimeLoadout routine.
     public PlayerEquipmentRuntimeLoadout CaptureRuntimeLoadout()
     {
         CacheCurrentFirearmState();
@@ -488,6 +511,7 @@ public class PlayerEquipmentController : MonoBehaviour
         return loadout;
     }
 
+    // Executes the ConsumeCurrentHeldUtility routine.
     public bool ConsumeCurrentHeldUtility()
     {
         if (!CurrentHeldSlot.IsHandSlot() || CurrentHeldItem is not UtilityItemData utilityItem)
@@ -523,6 +547,7 @@ public class PlayerEquipmentController : MonoBehaviour
         return true;
     }
 
+    // Executes the ForceStoreEquipmentFromConsole routine.
     public void ForceStoreEquipmentFromConsole(EquipmentItemData item, Action<bool, string> onCompleted = null)
     {
         if (item == null)
@@ -534,6 +559,7 @@ public class PlayerEquipmentController : MonoBehaviour
         StartCoroutine(ForceStoreEquipmentFromConsoleRoutine(item, onCompleted));
     }
 
+    // Executes the EquipStartingSlot routine.
     private void EquipStartingSlot()
     {
         RuntimeHandSlotState preferredSlot = GetRuntimeSlot(startingHeldSlot);
@@ -552,6 +578,7 @@ public class PlayerEquipmentController : MonoBehaviour
             ForceEquipSlotImmediately(fallbackSlot);
     }
 
+    // Executes the ForceEquipSlotImmediately routine.
     private void ForceEquipSlotImmediately(RuntimeHandSlotState slotState)
     {
         if (slotState == null || slotState.Item == null)
@@ -590,6 +617,7 @@ public class PlayerEquipmentController : MonoBehaviour
         suppressWeaponStateSync = false;
     }
 
+    // Executes the EquipSlotRoutine routine.
     private IEnumerator EquipSlotRoutine(RuntimeHandSlotState targetSlot)
     {
         suppressWeaponStateSync = true;
@@ -645,6 +673,7 @@ public class PlayerEquipmentController : MonoBehaviour
         switchRoutine = null;
     }
 
+    // Executes the HolsterCurrentHeldItemRoutine routine.
     private IEnumerator HolsterCurrentHeldItemRoutine()
     {
         suppressWeaponStateSync = true;
@@ -659,6 +688,7 @@ public class PlayerEquipmentController : MonoBehaviour
         switchRoutine = null;
     }
 
+    // Executes the HolsterActiveControllersRoutine routine.
     private IEnumerator HolsterActiveControllersRoutine()
     {
         if (playerWeaponController != null && playerWeaponController.enabled && playerWeaponController.EquippedFirearm != null)
@@ -683,6 +713,7 @@ public class PlayerEquipmentController : MonoBehaviour
         }
     }
 
+    // Executes the CanStartEquipmentSwitch routine.
     private bool CanStartEquipmentSwitch()
     {
         if (playerWeaponController != null)
@@ -707,6 +738,7 @@ public class PlayerEquipmentController : MonoBehaviour
         return true;
     }
 
+    // Executes the InitializeRuntimeSlots routine.
     private void InitializeRuntimeSlots()
     {
         primaryRuntime = CreateRuntimeSlot(EquipmentSlotType.Primary, primaryEquipment);
@@ -714,6 +746,7 @@ public class PlayerEquipmentController : MonoBehaviour
         beltRuntime = CreateRuntimeSlot(EquipmentSlotType.Belt, beltEquipment);
     }
 
+    // Executes the CreateRuntimeSlot routine.
     private RuntimeHandSlotState CreateRuntimeSlot(EquipmentSlotType slotType, HandEquipmentSlotDefinition definition)
     {
         if (definition == null)
@@ -754,6 +787,7 @@ public class PlayerEquipmentController : MonoBehaviour
         };
     }
 
+    // Executes the CacheCurrentFirearmState routine.
     private void CacheCurrentFirearmState()
     {
         if (CurrentHeldSlot == EquipmentSlotType.None || playerWeaponController == null || playerWeaponController.EquippedFirearm == null)
@@ -768,6 +802,7 @@ public class PlayerEquipmentController : MonoBehaviour
         slotState.FirearmProjectile = playerWeaponController.CurrentProjectile;
     }
 
+    // Executes the SyncCurrentFirearmStateFromController routine.
     private void SyncCurrentFirearmStateFromController()
     {
         if (CurrentHeldSlot == EquipmentSlotType.None || playerWeaponController == null || playerWeaponController.EquippedFirearm == null)
@@ -782,6 +817,7 @@ public class PlayerEquipmentController : MonoBehaviour
         slotState.FirearmProjectile = playerWeaponController.CurrentProjectile;
     }
 
+    // Executes the ApplyPendingRuntimeLoadoutIfAvailable routine.
     private void ApplyPendingRuntimeLoadoutIfAvailable()
     {
         if (!PlayerEquipmentRuntimeSession.TryConsumePendingQuestLoadout(out PlayerEquipmentRuntimeLoadout loadout) || loadout == null)
@@ -790,6 +826,7 @@ public class PlayerEquipmentController : MonoBehaviour
         ApplyRuntimeLoadout(loadout);
     }
 
+    // Executes the ApplyRuntimeLoadout routine.
     private void ApplyRuntimeLoadout(PlayerEquipmentRuntimeLoadout loadout)
     {
         if (loadout == null)
@@ -806,6 +843,7 @@ public class PlayerEquipmentController : MonoBehaviour
             : ResolveFirstPopulatedHandSlot();
     }
 
+    // Executes the HandleWeaponStateChanged routine.
     private void HandleWeaponStateChanged()
     {
         if (suppressWeaponStateSync)
@@ -814,6 +852,7 @@ public class PlayerEquipmentController : MonoBehaviour
         SyncCurrentFirearmStateFromController();
     }
 
+    // Executes the ForceStoreEquipmentFromConsoleRoutine routine.
     private IEnumerator ForceStoreEquipmentFromConsoleRoutine(EquipmentItemData item, Action<bool, string> onCompleted)
     {
         while (IsSwitchingEquipment || !CanStartEquipmentSwitch())
@@ -859,6 +898,7 @@ public class PlayerEquipmentController : MonoBehaviour
         onCompleted?.Invoke(true, $"{item.DisplayName} stored in {targetSlot.SlotType}.");
     }
 
+    // Executes the GetRuntimeSlot routine.
     private RuntimeHandSlotState GetRuntimeSlot(EquipmentSlotType slotType)
     {
         return slotType switch
@@ -870,6 +910,7 @@ public class PlayerEquipmentController : MonoBehaviour
         };
     }
 
+    // Executes the AssignSlotState routine.
     private static void AssignSlotState(RuntimeHandSlotState slotState, EquipmentItemData item, ProjectileData firearmProjectile, int loadedAmmo, int reserveAmmo)
     {
         if (slotState == null)
@@ -881,11 +922,13 @@ public class PlayerEquipmentController : MonoBehaviour
         slotState.ReserveAmmo = reserveAmmo;
     }
 
+    // Executes the ClearSlotState routine.
     private static void ClearSlotState(RuntimeHandSlotState slotState)
     {
         AssignSlotState(slotState, null, null, 0, 0);
     }
 
+    // Executes the AppendRuntimeSlotLoadout routine.
     private static void AppendRuntimeSlotLoadout(PlayerEquipmentRuntimeLoadout loadout, RuntimeHandSlotState slotState)
     {
         if (loadout == null || slotState == null || slotState.Item == null)
@@ -894,6 +937,7 @@ public class PlayerEquipmentController : MonoBehaviour
         loadout.SetSlot(slotState.SlotType, slotState.Item, slotState.FirearmProjectile, slotState.LoadedAmmo, slotState.ReserveAmmo);
     }
 
+    // Executes the ApplyRuntimeSlotLoadout routine.
     private static void ApplyRuntimeSlotLoadout(RuntimeHandSlotState slotState, RuntimeEquipmentSlotLoadout slotLoadout)
     {
         if (slotState == null)
@@ -927,6 +971,7 @@ public class PlayerEquipmentController : MonoBehaviour
         AssignSlotState(slotState, item, projectile, loadedAmmo, reserveAmmo);
     }
 
+    // Executes the ResolveInitialLoadedAmmo routine.
     private static int ResolveInitialLoadedAmmo(FirearmData firearmData, int requestedLoadedAmmo)
     {
         int ammoCapacity = firearmData != null ? firearmData.AmmoCapacity : 0;
@@ -934,6 +979,7 @@ public class PlayerEquipmentController : MonoBehaviour
         return Mathf.Clamp(resolvedLoadedAmmo, 0, ammoCapacity);
     }
 
+    // Executes the ResolveInitialReserveAmmo routine.
     private static int ResolveInitialReserveAmmo(FirearmData firearmData, int requestedReserveAmmo)
     {
         int defaultReserveAmmo = firearmData != null ? firearmData.DefaultReserveAmmo : 0;
@@ -944,6 +990,7 @@ public class PlayerEquipmentController : MonoBehaviour
         return Mathf.Max(0, resolvedReserveAmmo);
     }
 
+    // Executes the ResolveInitialThrowableUses routine.
     private static int ResolveInitialThrowableUses(ThrowableUtilityData throwableData, int requestedUses)
     {
         int maxUses = throwableData != null ? throwableData.MaxUses : 0;
@@ -951,6 +998,7 @@ public class PlayerEquipmentController : MonoBehaviour
         return Mathf.Clamp(resolvedUses, 0, maxUses);
     }
 
+    // Executes the ValidateSlotAssignment routine.
     private void ValidateSlotAssignment(HandEquipmentSlotDefinition definition, EquipmentSlotType slotType)
     {
         if (definition == null || definition.item == null)
@@ -960,11 +1008,13 @@ public class PlayerEquipmentController : MonoBehaviour
             definition.item = null;
     }
 
+    // Executes the NotifyEquipmentChanged routine.
     private void NotifyEquipmentChanged()
     {
         EquipmentChanged?.Invoke();
     }
 
+    // Executes the UpdateUnarmedAimState routine.
     private void UpdateUnarmedAimState()
     {
         if (CurrentHeldItem != null)
@@ -978,8 +1028,8 @@ public class PlayerEquipmentController : MonoBehaviour
         bool canUnarmedAim =
             !IsSwitchingEquipment &&
             !IsEquipmentPanelVisible &&
-            rewiredPlayer != null &&
-            rewiredPlayer.GetButton(aimAction);
+            inputReader != null &&
+            inputReader.GetButton(aimAction);
 
         SetUnarmedAimState(canUnarmedAim);
 
@@ -993,6 +1043,7 @@ public class PlayerEquipmentController : MonoBehaviour
         playerVisionLight.DriveMouseLook(lookSpeed, Time.deltaTime);
     }
 
+    // Executes the SetUnarmedAimState routine.
     private void SetUnarmedAimState(bool aiming)
     {
         if (IsUnarmedAiming == aiming)
@@ -1006,6 +1057,7 @@ public class PlayerEquipmentController : MonoBehaviour
         NotifyEquipmentChanged();
     }
 
+    // Executes the UpdateUnarmedAimCameraState routine.
     private void UpdateUnarmedAimCameraState()
     {
         if (aimCamera == null)
@@ -1015,6 +1067,7 @@ public class PlayerEquipmentController : MonoBehaviour
         aimCamera.SetAimState(IsUnarmedAiming, IsUnarmedAiming ? unarmedAimPanDistance : 0f);
     }
 
+    // Executes the ResolveDefinitionItem routine.
     private EquipmentItemData ResolveDefinitionItem(EquipmentSlotType slotType)
     {
         HandEquipmentSlotDefinition definition = slotType switch
@@ -1030,6 +1083,7 @@ public class PlayerEquipmentController : MonoBehaviour
             : null;
     }
 
+    // Executes the ResolveFirstPopulatedHandSlot routine.
     private EquipmentSlotType ResolveFirstPopulatedHandSlot()
     {
         if (primaryRuntime != null && primaryRuntime.Item != null)
@@ -1044,12 +1098,13 @@ public class PlayerEquipmentController : MonoBehaviour
         return EquipmentSlotType.None;
     }
 
+    // Executes the ApplyPanelPresentation routine.
     private void ApplyPanelPresentation(bool panelVisible)
     {
         bool shouldBlockHandInputs = panelVisible || inputBlocked;
 
         if (dynamicCrosshairUI == null)
-            dynamicCrosshairUI = FindSceneObjectIncludingInactive<DynamicCrosshairUI>();
+            dynamicCrosshairUI = PlayerSceneReferenceUtility.FindFirstComponentInLoadedScenes<DynamicCrosshairUI>(gameObject);
 
         if (dynamicCrosshairUI != null)
             dynamicCrosshairUI.SetUiSuppressed(panelVisible && hideCrosshairWhilePanelVisible);
@@ -1082,33 +1137,7 @@ public class PlayerEquipmentController : MonoBehaviour
         Time.timeScale = Mathf.Approximately(cachedTimeScaleBeforePanel, 0f) ? 1f : cachedTimeScaleBeforePanel;
     }
 
-    private static T FindSceneObjectIncludingInactive<T>() where T : UnityEngine.Object
-    {
-        T[] candidates = Resources.FindObjectsOfTypeAll<T>();
-        for (int i = 0; i < candidates.Length; i++)
-        {
-            T candidate = candidates[i];
-            if (candidate is not Component component)
-                continue;
-
-            if (!component.gameObject.scene.IsValid())
-                continue;
-
-            return candidate;
-        }
-
-        return null;
-    }
-
-    private bool ResolveRewiredPlayer()
-    {
-        if (!ReInput.isReady)
-            return false;
-
-        rewiredPlayer = ReInput.players.GetPlayer(rewiredPlayerId);
-        return rewiredPlayer != null;
-    }
-
+    // Executes the ResolveItemEquipTime routine.
     private float ResolveItemEquipTime(EquipmentItemData item)
     {
         return item switch
@@ -1120,6 +1149,7 @@ public class PlayerEquipmentController : MonoBehaviour
         };
     }
 
+    // Executes the ResolveItemHolsterTime routine.
     private float ResolveItemHolsterTime(EquipmentItemData item)
     {
         return item switch
@@ -1131,6 +1161,7 @@ public class PlayerEquipmentController : MonoBehaviour
         };
     }
 
+    // Executes the NotifyHeldItemEquipping routine.
     private void NotifyHeldItemEquipping(EquipmentItemData item, float duration)
     {
         if (item == null)
@@ -1139,6 +1170,7 @@ public class PlayerEquipmentController : MonoBehaviour
         HeldItemEquipping?.Invoke(item, Mathf.Max(0f, duration));
     }
 
+    // Executes the NotifyHeldItemHolstering routine.
     private void NotifyHeldItemHolstering(EquipmentItemData item, float duration)
     {
         if (item == null)
@@ -1147,6 +1179,7 @@ public class PlayerEquipmentController : MonoBehaviour
         HeldItemHolstering?.Invoke(item, Mathf.Max(0f, duration));
     }
 
+    // Executes the TryResolveConsoleTargetSlot routine.
     private bool TryResolveConsoleTargetSlot(EquipmentItemData item, out RuntimeHandSlotState targetSlot)
     {
         targetSlot = null;
@@ -1184,6 +1217,7 @@ public class PlayerEquipmentController : MonoBehaviour
         return false;
     }
 
+    // Executes the TryResolveConsoleStoredState routine.
     private bool TryResolveConsoleStoredState(
         EquipmentItemData item,
         out ProjectileData projectile,

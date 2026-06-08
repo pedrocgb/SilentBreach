@@ -1,7 +1,7 @@
 using System;
+using Breezeblocks.Input;
 using Breezeblocks.HideoutSystem;
 using DG.Tweening;
-using Rewired;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -59,7 +59,7 @@ public class PlayerFocusController : MonoBehaviour
 
     public event Action<float> FocusSpent;
 
-    private Player rewiredPlayer;
+    private IPlayerInputReader inputReader;
     private VolumeProfile runtimeProfile;
     private ColorAdjustments colorAdjustments;
     private Tween saturationTween;
@@ -73,18 +73,20 @@ public class PlayerFocusController : MonoBehaviour
     private bool perkRegenerationEnabled;
     private float perkRegenerationPerSecond;
 
+    // Executes the Reset routine.
     private void Reset()
     {
         if (targetVolume == null)
-            targetVolume = FindFirstObjectByType<Volume>();
+            targetVolume = PlayerSceneReferenceUtility.FindPlayerVolume(gameObject);
     }
 
+    // Executes the Awake routine.
     private void Awake()
     {
         if (targetVolume == null)
-            targetVolume = FindFirstObjectByType<Volume>();
+            targetVolume = PlayerSceneReferenceUtility.FindPlayerVolume(gameObject);
 
-        ResolveRewiredPlayer();
+        inputReader = new RewiredPlayerInputReader(rewiredPlayerId);
         CacheVolumeOverride();
         CurrentFocusSeconds = ResolveMaxFocusSeconds();
         ApplyUi();
@@ -92,6 +94,7 @@ public class PlayerFocusController : MonoBehaviour
         FocusRevealTarget.SetGlobalFocusVisible(false);
     }
 
+    // Executes the OnDisable routine.
     private void OnDisable()
     {
         saturationTween?.Kill();
@@ -101,6 +104,7 @@ public class PlayerFocusController : MonoBehaviour
         ApplySaturationImmediate(baseSaturation);
     }
 
+    // Executes the OnValidate routine.
     private void OnValidate()
     {
         maxFocusSeconds = Mathf.Max(0f, maxFocusSeconds);
@@ -110,12 +114,13 @@ public class PlayerFocusController : MonoBehaviour
         focusSaturation = Mathf.Clamp(focusSaturation, -100f, 100f);
     }
 
+    // Executes the Update routine.
     private void Update()
     {
         if (colorAdjustments == null)
         {
             if (targetVolume == null)
-                targetVolume = FindFirstObjectByType<Volume>();
+                targetVolume = PlayerSceneReferenceUtility.FindPlayerVolume(gameObject);
 
             CacheVolumeOverride();
         }
@@ -171,6 +176,7 @@ public class PlayerFocusController : MonoBehaviour
 
     [Button(ButtonSizes.Small)]
     [FoldoutGroup("Debug")]
+    // Executes the RestoreFullFocus routine.
     public void RestoreFullFocus()
     {
         CurrentFocusSeconds = ResolveMaxFocusSeconds();
@@ -178,6 +184,7 @@ public class PlayerFocusController : MonoBehaviour
         ApplyUi();
     }
 
+    // Executes the ApplyPerkModifiers routine.
     public void ApplyPerkModifiers(PlayerPerkModifierSet modifiers, bool restoreToFull = false)
     {
         perkMaxFocusFlatBonus = modifiers != null ? Mathf.Max(0f, modifiers.MaxFocusFlatBonus) : 0f;
@@ -195,6 +202,7 @@ public class PlayerFocusController : MonoBehaviour
         ApplyUi();
     }
 
+    // Executes the SetInputBlocked routine.
     public void SetInputBlocked(bool blocked)
     {
         inputBlocked = blocked;
@@ -205,22 +213,27 @@ public class PlayerFocusController : MonoBehaviour
         SetFocusActive(false);
     }
 
+    // Executes the ResolveFocusRequested routine.
     private bool ResolveFocusRequested()
     {
-        if (rewiredPlayer == null && !ResolveRewiredPlayer())
+        if (inputReader == null)
+            inputReader = new RewiredPlayerInputReader(rewiredPlayerId);
+
+        if (!inputReader.IsReady)
             return false;
 
         bool focusToggleMode = ReadFocusToggleMode();
-        if (focusToggleMode && rewiredPlayer.GetButtonDown(focusAction))
+        if (focusToggleMode && inputReader.GetButtonDown(focusAction))
             focusToggleState = !focusToggleState;
 
-        bool requested = focusToggleMode ? focusToggleState : rewiredPlayer.GetButton(focusAction);
+        bool requested = focusToggleMode ? focusToggleState : inputReader.GetButton(focusAction);
         if (!focusToggleMode)
             focusToggleState = false;
 
         return requested;
     }
 
+    // Executes the TryRegenerateFocus routine.
     private void TryRegenerateFocus(bool focusRequested)
     {
         float currentMaxFocus = ResolveMaxFocusSeconds();
@@ -236,6 +249,7 @@ public class PlayerFocusController : MonoBehaviour
         CurrentFocusSeconds = Mathf.Min(currentMaxFocus, CurrentFocusSeconds + (ResolveFocusRegenerationPerSecond() * Time.deltaTime));
     }
 
+    // Executes the SetFocusActive routine.
     private void SetFocusActive(bool active, bool force = false)
     {
         if (!force && isFocusActive == active)
@@ -246,6 +260,7 @@ public class PlayerFocusController : MonoBehaviour
         AnimateSaturation(active ? focusSaturation : baseSaturation, immediate: force);
     }
 
+    // Executes the CacheVolumeOverride routine.
     private void CacheVolumeOverride()
     {
         if (targetVolume == null)
@@ -264,6 +279,7 @@ public class PlayerFocusController : MonoBehaviour
         baseSaturation = colorAdjustments.saturation.value;
     }
 
+    // Executes the AnimateSaturation routine.
     private void AnimateSaturation(float targetValue, bool immediate = false)
     {
         if (colorAdjustments == null)
@@ -290,6 +306,7 @@ public class PlayerFocusController : MonoBehaviour
             .OnComplete(() => saturationTween = null);
     }
 
+    // Executes the ApplySaturationImmediate routine.
     private void ApplySaturationImmediate(float value)
     {
         if (colorAdjustments == null)
@@ -300,22 +317,26 @@ public class PlayerFocusController : MonoBehaviour
         colorAdjustments.saturation.value = Mathf.Clamp(value, -100f, 100f);
     }
 
+    // Executes the ApplyUi routine.
     private void ApplyUi()
     {
         if (focusFillImage != null)
             focusFillImage.fillAmount = CurrentFocusNormalized;
     }
 
+    // Executes the ResolveMaxFocusSeconds routine.
     private float ResolveMaxFocusSeconds()
     {
         return Mathf.Max(0f, maxFocusSeconds + perkMaxFocusFlatBonus);
     }
 
+    // Executes the ResolveFocusRegenerationEnabled routine.
     private bool ResolveFocusRegenerationEnabled()
     {
         return hasPerkRegenerationOverride ? perkRegenerationEnabled : regenerate;
     }
 
+    // Executes the ResolveFocusRegenerationPerSecond routine.
     private float ResolveFocusRegenerationPerSecond()
     {
         return hasPerkRegenerationOverride
@@ -323,15 +344,7 @@ public class PlayerFocusController : MonoBehaviour
             : Mathf.Max(0f, regenerationPerSecond);
     }
 
-    private bool ResolveRewiredPlayer()
-    {
-        if (!ReInput.isReady)
-            return false;
-
-        rewiredPlayer = ReInput.players.GetPlayer(rewiredPlayerId);
-        return rewiredPlayer != null;
-    }
-
+    // Executes the ReadFocusToggleMode routine.
     private static bool ReadFocusToggleMode()
     {
         return GlobalSettings.Instance != null

@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2d65e8a75d4e4458a8693e52f8ab0191, type: 3}
   m_Name: Baseball Bat
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.WeaponSystem.MeleeWeaponData
-  itemDisplayName: Baseball Bat
+  itemDisplayName: Taco de Beisebol
   itemIcon: {fileID: -4501218827343490994, guid: a546e2bb4f5f7cc1a99b7d9bc511c989, type: 3}
-  itemDescription: 
+  itemDescription: "Taco de madeira maci\xE7o."
   heldVisualSprite: {fileID: -5516936181717576582, guid: c710ada61c2fd6d4aa38a2dba6ea0637, type: 3}
   allowedSlots: 1
   gripType: 1

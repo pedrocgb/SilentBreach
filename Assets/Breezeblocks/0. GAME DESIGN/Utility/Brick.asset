@@ -1,0 +1,90 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b177e4d16380a4d58b9762248054e45, type: 3}
+  m_Name: Brick
+  m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.WeaponSystem.ThrowableUtilityData
+  itemDisplayName: Tijolo
+  itemIcon: {fileID: -1711322894099672135, guid: a546e2bb4f5f7cc1a99b7d9bc511c989, type: 3}
+  itemDescription: "Um tijolo avulso, pode atordoar se jogado na cabe\xE7a de algu\xE9m."
+  heldVisualSprite: {fileID: -8956814414099503266, guid: c64ffc7784d1b116a9498ef7a6770ad0, type: 3}
+  allowedSlots: 4
+  equipTime: 0.2
+  holsterTime: 0.2
+  aimPanDistance: 22
+  aimRotationSpeed: 720
+  equipNoise: 0.15
+  equipNoiseDuration: 0.2
+  equipNoiseType: 2
+  equipExtremeNoise: 0
+  holsterNoise: 0.15
+  holsterNoiseDuration: 0.2
+  holsterNoiseType: 2
+  holsterExtremeNoise: 0
+  behavior: 1
+  throwableWorldPrefab: {fileID: 3270342327812866401, guid: f86149a97fdd38dacaca3aa94b7deb2e, type: 3}
+  throwablePoolPrewarm: 4
+  maxUses: 1
+  chargeThreshold: 1.2
+  minThrowForce: 1.5
+  maxThrowForce: 12
+  minTravelDistance: 1
+  maxTravelDistance: 12
+  throwSpinSpeed: 400
+  throwAnimationDuration: 0.16
+  impactNoise: 0.55
+  impactNoiseType: 1
+  impactExtremeNoise: 0
+  impactNoiseCooldown: 0.5
+  impactSfx:
+    clips:
+    - {fileID: 8300000, guid: d06ba275e105e6b359e6b19aa71103bb, type: 3}
+    volume: 0.75
+    pitchRange: {x: 1, y: 1}
+    overrideSpatialBlend: 1
+    spatialBlend: 1
+    overrideDistanceRange: 1
+    minDistance: 1
+    maxDistance: 6
+  resolveEffectPrefab: {fileID: 3682032350346914328, guid: fff033fcf1b18f9b3af843c04041b1f6, type: 3}
+  resolveEffectPoolPrewarm: 2
+  directHitDamage: 20
+  directHitPenetration: 5
+  directHitStaggerDuration: 0.1
+  directHitIsLethal: 0
+  detonationMode: 1
+  detonationDelay: 3
+  detonationNoise: 1
+  detonationNoiseType: 0
+  detonationExtremeNoise: 1
+  detonationSfx:
+    clips: []
+    volume: 1
+    pitchRange: {x: 1, y: 1}
+    overrideSpatialBlend: 0
+    spatialBlend: 1
+    overrideDistanceRange: 0
+    minDistance: 1.5
+    maxDistance: 24
+  effectRadius: 3
+  effectObstacleMask:
+    serializedVersion: 2
+    m_Bits: 0
+  explosionDamage: 50
+  explosionIsLethal: 1
+  applyExplosionKnockback: 1
+  explosionKnockbackForce: 8
+  flashbangDuration: 8
+  flashbangRecoveryThreshold: 4
+  flashbangAimlessRotationSpeed: 240
+  playerRingingLoopClip: {fileID: 0}
+  overridePlayerRingingSpatialBlend: 0
+  playerRingingSpatialBlend: 0

@@ -50,6 +50,7 @@ MonoBehaviour:
   equipNoiseDuration: 0.4
   holsterNoiseDuration: 0.6
   incapacitatedWakeUpDelay: 180
+  dragSlowPercentage: 75
   equipmentContextUi:
     yesText: ' Sim'
     noText: " N\xE3o"
@@ -110,7 +111,7 @@ MonoBehaviour:
     perkTierText: 'Tier: '
     perkCostText: 'Cost: '
   hudUi:
-    hudAlwaysOn: 0
+    hudAlwaysOn: 1
     objectivesAlwaysOn: 1
     autoHideDelaySeconds: 4
     fadeInDuration: 0.1

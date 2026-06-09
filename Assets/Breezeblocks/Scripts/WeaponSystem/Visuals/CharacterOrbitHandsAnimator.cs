@@ -55,6 +55,9 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
     [SerializeField] private PlayerVisionLight playerVisionLight;
 
     [FoldoutGroup("References")]
+    [SerializeField] private PlayerBodyDragController playerBodyDragController;
+
+    [FoldoutGroup("References")]
     [SerializeField] private EnemyMovementController enemyMovementController;
 
     [FoldoutGroup("References")]
@@ -80,6 +83,12 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
 
     [FoldoutGroup("Rig"), MinValue(0f)]
     [SerializeField] private float heldItemScale = 0.75f;
+
+    [FoldoutGroup("Rig"), MinValue(0f)]
+    [SerializeField] private float bodyDragHoldDistance = 0.24f;
+
+    [FoldoutGroup("Rig"), MinValue(0f)]
+    [SerializeField] private float bodyDragHandSeparation = 0.05f;
 
     [FoldoutGroup("Rig")]
     [SerializeField] private float heldItemRotationOffset;
@@ -181,6 +190,8 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
         holdDistance = Mathf.Max(0f, holdDistance);
         holdHandSeparation = Mathf.Max(0f, holdHandSeparation);
         heldItemScale = Mathf.Max(0f, heldItemScale);
+        bodyDragHoldDistance = Mathf.Max(0f, bodyDragHoldDistance);
+        bodyDragHandSeparation = Mathf.Max(0f, bodyDragHandSeparation);
         autoCreatedHandScale = Mathf.Max(0f, autoCreatedHandScale);
         swingCyclesPerSpeedUnit = Mathf.Max(0f, swingCyclesPerSpeedUnit);
         minimumMoveSpeedForSwing = Mathf.Max(0f, minimumMoveSpeedForSwing);
@@ -223,6 +234,9 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
 
         if (playerVisionLight == null)
             playerVisionLight = GetComponentInChildren<PlayerVisionLight>(true);
+
+        if (playerBodyDragController == null)
+            playerBodyDragController = GetComponent<PlayerBodyDragController>();
 
         if (enemyMovementController == null)
             enemyMovementController = GetComponent<EnemyMovementController>();
@@ -472,6 +486,12 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
             return;
         }
 
+        if (playerBodyDragController != null && playerBodyDragController.IsDragging)
+        {
+            ApplyBodyDragPose(localForward, localSide);
+            return;
+        }
+
         if (displayedItem is FirearmData firearmData)
         {
             ApplyFirearmPose(unarmedLeft, unarmedRight, localForward, localSide, poseBlend, firearmData);
@@ -491,6 +511,19 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
 
         ApplyHandPositions(Vector3.Lerp(unarmedLeft, heldLeft, poseBlend), Vector3.Lerp(unarmedRight, heldRight, poseBlend), smoothEnemyUnarmed: true);
         ApplyHeldItemVisual(holdCenter, localForward, poseBlend);
+    }
+
+    /// <summary>
+    /// Applies a close-handed pose while the player is dragging a body.
+    /// </summary>
+    private void ApplyBodyDragPose(Vector2 localForward, Vector2 localSide)
+    {
+        Vector3 holdCenter = (Vector3)(localForward * bodyDragHoldDistance);
+        Vector3 holdOffset = (Vector3)(localSide * bodyDragHandSeparation);
+        Vector3 draggedLeft = holdCenter + holdOffset;
+        Vector3 draggedRight = holdCenter - holdOffset;
+        ApplyHandPositions(draggedLeft, draggedRight, smoothEnemyUnarmed: false);
+        ApplyHeldItemVisual(holdCenter, localForward, 0f);
     }
 
     private void ApplyFirearmPose(

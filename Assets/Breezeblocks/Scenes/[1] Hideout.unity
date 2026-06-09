@@ -3546,7 +3546,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &330853191
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3561,12 +3561,12 @@ RectTransform:
   m_Children:
   - {fileID: 953554610}
   - {fileID: 912614726}
-  m_Father: {fileID: 640150988}
+  m_Father: {fileID: 1570811635}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 1, y: 1}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -411.72656, y: -85.74298}
-  m_SizeDelta: {x: 823.4532, y: 171.4852}
+  m_AnchorMin: {x: 0.5, y: 1}
+  m_AnchorMax: {x: 0.5, y: 1}
+  m_AnchoredPosition: {x: 134, y: -35.325}
+  m_SizeDelta: {x: 563.6609, y: 70.6502}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &412957171
 GameObject:
@@ -5585,7 +5585,6 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 491168873}
-  - {fileID: 330853191}
   - {fileID: 1827199069}
   - {fileID: 1502103195}
   m_Father: {fileID: 0}
@@ -6152,6 +6151,15 @@ MonoBehaviour:
     movementNoiseText: {fileID: 241547823}
     movementSpeedPenaltyText: {fileID: 139896639}
   noSelectionContextRoot: {fileID: 0}
+  equippedPerksView:
+    contentRoot: {fileID: 0}
+    itemPrefab: {fileID: 0}
+    emptyStateText: {fileID: 0}
+    selectedPerkIconImage: {fileID: 0}
+    selectedPerkNameText: {fileID: 0}
+    selectedPerkDescriptionText: {fileID: 0}
+    selectedPerkTierText: {fileID: 0}
+    selectedPerkCostText: {fileID: 0}
 --- !u!4 &694042338
 Transform:
   m_ObjectHideFlags: 0
@@ -7051,10 +7059,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 330853191}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0.5}
-  m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 575.33, y: 42.871}
-  m_SizeDelta: {x: 496.24, y: 85.743}
+  m_AnchorMin: {x: 1, y: 1}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: -162.88, y: -37.717}
+  m_SizeDelta: {x: 302.4, y: 50.520004}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &912614727
 MonoBehaviour:
@@ -7078,8 +7086,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'Influence: 0'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 29ed55628c561f6299fc5f48c4d2d847, type: 2}
+  m_sharedMaterial: {fileID: -2957452890715037346, guid: 29ed55628c561f6299fc5f48c4d2d847, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -7110,7 +7118,7 @@ MonoBehaviour:
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
-  m_HorizontalAlignment: 1
+  m_HorizontalAlignment: 4
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
@@ -7497,10 +7505,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 330853191}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0.5}
-  m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 250, y: 42.871}
-  m_SizeDelta: {x: 500, y: 85.743}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 176.44626, y: -37.606}
+  m_SizeDelta: {x: 350.9526, y: 50.5196}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &953554611
 MonoBehaviour:
@@ -7524,8 +7532,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'Cash: $3000'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 29ed55628c561f6299fc5f48c4d2d847, type: 2}
+  m_sharedMaterial: {fileID: -2957452890715037346, guid: 29ed55628c561f6299fc5f48c4d2d847, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -12365,6 +12373,7 @@ RectTransform:
   - {fileID: 1524266652}
   - {fileID: 2066945014}
   - {fileID: 1584163387}
+  - {fileID: 330853191}
   - {fileID: 1903514026}
   m_Father: {fileID: 491168873}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -14880,7 +14889,8 @@ MonoBehaviour:
   sceneFadeDuration: 0.35
   sceneFadeEase: 4
   sceneFadeCanvasGroup: {fileID: 1827199070}
-  closePanelHotkey: 27
+  rewiredPlayerId: 1
+  closeCurrentPanelAction: 
   header:
     titleText: {fileID: 0}
     cashText: {fileID: 953554611}
@@ -14923,19 +14933,11 @@ MonoBehaviour:
     slotSellButtons: []
   perksPanel:
     root: {fileID: 1903514025}
-    closeButton: {fileID: 0}
-    titleText: {fileID: 0}
-    bodyText: {fileID: 0}
+    panelUi: {fileID: 1824403970}
   contactsPanel:
     root: {fileID: 0}
-    closeButton: {fileID: 0}
-    titleText: {fileID: 0}
-    bodyText: {fileID: 0}
   settingsPanel:
     root: {fileID: 0}
-    closeButton: {fileID: 0}
-    titleText: {fileID: 0}
-    bodyText: {fileID: 0}
 --- !u!4 &1824403969
 Transform:
   m_ObjectHideFlags: 0
@@ -17136,6 +17138,7 @@ MonoBehaviour:
   equipNoiseDuration: 0.4
   holsterNoiseDuration: 0.6
   incapacitatedWakeUpDelay: 180
+  dragSlowPercentage: 35
   equipmentContextUi:
     yesText: ' Sim'
     noText: " N\xE3o"

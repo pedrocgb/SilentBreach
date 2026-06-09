@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b177e4d16380a4d58b9762248054e45, type: 3}
   m_Name: Bottle
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.WeaponSystem.ThrowableUtilityData
-  itemDisplayName: Bottle
-  itemIcon: {fileID: 6573573449438773957, guid: 04e3034c8f5ede97990ade37b5e08423, type: 3}
-  itemDescription: An empty beer bottle, the shattering sound is great to lure people.
+  itemDisplayName: Garrafa
+  itemIcon: {fileID: -580582653620731741, guid: dcefdf37c5de7263da334df5d25a249e, type: 3}
+  itemDescription: "Uma garrafa de cerveja vazia, \xF3tima para fazer barulho."
   heldVisualSprite: {fileID: 5059017354114133550, guid: c64ffc7784d1b116a9498ef7a6770ad0, type: 3}
   allowedSlots: 4
   equipTime: 0.2

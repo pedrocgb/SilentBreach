@@ -1,4 +1,4 @@
-# AGENTS.md
+x# AGENTS.md
 
 # Silent Breach — Unity AI Coding Harness
 
@@ -38,6 +38,7 @@ tools/ai-harness/rules/
 
 Read the relevant files before editing:
 
+- Use RTK shell commands when needed: `tools/ai-harness/rules/RTK.md`
 - General Unity rules: `tools/ai-harness/rules/unity.md`
 - Architecture / S.O.L.I.D. / DRY: `tools/ai-harness/rules/architecture-solid.md`
 - Component references and serialization: `tools/ai-harness/rules/component-references.md`

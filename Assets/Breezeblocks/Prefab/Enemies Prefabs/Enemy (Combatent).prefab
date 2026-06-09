@@ -422,8 +422,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ad2133737d94e489e01e1c38c57e9e8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.WeaponSystem.MeleeDamageSource
-  hitboxCollider: {fileID: 7512859070260507586}
-  worldSfxManager: {fileID: 0}
 --- !u!1 &2215968589056647461
 GameObject:
   m_ObjectHideFlags: 0
@@ -756,7 +754,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9dca94baf46f2a11daf24ea252e49a6e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FocusRevealTarget
-  revealRenderers: []
   revealObjects:
   - {fileID: 6827463158739574122}
 --- !u!1 &4203946311388257886
@@ -1222,6 +1219,7 @@ GameObject:
   - component: {fileID: 1196868448605953171}
   - component: {fileID: 1952562364349307822}
   - component: {fileID: 7041360487973932015}
+  - component: {fileID: 7111871098375090206}
   - component: {fileID: 4703319933343020066}
   - component: {fileID: 4432966802333322429}
   - component: {fileID: 1144342578178190841}
@@ -1254,7 +1252,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7291814284469564373}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0.5, y: 11.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -1375,6 +1373,22 @@ MonoBehaviour:
   incapacitatedSprite: {fileID: -6089007737513708103, guid: c7493064e8fa40389881165fd46f88e3, type: 3}
   deadSprite: {fileID: 7474744633217478141, guid: c7493064e8fa40389881165fd46f88e3, type: 3}
   restoredHealthFractionOnWake: 1
+--- !u!114 &7111871098375090206
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7291814284469564373}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b53d79347a73e4a98bae0be9eb55e2fe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.Missions.DragBodyInteractable
+  interactionDisplayName: E
+  interactionEnabled: 1
+  dragAnchor: {fileID: 5790842226232511309}
+  bodyRigidbody: {fileID: 3422409181800808453}
 --- !u!114 &4703319933343020066
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1406,8 +1420,6 @@ MonoBehaviour:
   enemyMovementController: {fileID: 1144342578178190841}
   enemyCombatantAI: {fileID: 2036771187581058827}
   enemyMeleeCombatantAI: {fileID: 1678362193530572592}
-  aiPath: {fileID: 2075099057516833013}
-  movementBody: {fileID: 3422409181800808453}
 --- !u!114 &1144342578178190841
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1420,10 +1432,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2cb65d69e8a547f4b9a54d3e8b7e4c12, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMovementController
-  movementBody: {fileID: 3422409181800808453}
-  aiPath: {fileID: 2075099057516833013}
-  aiDestinationSetter: {fileID: 5912923902765099010}
-  seeker: {fileID: 3070910149395946080}
   allowClosedDoorTraversalWhilePatrol: 1
   allowClosedDoorTraversalWhileAlert: 1
   allowClosedDoorTraversalWhileSuspicious: 1
@@ -1439,14 +1447,16 @@ MonoBehaviour:
   doorAutoOpenRange: 0.9
   doorAutoOpenRadius: 0.18
   doorAutoOpenCooldown: 0.2
+  doorPreferredRouteProbeDistance: 3
+  doorPreferredRouteProbeWidth: 0.75
   patrolPoints: []
   itinerarySteps:
   - StepName: Patrol Step
-    StepType: 1
+    StepType: 0
     IdlePoint: {fileID: 0}
     IdleDuration: 10
     IdleFacing:
-      FacingMode: 0
+      FacingMode: 1
       CustomAngle: 0
     UseControllerPatrolRoute: 0
     PatrolMode: 0
@@ -1493,6 +1503,42 @@ MonoBehaviour:
       ArrivalFacing:
         FacingMode: 1
         CustomAngle: 0
+  - StepName: Itinerary Step
+    StepType: 1
+    IdlePoint: {fileID: 0}
+    IdleDuration: 10
+    IdleFacing:
+      FacingMode: 0
+      CustomAngle: 0
+    UseControllerPatrolRoute: 0
+    PatrolMode: 0
+    PatrolCompletionMode: 0
+    PatrolDuration: 15
+    PatrolPoints:
+    - Point: {fileID: 0}
+      WaitDuration: 8
+      LookAroundAtPoint: 0
+      LookAroundDuration: 2
+      LookAroundTurnInterval: 0.5
+      ArrivalFacing:
+        FacingMode: 1
+        CustomAngle: 0
+    - Point: {fileID: 0}
+      WaitDuration: 12
+      LookAroundAtPoint: 0
+      LookAroundDuration: 2
+      LookAroundTurnInterval: 0.5
+      ArrivalFacing:
+        FacingMode: 1
+        CustomAngle: 0
+    - Point: {fileID: 0}
+      WaitDuration: 0
+      LookAroundAtPoint: 0
+      LookAroundDuration: 2
+      LookAroundTurnInterval: 0.5
+      ArrivalFacing:
+        FacingMode: 1
+        CustomAngle: 0
   fleePoint: {fileID: 0}
   fleePointFacing:
     FacingMode: 0
@@ -1522,16 +1568,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: df6cdf7f405b00045bb61e1af449d4ad, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyCombatantAI
-  enemyMovementController: {fileID: 1144342578178190841}
-  enemyVisionAI: {fileID: 8154284790294909785}
-  coverUser: {fileID: 4553391849794662228}
   firePoint: {fileID: 6967630092255387723}
   aimOrigin: {fileID: 5790842226232511309}
-  movementBody: {fileID: 3422409181800808453}
-  actorStaggerController: {fileID: 4703319933343020066}
   noCoverFallbackPoint: {fileID: 0}
-  globalObjectPooler: {fileID: 0}
-  worldSfxManager: {fileID: 0}
 --- !u!114 &1678362193530572592
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1544,9 +1583,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0a9f5431dd5e4d08a52ef73c5e64b620, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMeleeCombatantAI
-  enemyMovementController: {fileID: 1144342578178190841}
-  enemyVisionAI: {fileID: 8154284790294909785}
-  orbitHandsAnimator: {fileID: 964956265490721195}
 --- !u!114 &8154284790294909785
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1563,8 +1599,6 @@ MonoBehaviour:
   targetTransform: {fileID: 0}
   targetVisibility: {fileID: 0}
   targetUtilityController: {fileID: 0}
-  enemyMovementController: {fileID: 1144342578178190841}
-  enemyCombatantAI: {fileID: 2036771187581058827}
   currentDetectionValue: 0
   currentTargetVisibility: 0
   lastKnownTargetPosition: {x: 0, y: 0}
@@ -1580,6 +1614,8 @@ MonoBehaviour:
   currentTargetDistance: 0
   currentDistanceDetectionMultiplier: 1
   lastKnownFlashlightSourcePosition: {x: 0, y: 0}
+  canCurrentlySeeBody: 0
+  lastSeenBodyPosition: {x: 0, y: 0}
 --- !u!114 &36635821445340026
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1593,8 +1629,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AIHearing
   hearingOrigin: {fileID: 5790842226232511309}
-  enemyMovementController: {fileID: 1144342578178190841}
-  enemyCombatantAI: {fileID: 2036771187581058827}
   hearingIgnoredBecauseOfVisualDetection: 0
   lastHeardNoiseType: 0
   lastHeardNoiseValue: 0
@@ -1614,14 +1648,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f231a8e9675af590595777a413899546, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyRoomAwareness
-  enemyMovementController: {fileID: 1144342578178190841}
-  aiHearing: {fileID: 36635821445340026}
   roomAwareness: 1
   roomCheckInterval: 0.15
   waitBeforeSwitchDuration: 1
   lookAroundDurationAfterTurningLightsOn: 2.5
   lookAroundTurnInterval: 0.45
   lookAroundRotationSpeed: 420
+  doorStateAwareness: 1
+  waitBeforeDoorStateFixDuration: 1
 --- !u!114 &4553391849794662228
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1702,6 +1736,7 @@ MonoBehaviour:
   playerUtilityController: {fileID: 0}
   playerMeleeController: {fileID: 0}
   playerVisionLight: {fileID: 0}
+  playerBodyDragController: {fileID: 0}
   enemyMovementController: {fileID: 1144342578178190841}
   enemyCombatantAI: {fileID: 2036771187581058827}
   enemyMeleeCombatantAI: {fileID: 1678362193530572592}
@@ -1711,6 +1746,8 @@ MonoBehaviour:
   holdDistance: 0.52
   holdHandSeparation: 0.12
   heldItemScale: 0.75
+  bodyDragHoldDistance: 0.24
+  bodyDragHandSeparation: 0.05
   heldItemRotationOffset: 0
   autoCreatedHandScale: 0.7
   swingCyclesPerSpeedUnit: 1.35

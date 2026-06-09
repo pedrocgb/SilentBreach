@@ -12,9 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2d65e8a75d4e4458a8693e52f8ab0191, type: 3}
   m_Name: Knife
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.WeaponSystem.MeleeWeaponData
-  itemDisplayName: Knife
+  itemDisplayName: Faca de Combate
   itemIcon: {fileID: -96875036770906992, guid: a546e2bb4f5f7cc1a99b7d9bc511c989, type: 3}
-  itemDescription: 
+  itemDescription: "Uma faca militar com mil e uma utilidades, por\xE9m seu principal
+    objetivo pode ser letal."
   heldVisualSprite: {fileID: -1754120301, guid: 1ba5138f30967444dbf5be57280e6ffc, type: 3}
   allowedSlots: 7
   gripType: 0

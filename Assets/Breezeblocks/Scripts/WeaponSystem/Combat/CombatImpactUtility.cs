@@ -128,7 +128,7 @@ public static class CombatImpactUtility
     /// </summary>
     public static bool TryApplyUnarmoredExplosionDamage(Collider2D hitCollider, float damage)
     {
-        return TryApplyUnarmoredExplosionDamage(hitCollider, damage, null);
+        return TryApplyUnarmoredExplosionDamage(hitCollider, damage, new ActorDamageContext(null, isLethal: true));
     }
 
     /// <summary>
@@ -136,13 +136,21 @@ public static class CombatImpactUtility
     /// </summary>
     public static bool TryApplyUnarmoredExplosionDamage(Collider2D hitCollider, float damage, GameObject instigatorRoot)
     {
+        return TryApplyUnarmoredExplosionDamage(hitCollider, damage, new ActorDamageContext(instigatorRoot, isLethal: true));
+    }
+
+    /// <summary>
+    /// Applies unarmored explosion damage using explicit instigator and lethality context.
+    /// </summary>
+    public static bool TryApplyUnarmoredExplosionDamage(Collider2D hitCollider, float damage, ActorDamageContext damageContext)
+    {
         if (hitCollider == null || damage <= 0f)
             return false;
 
         if (!TryResolveImpactTarget(hitCollider, out ImpactTargetContext targetContext) || !targetContext.HasHealth)
             return false;
 
-        targetContext.ActorHealth.ApplyDamage(damage, new ActorDamageContext(instigatorRoot, isLethal: true));
+        targetContext.ActorHealth.ApplyDamage(damage, damageContext);
         return true;
     }
 

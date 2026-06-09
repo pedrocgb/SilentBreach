@@ -414,6 +414,12 @@ public class PlayerUtilityController : MonoBehaviour
     // Executes the ThrowThrowableRoutine routine.
     private IEnumerator ThrowThrowableRoutine(ThrowableUtilityData throwableData, float chargeProgress01)
     {
+        if (aimCamera != null)
+        {
+            aimCamera.SetFollowTarget(transform);
+            aimCamera.SetAimState(false, 0f);
+        }
+
         ResetThrowableInputState();
         NotifyUtilityStateChanged();
 

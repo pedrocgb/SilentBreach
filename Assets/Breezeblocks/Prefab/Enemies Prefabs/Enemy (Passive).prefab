@@ -308,7 +308,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9dca94baf46f2a11daf24ea252e49a6e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FocusRevealTarget
-  revealRenderers: []
   revealObjects:
   - {fileID: 8432103225168030456}
 --- !u!1 &2627109768892461031
@@ -566,6 +565,7 @@ GameObject:
   - component: {fileID: 2244810621637444382}
   - component: {fileID: 2398642840823831577}
   - component: {fileID: 2345586287224562929}
+  - component: {fileID: 29058553389465569}
   - component: {fileID: 7795442972566881756}
   - component: {fileID: 1728356545549749948}
   - component: {fileID: 7913796672010393767}
@@ -719,6 +719,22 @@ MonoBehaviour:
   incapacitatedSprite: {fileID: -3758309851019258040, guid: c7493064e8fa40389881165fd46f88e3, type: 3}
   deadSprite: {fileID: 1705875912708360774, guid: c7493064e8fa40389881165fd46f88e3, type: 3}
   restoredHealthFractionOnWake: 1
+--- !u!114 &29058553389465569
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3768410760041927329}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b53d79347a73e4a98bae0be9eb55e2fe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.Missions.DragBodyInteractable
+  interactionDisplayName: E
+  interactionEnabled: 1
+  dragAnchor: {fileID: 5021891826595706737}
+  bodyRigidbody: {fileID: 7715816151363494084}
 --- !u!114 &7795442972566881756
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -750,8 +766,6 @@ MonoBehaviour:
   enemyMovementController: {fileID: 7913796672010393767}
   enemyCombatantAI: {fileID: 1623700952345965610}
   enemyMeleeCombatantAI: {fileID: 2346173761637085197}
-  aiPath: {fileID: 6274399302257306467}
-  movementBody: {fileID: 7715816151363494084}
 --- !u!114 &7913796672010393767
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -764,10 +778,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2cb65d69e8a547f4b9a54d3e8b7e4c12, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMovementController
-  movementBody: {fileID: 7715816151363494084}
-  aiPath: {fileID: 6274399302257306467}
-  aiDestinationSetter: {fileID: 6403266485352651514}
-  seeker: {fileID: 2584007086210189965}
   allowClosedDoorTraversalWhilePatrol: 1
   allowClosedDoorTraversalWhileAlert: 1
   allowClosedDoorTraversalWhileSuspicious: 1
@@ -783,6 +793,8 @@ MonoBehaviour:
   doorAutoOpenRange: 0.9
   doorAutoOpenRadius: 0.18
   doorAutoOpenCooldown: 0.2
+  doorPreferredRouteProbeDistance: 3
+  doorPreferredRouteProbeWidth: 0.75
   patrolPoints: []
   itinerarySteps:
   - StepName: Itinerary Step
@@ -798,7 +810,7 @@ MonoBehaviour:
     PatrolDuration: 15
     PatrolPoints: []
   - StepName: Itinerary Step
-    StepType: 0
+    StepType: 1
     IdlePoint: {fileID: 0}
     IdleDuration: 8
     IdleFacing:
@@ -826,7 +838,7 @@ MonoBehaviour:
     FacingMode: 0
     CustomAngle: 0
   debugMovement: 0
-  currentState: 0
+  currentState: 3
   previousState: 0
   currentMovementSpeed: 0
   currentSpeedCap: 0
@@ -846,16 +858,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: df6cdf7f405b00045bb61e1af449d4ad, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyCombatantAI
-  enemyMovementController: {fileID: 7913796672010393767}
-  enemyVisionAI: {fileID: 6465306287467853033}
-  coverUser: {fileID: 330823469089891498}
   firePoint: {fileID: 1880150626382440122}
   aimOrigin: {fileID: 5021891826595706737}
-  movementBody: {fileID: 7715816151363494084}
-  actorStaggerController: {fileID: 7795442972566881756}
   noCoverFallbackPoint: {fileID: 0}
-  globalObjectPooler: {fileID: 0}
-  worldSfxManager: {fileID: 0}
 --- !u!114 &2346173761637085197
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -868,9 +873,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0a9f5431dd5e4d08a52ef73c5e64b620, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMeleeCombatantAI
-  enemyMovementController: {fileID: 7913796672010393767}
-  enemyVisionAI: {fileID: 6465306287467853033}
-  orbitHandsAnimator: {fileID: 8637053739486266040}
 --- !u!114 &6465306287467853033
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -887,8 +889,6 @@ MonoBehaviour:
   targetTransform: {fileID: 0}
   targetVisibility: {fileID: 0}
   targetUtilityController: {fileID: 0}
-  enemyMovementController: {fileID: 7913796672010393767}
-  enemyCombatantAI: {fileID: 1623700952345965610}
   currentDetectionValue: 0
   currentTargetVisibility: 0
   lastKnownTargetPosition: {x: 0, y: 0}
@@ -904,6 +904,8 @@ MonoBehaviour:
   currentTargetDistance: 0
   currentDistanceDetectionMultiplier: 1
   lastKnownFlashlightSourcePosition: {x: 0, y: 0}
+  canCurrentlySeeBody: 0
+  lastSeenBodyPosition: {x: 0, y: 0}
 --- !u!114 &1013210349270172837
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -917,8 +919,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AIHearing
   hearingOrigin: {fileID: 5021891826595706737}
-  enemyMovementController: {fileID: 7913796672010393767}
-  enemyCombatantAI: {fileID: 1623700952345965610}
   hearingIgnoredBecauseOfVisualDetection: 0
   lastHeardNoiseType: 0
   lastHeardNoiseValue: 0
@@ -938,14 +938,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f231a8e9675af590595777a413899546, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyRoomAwareness
-  enemyMovementController: {fileID: 7913796672010393767}
-  aiHearing: {fileID: 1013210349270172837}
   roomAwareness: 0
   roomCheckInterval: 0.15
   waitBeforeSwitchDuration: 1
   lookAroundDurationAfterTurningLightsOn: 2.5
   lookAroundTurnInterval: 0.45
   lookAroundRotationSpeed: 420
+  doorStateAwareness: 1
+  waitBeforeDoorStateFixDuration: 1
 --- !u!114 &330823469089891498
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1026,6 +1026,7 @@ MonoBehaviour:
   playerUtilityController: {fileID: 0}
   playerMeleeController: {fileID: 0}
   playerVisionLight: {fileID: 0}
+  playerBodyDragController: {fileID: 0}
   enemyMovementController: {fileID: 7913796672010393767}
   enemyCombatantAI: {fileID: 1623700952345965610}
   enemyMeleeCombatantAI: {fileID: 2346173761637085197}
@@ -1035,6 +1036,8 @@ MonoBehaviour:
   holdDistance: 0.52
   holdHandSeparation: 0.12
   heldItemScale: 0.75
+  bodyDragHoldDistance: 0.24
+  bodyDragHandSeparation: 0.05
   heldItemRotationOffset: 0
   autoCreatedHandScale: 0.7
   swingCyclesPerSpeedUnit: 1.35
@@ -1168,7 +1171,7 @@ MonoBehaviour:
       serializedVersion: 2
       m_Bits: 4294967295
     useGraphRaycasting: 0
-  traversableTags: -3
+  traversableTags: -1
   tagPenalties: 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
   graphMask:
     value: -1
@@ -1774,8 +1777,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ad2133737d94e489e01e1c38c57e9e8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.WeaponSystem.MeleeDamageSource
-  hitboxCollider: {fileID: 1663788145491436020}
-  worldSfxManager: {fileID: 0}
 --- !u!1 &5864463181044392906
 GameObject:
   m_ObjectHideFlags: 0

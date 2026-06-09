@@ -196,6 +196,9 @@ MonoBehaviour:
   interactionPoint: {fileID: 2984622638330256510}
   audioOrigin: {fileID: 4664345644626027478}
   worldSfxManager: {fileID: 0}
+  defaultState: 2
+  awarenessSamplePoint: {fileID: 4664345644626027478}
+  visibilitySampleInterval: 0.1
   startOpen: 0
   closedLocalAngle: 0
   openAngleOffset: -80

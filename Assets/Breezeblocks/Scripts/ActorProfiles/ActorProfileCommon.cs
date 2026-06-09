@@ -430,6 +430,9 @@ public class EnemyVisionSettings
     [FoldoutGroup("Detection")]
     public bool ReactToFlashlight = true;
 
+    [FoldoutGroup("Detection")]
+    public bool ReactToBodies = true;
+
     [FoldoutGroup("Detection"), ShowIf(nameof(ReactToFlashlight)), MinValue(0f), SuffixLabel("s", true)]
     public float FlashlightSourceLostDuration = 2f;
 

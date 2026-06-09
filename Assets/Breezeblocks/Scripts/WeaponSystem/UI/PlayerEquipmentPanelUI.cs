@@ -627,40 +627,42 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
 
         SetPrefixedText(utilityContext.quantityText, settings.QuantityPrefix, quantityValue, showQuantity);
 
-        if (utilityItemData is not ThrowableUtilityData explosiveOrFlashbangData ||
-            (!explosiveOrFlashbangData.UsesExplosion && !explosiveOrFlashbangData.UsesFlashbang))
-        {
+        if (utilityItemData is not ThrowableUtilityData lethalThrowableData)
             return;
-        }
+
+        bool showLethal = lethalThrowableData.UsesDirectDamage || lethalThrowableData.UsesExplosion;
+        SetPrefixedText(
+            utilityContext.lethalText,
+            settings.LethalPrefix,
+            ResolveBoolText(settings, ResolveThrowableIsLethal(lethalThrowableData)),
+            showLethal);
+
+        if (!lethalThrowableData.UsesExplosion && !lethalThrowableData.UsesFlashbang)
+            return;
 
         SetPrefixedText(
             utilityContext.explosionRadiusText,
             settings.ExplosionRadiusPrefix,
-            $"{explosiveOrFlashbangData.EffectRadius:0.##}m",
+            $"{lethalThrowableData.EffectRadius:0.##}m",
             true);
         SetPrefixedText(
             utilityContext.detonationModeText,
             settings.ExplosionTypePrefix,
-            ResolveDetonationModeText(settings, explosiveOrFlashbangData.DetonationMode),
-            true);
-        SetPrefixedText(
-            utilityContext.lethalText,
-            settings.LethalPrefix,
-            ResolveBoolText(settings, ResolveThrowableIsLethal(explosiveOrFlashbangData)),
+            ResolveDetonationModeText(settings, lethalThrowableData.DetonationMode),
             true);
 
-        bool showDelay = explosiveOrFlashbangData.DetonationMode == ThrowableDetonationMode.OnTimer ||
-                         explosiveOrFlashbangData.DetonationMode == ThrowableDetonationMode.OnHitAndTimer;
+        bool showDelay = lethalThrowableData.DetonationMode == ThrowableDetonationMode.OnTimer ||
+                         lethalThrowableData.DetonationMode == ThrowableDetonationMode.OnHitAndTimer;
         SetPrefixedText(
             utilityContext.detonationDelayText,
             settings.DetonationDelayPrefix,
-            $"{explosiveOrFlashbangData.DetonationDelay:0.##}s",
+            $"{lethalThrowableData.DetonationDelay:0.##}s",
             showDelay);
         SetPrefixedText(
             utilityContext.flashbangDurationText,
             settings.FlashbangDurationPrefix,
-            $"{explosiveOrFlashbangData.FlashbangDuration:0.##}s",
-            explosiveOrFlashbangData.UsesFlashbang);
+            $"{lethalThrowableData.FlashbangDuration:0.##}s",
+            lethalThrowableData.UsesFlashbang);
     }
 
     private void PopulateMeleeContext(MeleeWeaponData meleeWeaponData)
@@ -963,8 +965,11 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         if (throwableData == null)
             return false;
 
+        if (throwableData.UsesDirectDamage)
+            return throwableData.DirectHitIsLethal;
+
         if (throwableData.UsesExplosion)
-            return throwableData.ExplosionDamage > 0f;
+            return throwableData.ExplosionIsLethal;
 
         return false;
     }

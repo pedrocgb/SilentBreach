@@ -206,7 +206,7 @@ public class ThrowableWorldObject : MonoBehaviour
                     activeData.DirectHitDamage,
                     activeData.DirectHitPenetration,
                     activeData.DirectHitStaggerDuration,
-                    new Breezeblocks.Missions.ActorDamageContext(ownerRoot, isLethal: true));
+                    new Breezeblocks.Missions.ActorDamageContext(ownerRoot, activeData.DirectHitIsLethal));
                 SpawnResolveEffect(impactPoint);
                 ReturnToPool();
                 break;
@@ -297,7 +297,10 @@ public class ThrowableWorldObject : MonoBehaviour
         switch (activeData.Behavior)
         {
             case ThrowableUtilityBehavior.Explosion:
-                CombatImpactUtility.TryApplyUnarmoredExplosionDamage(hitCollider, activeData.ExplosionDamage, ownerRoot);
+                CombatImpactUtility.TryApplyUnarmoredExplosionDamage(
+                    hitCollider,
+                    activeData.ExplosionDamage,
+                    new Breezeblocks.Missions.ActorDamageContext(ownerRoot, activeData.ExplosionIsLethal));
                 if (activeData.ApplyExplosionKnockback)
                     CombatImpactUtility.TryApplyExplosionKnockback(hitCollider, detonationPoint, activeData.ExplosionKnockbackForce);
                 break;

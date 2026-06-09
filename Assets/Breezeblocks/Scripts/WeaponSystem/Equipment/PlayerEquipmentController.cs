@@ -156,6 +156,7 @@ public class PlayerEquipmentController : MonoBehaviour
     private RuntimeHandSlotState beltRuntime;
     private float cachedTimeScaleBeforePanel = 1f;
     private bool inputBlocked;
+    private bool dragInputBlocked;
     private float unarmedAimRotationSpeed = 720f;
     private float unarmedAimPanDistance;
     private PlayerPerkEffectController playerPerkEffectController;
@@ -267,6 +268,12 @@ public class PlayerEquipmentController : MonoBehaviour
         if (inputBlocked)
         {
             SetUnarmedAimState(false);
+            return;
+        }
+
+        if (dragInputBlocked)
+        {
+            UpdateDragAimState();
             return;
         }
 
@@ -386,6 +393,40 @@ public class PlayerEquipmentController : MonoBehaviour
             equipmentPanelUI.SetVisible(false);
 
         ApplyPanelPresentation(false);
+    }
+
+    /// <summary>
+    /// Blocks equipment switching and panel usage while keeping drag-specific aim handling available.
+    /// </summary>
+    public void SetDragInputBlocked(bool blocked)
+    {
+        dragInputBlocked = blocked;
+
+        if (blocked && equipmentPanelUI != null && equipmentPanelUI.IsVisible)
+            equipmentPanelUI.SetVisible(false);
+
+        if (blocked)
+            ApplyPanelPresentation(false);
+    }
+
+    /// <summary>
+    /// Returns whether the current held item may begin holstering this frame.
+    /// </summary>
+    public bool CanHolsterCurrentHeldItem()
+    {
+        return CurrentHeldItem != null && !IsSwitchingEquipment && CanStartEquipmentSwitch();
+    }
+
+    /// <summary>
+    /// Starts holstering the currently held item when the equipment controller is ready.
+    /// </summary>
+    public bool BeginHolsterCurrentHeldItem()
+    {
+        if (!CanHolsterCurrentHeldItem())
+            return false;
+
+        switchRoutine = StartCoroutine(HolsterCurrentHeldItemRoutine());
+        return true;
     }
 
     // Executes the TryGetRuntimeFirearmState routine.
@@ -1043,6 +1084,28 @@ public class PlayerEquipmentController : MonoBehaviour
         playerVisionLight.DriveMouseLook(lookSpeed, Time.deltaTime);
     }
 
+    /// <summary>
+    /// Preserves unarmed aim camera behavior during body dragging without restoring mouse-look rotation.
+    /// </summary>
+    private void UpdateDragAimState()
+    {
+        if (CurrentHeldItem != null)
+        {
+            if (IsUnarmedAiming)
+                SetUnarmedAimState(false);
+
+            return;
+        }
+
+        bool canDragAim =
+            !IsSwitchingEquipment &&
+            !IsEquipmentPanelVisible &&
+            inputReader != null &&
+            inputReader.GetButton(aimAction);
+
+        SetUnarmedAimState(canDragAim);
+    }
+
     // Executes the SetUnarmedAimState routine.
     private void SetUnarmedAimState(bool aiming)
     {
@@ -1101,7 +1164,7 @@ public class PlayerEquipmentController : MonoBehaviour
     // Executes the ApplyPanelPresentation routine.
     private void ApplyPanelPresentation(bool panelVisible)
     {
-        bool shouldBlockHandInputs = panelVisible || inputBlocked;
+        bool shouldBlockHandInputs = panelVisible || inputBlocked || dragInputBlocked;
 
         if (dynamicCrosshairUI == null)
             dynamicCrosshairUI = PlayerSceneReferenceUtility.FindFirstComponentInLoadedScenes<DynamicCrosshairUI>(gameObject);

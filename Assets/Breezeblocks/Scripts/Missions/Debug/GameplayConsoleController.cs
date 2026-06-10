@@ -20,6 +20,7 @@ namespace Breezeblocks.Missions
 public class GameplayConsoleController : MonoBehaviour
 {
     private const string CreateEquipmentCommandPrefix = "create_equipment_";
+    private const string AddPerkCommandName = "add_perk";
     private const string DefaultToggleConsoleAction = "ToggleConsole";
 
     [Serializable]
@@ -530,6 +531,10 @@ public class GameplayConsoleController : MonoBehaviour
                 HandleBooleanCheatCommand(argument, "let_there_be_light", GameplayConsoleCheatState.SetLetThereBeLight);
                 break;
 
+            case AddPerkCommandName:
+                HandleAddPerkCommand(argument);
+                break;
+
             default:
                 AppendLog($"Unknown code: {trimmedCommand}");
                 break;
@@ -582,6 +587,45 @@ public class GameplayConsoleController : MonoBehaviour
         setter?.Invoke(enabled);
         ApplyCheatState();
         AppendLog($"{commandName} set to {enabled.ToString().ToLowerInvariant()}.");
+    }
+
+    // Executes the HandleAddPerkCommand routine.
+    private void HandleAddPerkCommand(string requestedPerkName)
+    {
+        if (string.IsNullOrWhiteSpace(requestedPerkName))
+        {
+            AppendLog("Usage: add_perk PERKNAME");
+            return;
+        }
+
+        HideoutPerkDefinition perkDefinition = ResolvePerkByName(requestedPerkName);
+        if (perkDefinition == null)
+        {
+            AppendLog($"Perk not found: {requestedPerkName}");
+            return;
+        }
+
+        PlayerPerkRuntimeLoadout runtimeLoadout = PlayerPerkRuntimeSession.PeekEquippedPerks();
+        if (runtimeLoadout.Contains(perkDefinition))
+        {
+            AppendLog($"{perkDefinition.PerkName} already equipped.");
+            return;
+        }
+
+        List<HideoutPerkDefinition> updatedPerks = new(runtimeLoadout.Count + 1);
+        IReadOnlyList<HideoutPerkDefinition> equippedPerks = runtimeLoadout.EquippedPerks;
+        for (int i = 0; i < equippedPerks.Count; i++)
+        {
+            HideoutPerkDefinition equippedPerk = equippedPerks[i];
+            if (equippedPerk != null)
+                updatedPerks.Add(equippedPerk);
+        }
+
+        updatedPerks.Add(perkDefinition);
+        PlayerPerkRuntimeSession.SetEquippedPerks(updatedPerks);
+        ApplyRuntimePerkEffectsForConsole();
+        RefreshEquippedPerkPanelsForConsole();
+        AppendLog($"{perkDefinition.PerkName} equipped through console.");
     }
 
     // Executes the RestartCurrentLevel routine.
@@ -846,6 +890,87 @@ public class GameplayConsoleController : MonoBehaviour
         return null;
     }
 
+    // Executes the ResolvePerkByName routine.
+    private HideoutPerkDefinition ResolvePerkByName(string requestedName)
+    {
+        string normalizedName = NormalizePerkLookupKey(requestedName);
+        if (string.IsNullOrEmpty(normalizedName))
+            return null;
+
+        HideoutPerkDefinition[] resourcePerks = Resources.LoadAll<HideoutPerkDefinition>(string.Empty);
+        HideoutPerkDefinition resolvedPerk = ResolvePerkByName(resourcePerks, normalizedName);
+        if (resolvedPerk != null)
+            return resolvedPerk;
+
+        HideoutPerkDefinition[] loadedPerks = Resources.FindObjectsOfTypeAll<HideoutPerkDefinition>();
+        return ResolvePerkByName(loadedPerks, normalizedName);
+    }
+
+    // Executes the ResolvePerkByName routine.
+    private static HideoutPerkDefinition ResolvePerkByName(IReadOnlyList<HideoutPerkDefinition> candidates, string normalizedName)
+    {
+        if (candidates == null || string.IsNullOrEmpty(normalizedName))
+            return null;
+
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            HideoutPerkDefinition candidate = candidates[i];
+            if (candidate == null)
+                continue;
+
+            if (string.Equals(NormalizePerkLookupKey(candidate.PerkName), normalizedName, StringComparison.Ordinal) ||
+                string.Equals(NormalizePerkLookupKey(candidate.name), normalizedName, StringComparison.Ordinal) ||
+                string.Equals(NormalizePerkLookupKey(candidate.PerkId), normalizedName, StringComparison.Ordinal))
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    // Executes the NormalizePerkLookupKey routine.
+    private static string NormalizePerkLookupKey(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        char[] buffer = value.Trim().ToLowerInvariant().ToCharArray();
+        StringBuilder normalized = new(buffer.Length);
+        for (int i = 0; i < buffer.Length; i++)
+        {
+            if (char.IsLetterOrDigit(buffer[i]))
+                normalized.Append(buffer[i]);
+        }
+
+        return normalized.ToString();
+    }
+
+    // Executes the ApplyRuntimePerkEffectsForConsole routine.
+    private void ApplyRuntimePerkEffectsForConsole()
+    {
+        CacheReferences();
+        if (playerRoot == null)
+            return;
+
+        PlayerPerkEffectController perkEffectController = PlayerPerkEffectController.EnsureOn(playerRoot.gameObject);
+        perkEffectController?.ApplyRuntimePerks();
+    }
+
+    // Executes the RefreshEquippedPerkPanelsForConsole routine.
+    private void RefreshEquippedPerkPanelsForConsole()
+    {
+        PlayerEquipmentPanelUI[] perkPanels = FindSceneObjectsIncludingInactive<PlayerEquipmentPanelUI>();
+        for (int i = 0; i < perkPanels.Length; i++)
+        {
+            PlayerEquipmentPanelUI perkPanel = perkPanels[i];
+            if (perkPanel == null || !perkPanel.IsVisible)
+                continue;
+
+            perkPanel.SetVisible(true);
+        }
+    }
+
     // Executes the TryParseBooleanArgument routine.
     private static bool TryParseBooleanArgument(string argument, out bool enabled)
     {
@@ -940,6 +1065,10 @@ public class GameplayConsoleController : MonoBehaviour
             "let_there_be_light",
             "let_there_be_light true|false",
             "Enables or disables the _GLOBALLIGHT Light2D.");
+        EnsureCommandHelpEntry(
+            AddPerkCommandName,
+            "add_perk PERKNAME",
+            "Equips a perk by ScriptableObject perk name without respecting the normal perk slot cap.");
     }
 
     // Executes the EnsureCommandHelpEntry routine.

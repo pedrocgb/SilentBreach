@@ -48,6 +48,7 @@ public class PlayerPickupInteractor : MonoBehaviour
     private PlayerWorldInteractable currentInteractable;
     private PickableItemWorld currentPickable;
     private IPlayerHoldInteractable activeHoldInteractable;
+    private bool activeHoldInteractionUsesToggleMode;
     private bool inputBlocked;
 
     /// <summary>
@@ -200,6 +201,7 @@ public class PlayerPickupInteractor : MonoBehaviour
             return;
 
         activeHoldInteractable = holdInteractable;
+        activeHoldInteractionUsesToggleMode = ShouldUseToggleHoldInteraction(holdInteractable);
         Interacted?.Invoke(interactable);
     }
 
@@ -210,6 +212,24 @@ public class PlayerPickupInteractor : MonoBehaviour
     {
         if (activeHoldInteractable == null)
             return;
+
+        if (!activeHoldInteractable.IsHoldActive(gameObject))
+        {
+            EndActiveHoldInteraction();
+            return;
+        }
+
+        if (activeHoldInteractionUsesToggleMode)
+        {
+            if (inputReader.GetButtonDown(pickUpAction))
+            {
+                EndActiveHoldInteraction();
+                return;
+            }
+
+            activeHoldInteractable.TickHold(gameObject, Time.deltaTime);
+            return;
+        }
 
         if (!inputReader.GetButton(pickUpAction))
         {
@@ -229,7 +249,18 @@ public class PlayerPickupInteractor : MonoBehaviour
             activeHoldInteractable.EndHold(gameObject);
 
         activeHoldInteractable = null;
+        activeHoldInteractionUsesToggleMode = false;
         RefreshCurrentInteractable();
+    }
+
+    /// <summary>
+    /// Returns whether the supplied held interaction should use click-to-toggle behavior.
+    /// </summary>
+    private static bool ShouldUseToggleHoldInteraction(IPlayerHoldInteractable holdInteractable)
+    {
+        return holdInteractable is DragBodyInteractable &&
+               GlobalSettings.Instance != null &&
+               !GlobalSettings.Instance.DragRequiresHoldInput;
     }
 
     /// <summary>

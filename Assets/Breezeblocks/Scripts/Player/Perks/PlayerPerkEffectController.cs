@@ -39,7 +39,9 @@ public sealed class PlayerPerkEffectController : MonoBehaviour
     private float nextRevealSyncTime;
     private bool appliedOnce;
 
-    // Executes the EnsureOn routine.
+    /// <summary>
+    /// Ensures a perk effect controller exists on the supplied actor root.
+    /// </summary>
     public static PlayerPerkEffectController EnsureOn(GameObject actorRoot)
     {
         if (actorRoot == null)
@@ -53,32 +55,42 @@ public sealed class PlayerPerkEffectController : MonoBehaviour
         return controller;
     }
 
-    // Executes the Reset routine.
+    /// <summary>
+    /// Refreshes cached same-object references when the component is added or reset.
+    /// </summary>
     private void Reset()
     {
         CacheReferences();
     }
 
-    // Executes the Awake routine.
+    /// <summary>
+    /// Caches same-object references before runtime perk application begins.
+    /// </summary>
     private void Awake()
     {
         CacheReferences();
     }
 
-    // Executes the OnEnable routine.
+    /// <summary>
+    /// Reapplies runtime perks when the controller is re-enabled after an earlier setup.
+    /// </summary>
     private void OnEnable()
     {
         if (appliedOnce)
             ApplyRuntimePerks();
     }
 
-    // Executes the Start routine.
+    /// <summary>
+    /// Applies the currently equipped runtime perks after startup dependencies are ready.
+    /// </summary>
     private void Start()
     {
         ApplyRuntimePerks();
     }
 
-    // Executes the Update routine.
+    /// <summary>
+    /// Periodically refreshes armed-agent reveal targets while the perk is active.
+    /// </summary>
     private void Update()
     {
         if (!activeModifiers.RevealArmedAgentsDuringFocus || Time.unscaledTime < nextRevealSyncTime)
@@ -87,13 +99,17 @@ public sealed class PlayerPerkEffectController : MonoBehaviour
         SyncArmedRevealTargets();
     }
 
-    // Executes the OnDisable routine.
+    /// <summary>
+    /// Clears any temporary focus reveal tint overrides when the controller is disabled.
+    /// </summary>
     private void OnDisable()
     {
         ClearArmedRevealTargets();
     }
 
-    // Executes the ApplyRuntimePerks routine.
+    /// <summary>
+    /// Rebuilds active perk modifiers from runtime loadout and applies them to dependent systems.
+    /// </summary>
     public void ApplyRuntimePerks()
     {
         CacheReferences();
@@ -116,7 +132,9 @@ public sealed class PlayerPerkEffectController : MonoBehaviour
         appliedOnce = true;
     }
 
-    // Executes the CacheReferences routine.
+    /// <summary>
+    /// Caches same-object runtime components affected by passive perk modifiers.
+    /// </summary>
     private void CacheReferences()
     {
         if (playerStaminaController == null)
@@ -138,7 +156,9 @@ public sealed class PlayerPerkEffectController : MonoBehaviour
             playerMeleeController = GetComponent<PlayerMeleeController>();
     }
 
-    // Executes the SyncArmedRevealTargets routine.
+    /// <summary>
+    /// Rebuilds reveal tint overrides so only armed enemy agents stay highlighted during focus.
+    /// </summary>
     private void SyncArmedRevealTargets()
     {
         ClearArmedRevealTargets();
@@ -147,14 +167,7 @@ public sealed class PlayerPerkEffectController : MonoBehaviour
         for (int i = 0; i < armedAgentsBuffer.Count; i++)
         {
             EnemyCombatantAI armedAgent = armedAgentsBuffer[i];
-            if (armedAgent == null)
-                continue;
-
-            FocusRevealTarget revealTarget = armedAgent.GetComponent<FocusRevealTarget>();
-            if (revealTarget == null)
-                revealTarget = armedAgent.GetComponentInChildren<FocusRevealTarget>(true);
-
-            if (revealTarget == null)
+            if (!TryResolveArmedRevealTarget(armedAgent, out FocusRevealTarget revealTarget))
                 continue;
 
             revealTarget.SetRevealTintOverride(armedAgentRevealTint);
@@ -165,7 +178,25 @@ public sealed class PlayerPerkEffectController : MonoBehaviour
         armedAgentsBuffer.Clear();
     }
 
-    // Executes the ClearArmedRevealTargets routine.
+    /// <summary>
+    /// Resolves a reveal target only when the supplied combatant should count as armed for this perk.
+    /// </summary>
+    private static bool TryResolveArmedRevealTarget(EnemyCombatantAI armedAgent, out FocusRevealTarget revealTarget)
+    {
+        revealTarget = null;
+        if (armedAgent == null || !armedAgent.HasConfiguredFirearmLoadout)
+            return false;
+
+        revealTarget = armedAgent.GetComponent<FocusRevealTarget>();
+        if (revealTarget == null)
+            revealTarget = armedAgent.GetComponentInChildren<FocusRevealTarget>(true);
+
+        return revealTarget != null;
+    }
+
+    /// <summary>
+    /// Clears armed-agent reveal tint overrides and resets refresh timing.
+    /// </summary>
     private void ClearArmedRevealTargets()
     {
         for (int i = tintedRevealTargets.Count - 1; i >= 0; i--)

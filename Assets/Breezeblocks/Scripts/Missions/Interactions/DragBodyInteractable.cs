@@ -100,6 +100,18 @@ public sealed class DragBodyInteractable : PlayerWorldInteractable, IPlayerHoldI
     }
 
     /// <summary>
+    /// Returns whether this body is still being managed by the player's drag controller.
+    /// </summary>
+    public bool IsHoldActive(GameObject interactorRoot)
+    {
+        if (interactorRoot == null)
+            return false;
+
+        PlayerBodyDragController dragController = interactorRoot.GetComponent<PlayerBodyDragController>();
+        return dragController != null && dragController.IsManagingDrag(this);
+    }
+
+    /// <summary>
     /// Keeps the held interaction alive while the player continues dragging.
     /// </summary>
     public void TickHold(GameObject interactorRoot, float deltaTime)
@@ -112,7 +124,7 @@ public sealed class DragBodyInteractable : PlayerWorldInteractable, IPlayerHoldI
     }
 
     /// <summary>
-    /// Stops dragging when the player releases the interact button.
+    /// Stops dragging when the active interaction ends.
     /// </summary>
     public void EndHold(GameObject interactorRoot)
     {

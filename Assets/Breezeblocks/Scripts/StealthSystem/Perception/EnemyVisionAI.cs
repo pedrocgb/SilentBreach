@@ -863,12 +863,6 @@ public class EnemyVisionAI : MonoBehaviour
             return;
         }
 
-        if (canCurrentlySeeBody)
-        {
-            enemyMovementController.FocusAlertOnPoint(lastSeenBodyPosition);
-            return;
-        }
-
         if (canCurrentlyDetectTarget && hasLastKnownTargetPosition)
             enemyMovementController.SetFacingPoint(lastKnownTargetPosition);
     }
@@ -881,7 +875,6 @@ public class EnemyVisionAI : MonoBehaviour
         if (canCurrentlySeeBody)
         {
             enemyMovementController.EnterAlertState(force: true);
-            enemyMovementController.FocusAlertOnPoint(lastSeenBodyPosition);
             return;
         }
 

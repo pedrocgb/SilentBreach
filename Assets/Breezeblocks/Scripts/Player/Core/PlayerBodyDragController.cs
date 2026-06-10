@@ -13,9 +13,13 @@ public sealed class PlayerBodyDragController : MonoBehaviour
     private const float MinimumDragFollowSpeed = 0.01f;
     private const float MinimumDragNoiseInterval = 0.02f;
     private const float MinimumMovementThreshold = 0.0001f;
+    private const float DragStartFacingDotThreshold = 0.99f;
 
     [FoldoutGroup("References")]
     [SerializeField] private Transform dragOrigin;
+
+    [FoldoutGroup("References")]
+    [SerializeField] private Transform draggedBodyHoldPoint;
 
     [FoldoutGroup("References")]
     [SerializeField] private WorldSfxManager worldSfxManager;
@@ -49,6 +53,9 @@ public sealed class PlayerBodyDragController : MonoBehaviour
 
     [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
     private PlayerFocusController playerFocusController;
+
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private ActorStaggerController actorStaggerController;
 
     [FoldoutGroup("Drag"), MinValue(0f)]
     [SerializeField] private float dragDistance = 0.7f;
@@ -197,6 +204,14 @@ public sealed class PlayerBodyDragController : MonoBehaviour
     }
 
     /// <summary>
+    /// Returns whether the supplied body is currently pending drag start or already being dragged.
+    /// </summary>
+    public bool IsManagingDrag(DragBodyInteractable body)
+    {
+        return body != null && body == activeBody && (pendingDragStart || isDragging);
+    }
+
+    /// <summary>
     /// Keeps an active held drag alive while the interact button remains pressed.
     /// </summary>
     public void MaintainHeldDrag(DragBodyInteractable body, float deltaTime)
@@ -233,6 +248,7 @@ public sealed class PlayerBodyDragController : MonoBehaviour
         playerPickupInteractor ??= GetComponent<PlayerPickupInteractor>();
         playerNoiseEmitter ??= GetComponent<PlayerNoiseEmitter>();
         playerFocusController ??= GetComponent<PlayerFocusController>();
+        actorStaggerController ??= GetComponent<ActorStaggerController>();
 
         if (playerVisionLight == null)
             playerVisionLight = GetComponentInChildren<PlayerVisionLight>(true);
@@ -288,6 +304,15 @@ public sealed class PlayerBodyDragController : MonoBehaviour
             yield break;
         }
 
+        yield return RotateTowardsBodyBeforeDrag(body);
+
+        if (activeBody != body || !IsBodyStillDraggable(body))
+        {
+            ReleaseDragState();
+            dragStartRoutine = null;
+            yield break;
+        }
+
         pendingDragStart = false;
         isDragging = true;
         nextDragFeedbackTime = Time.time;
@@ -316,7 +341,8 @@ public sealed class PlayerBodyDragController : MonoBehaviour
     private void ApplyDraggingRuntimeState()
     {
         playerMotor?.SetInputBlocked(false);
-        playerMotor?.SetExternalSpeedMultiplier(ResolveDragSpeedMultiplier());
+        playerMotor?.SetExternalSpeedOverride(true, ResolveDragMoveSpeed(), lockSpeedSelection: true);
+        playerMotor?.SetSprintBlocked(true);
         playerVisionLight?.SetMouseLookSuppressed(true);
         playerWeaponController?.SetInputBlocked(true);
         playerUtilityController?.SetInputBlocked(true);
@@ -337,7 +363,8 @@ public sealed class PlayerBodyDragController : MonoBehaviour
         nextDragFeedbackTime = float.NegativeInfinity;
 
         playerMotor?.SetInputBlocked(false);
-        playerMotor?.SetExternalSpeedMultiplier(1f);
+        playerMotor?.SetExternalSpeedOverride(false, 0f, lockSpeedSelection: false);
+        playerMotor?.SetSprintBlocked(false);
         playerVisionLight?.SetMouseLookSuppressed(false);
         playerWeaponController?.SetInputBlocked(false);
         playerUtilityController?.SetInputBlocked(false);
@@ -372,11 +399,66 @@ public sealed class PlayerBodyDragController : MonoBehaviour
     }
 
     /// <summary>
-    /// Resolves the dragged body follow point behind the player's current movement direction.
+    /// Rotates the player toward the dragged body before the drag fully starts.
+    /// </summary>
+    private IEnumerator RotateTowardsBodyBeforeDrag(DragBodyInteractable body)
+    {
+        if (body == null || playerVisionLight == null)
+            yield break;
+
+        while (activeBody == body && IsBodyStillDraggable(body))
+        {
+            if (!TryResolveDirectionToBody(body, out Vector2 directionToBody) || IsFacingBodyForDrag(directionToBody))
+                yield break;
+
+            playerVisionLight.ApplyExternalDirection(directionToBody, ResolveDragRotationSpeed(), Time.deltaTime);
+            yield return null;
+        }
+    }
+
+    /// <summary>
+    /// Returns whether the player is already facing the body closely enough to begin dragging.
+    /// </summary>
+    private bool IsFacingBodyForDrag(Vector2 directionToBody)
+    {
+        if (directionToBody.sqrMagnitude <= MinimumMovementThreshold)
+            return true;
+
+        Vector2 currentFacing = playerVisionLight != null && playerVisionLight.FacingDirection.sqrMagnitude > MinimumMovementThreshold
+            ? playerVisionLight.FacingDirection.normalized
+            : (Vector2)transform.up;
+        return Vector2.Dot(currentFacing, directionToBody.normalized) >= DragStartFacingDotThreshold;
+    }
+
+    /// <summary>
+    /// Resolves normalized world direction from the player to the dragged body.
+    /// </summary>
+    private bool TryResolveDirectionToBody(DragBodyInteractable body, out Vector2 directionToBody)
+    {
+        directionToBody = Vector2.zero;
+        if (body == null)
+            return false;
+
+        directionToBody = body.DragAnchorPosition - (Vector2)transform.position;
+        if (directionToBody.sqrMagnitude <= MinimumMovementThreshold)
+            return false;
+
+        directionToBody.Normalize();
+        return true;
+    }
+
+    /// <summary>
+    /// Resolves the dragged body follow point from the explicit player hold point when configured.
     /// </summary>
     private Vector2 ResolveDraggedBodyTargetPosition()
     {
+        if (draggedBodyHoldPoint != null)
+            return draggedBodyHoldPoint.position;
+
         Transform originTransform = dragOrigin != null ? dragOrigin : transform;
+        if (originTransform != transform)
+            return (Vector2)originTransform.position + (Vector2.up * dragVerticalOffset);
+
         Vector2 movementDirection = playerMotor != null && playerMotor.HasMovementInput
             ? playerMotor.MoveInput.normalized
             : playerMotor != null && playerMotor.LastMoveDirection.sqrMagnitude > MinimumMovementThreshold
@@ -428,14 +510,20 @@ public sealed class PlayerBodyDragController : MonoBehaviour
     }
 
     /// <summary>
-    /// Resolves the drag slowdown multiplier from global settings.
+    /// Resolves the drag-time player rotation speed using the current look smoothing and stagger modifiers.
     /// </summary>
-    private static float ResolveDragSpeedMultiplier()
+    private float ResolveDragRotationSpeed()
     {
-        if (GlobalSettings.Instance == null)
-            return 1f;
+        float baseRotationSpeed = playerVisionLight != null ? playerVisionLight.RotationSmoothing : 0f;
+        float staggerMultiplier = actorStaggerController != null ? actorStaggerController.TurnSpeedMultiplier : 1f;
+        return Mathf.Max(0f, baseRotationSpeed * staggerMultiplier);
+    }
 
-        float slowPercent = Mathf.Clamp(GlobalSettings.Instance.DragSlowPercentage, 0f, 100f);
-        return Mathf.Clamp01(1f - (slowPercent / 100f));
+    /// <summary>
+    /// Resolves drag movement speed to the player's slowest walk level.
+    /// </summary>
+    private float ResolveDragMoveSpeed()
+    {
+        return playerMotor != null ? playerMotor.MinWalkSpeed : 0f;
     }
 }

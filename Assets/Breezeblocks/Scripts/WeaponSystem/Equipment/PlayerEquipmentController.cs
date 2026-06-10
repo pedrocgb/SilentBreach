@@ -263,7 +263,10 @@ public class PlayerEquipmentController : MonoBehaviour
             inputReader = new RewiredPlayerInputReader(rewiredPlayerId);
 
         if (!inputReader.IsReady)
+        {
+            SetUnarmedAimState(false);
             return;
+        }
 
         if (inputBlocked)
         {
@@ -396,7 +399,7 @@ public class PlayerEquipmentController : MonoBehaviour
     }
 
     /// <summary>
-    /// Blocks equipment switching and panel usage while keeping drag-specific aim handling available.
+    /// Blocks equipment switching and clears empty-hand aim while body dragging is active.
     /// </summary>
     public void SetDragInputBlocked(bool blocked)
     {
@@ -406,7 +409,10 @@ public class PlayerEquipmentController : MonoBehaviour
             equipmentPanelUI.SetVisible(false);
 
         if (blocked)
+        {
+            SetUnarmedAimState(false);
             ApplyPanelPresentation(false);
+        }
     }
 
     /// <summary>
@@ -1085,25 +1091,12 @@ public class PlayerEquipmentController : MonoBehaviour
     }
 
     /// <summary>
-    /// Preserves unarmed aim camera behavior during body dragging without restoring mouse-look rotation.
+    /// Keeps empty-hand aiming disabled while dragging input restrictions remain active.
     /// </summary>
     private void UpdateDragAimState()
     {
-        if (CurrentHeldItem != null)
-        {
-            if (IsUnarmedAiming)
-                SetUnarmedAimState(false);
-
-            return;
-        }
-
-        bool canDragAim =
-            !IsSwitchingEquipment &&
-            !IsEquipmentPanelVisible &&
-            inputReader != null &&
-            inputReader.GetButton(aimAction);
-
-        SetUnarmedAimState(canDragAim);
+        if (IsUnarmedAiming)
+            SetUnarmedAimState(false);
     }
 
     // Executes the SetUnarmedAimState routine.

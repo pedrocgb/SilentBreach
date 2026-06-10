@@ -446,11 +446,8 @@ public class PlayerUtilityController : MonoBehaviour
         else
             ClearEquippedUtilityFromConsumption(throwableData);
 
-        if (EquippedThrowable == throwableData)
-        {
-            ThrowableThrowProgress01 = 0f;
-            NotifyUtilityStateChanged();
-        }
+        ThrowableThrowProgress01 = 0f;
+        NotifyUtilityStateChanged();
 
         busyRoutine = null;
     }
@@ -631,6 +628,12 @@ public class PlayerUtilityController : MonoBehaviour
             }
 
             return;
+        }
+
+        if (aimCamera != null)
+        {
+            aimCamera.SetFollowTarget(transform);
+            aimCamera.SetAimState(false, 0f);
         }
 
         float lookSpeed = playerVisionLight.RotationSmoothing;

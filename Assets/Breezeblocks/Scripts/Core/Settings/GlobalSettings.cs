@@ -216,11 +216,17 @@ public sealed class EquipmentContextUiSettings
     public string PerkTierText => Fallback(perkTierText, "Tier: ");
     public string PerkCostText => Fallback(perkCostText, "Cost: ");
 
+    /// <summary>
+    /// Returns the localized text used for a boolean equipment value.
+    /// </summary>
     public string GetBoolText(bool value)
     {
         return value ? YesText : NoText;
     }
 
+    /// <summary>
+    /// Returns the configured display name for the supplied equipment slot.
+    /// </summary>
     public string GetSlotDisplayName(EquipmentSlotType slotType)
     {
         return slotType switch
@@ -233,6 +239,9 @@ public sealed class EquipmentContextUiSettings
         };
     }
 
+    /// <summary>
+    /// Returns the configured display label for a throwable utility behavior.
+    /// </summary>
     public string GetThrowableBehaviorText(ThrowableUtilityBehavior behavior)
     {
         return behavior switch
@@ -245,6 +254,9 @@ public sealed class EquipmentContextUiSettings
         };
     }
 
+    /// <summary>
+    /// Returns the configured display label for a firearm class.
+    /// </summary>
     public string GetFirearmClassText(FirearmClass firearmClass)
     {
         return firearmClass switch
@@ -263,6 +275,9 @@ public sealed class EquipmentContextUiSettings
         };
     }
 
+    /// <summary>
+    /// Returns the configured display label for a firearm grip type.
+    /// </summary>
     public string GetFirearmGripText(FirearmGripType gripType)
     {
         return gripType switch
@@ -273,6 +288,9 @@ public sealed class EquipmentContextUiSettings
         };
     }
 
+    /// <summary>
+    /// Returns the configured display label for a melee grip type.
+    /// </summary>
     public string GetMeleeGripText(MeleeGripType gripType)
     {
         return gripType switch
@@ -283,6 +301,9 @@ public sealed class EquipmentContextUiSettings
         };
     }
 
+    /// <summary>
+    /// Returns the configured display label for a throwable detonation mode.
+    /// </summary>
     public string GetDetonationModeText(ThrowableDetonationMode detonationMode)
     {
         return detonationMode switch
@@ -294,6 +315,9 @@ public sealed class EquipmentContextUiSettings
         };
     }
 
+    /// <summary>
+    /// Returns the configured hideout label for the supplied job difficulty level.
+    /// </summary>
     public string GetJobLevelText(Breezeblocks.HideoutSystem.HideoutJobLevel jobLevel)
     {
         return jobLevel switch
@@ -306,6 +330,9 @@ public sealed class EquipmentContextUiSettings
         };
     }
 
+    /// <summary>
+    /// Returns a trimmed fallback value when the configured text is empty.
+    /// </summary>
     private static string Fallback(string value, string fallback)
     {
         return string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
@@ -348,6 +375,9 @@ public class GlobalSettings : MonoBehaviour
     [FoldoutGroup("Input Modes"), Tooltip("If true, focus works as toggle (press once). If false, hold to focus.")]
     [SerializeField] private bool focusToggleEnabled = false;
 
+    [FoldoutGroup("Input Modes"), Tooltip("If true, dragging a body requires holding interact. If false, interact toggles dragging on and off.")]
+    [SerializeField] private bool dragRequiresHoldInput = true;
+
     [FoldoutGroup("Noise"), MinValue(0f)]
     [Tooltip("How long a firearm shot noise spike lasts.")]
     [SerializeField] private float shotNoiseDuration = 0.1f;
@@ -376,6 +406,7 @@ public class GlobalSettings : MonoBehaviour
 
     public bool SprintToggleEnabled => sprintToggleEnabled;
     public bool FocusToggleEnabled => focusToggleEnabled;
+    public bool DragRequiresHoldInput => dragRequiresHoldInput;
     public float ShotNoiseDuration => shotNoiseDuration;
     public float EquipNoiseDuration => equipNoiseDuration;
     public float HolsterNoiseDuration => holsterNoiseDuration;
@@ -386,6 +417,9 @@ public class GlobalSettings : MonoBehaviour
 
     public event Action SettingsChanged;
 
+    /// <summary>
+    /// Registers the singleton instance and preserves it across scene loads.
+    /// </summary>
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -398,12 +432,18 @@ public class GlobalSettings : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
+    /// <summary>
+    /// Clears the singleton reference when this settings object is destroyed.
+    /// </summary>
     private void OnDestroy()
     {
         if (Instance == this)
             Instance = null;
     }
 
+    /// <summary>
+    /// Clamps editable values and restores missing inline settings containers.
+    /// </summary>
     private void OnValidate()
     {
         shotNoiseDuration = Mathf.Max(0f, shotNoiseDuration);
@@ -415,6 +455,9 @@ public class GlobalSettings : MonoBehaviour
         hudUi ??= new HudUiSettings();
     }
 
+    /// <summary>
+    /// Toggles sprint input between hold and toggle modes for quick testing.
+    /// </summary>
     [Button(ButtonSizes.Small)]
     [FoldoutGroup("Actions")]
     public void ToggleSprintMode()
@@ -422,6 +465,9 @@ public class GlobalSettings : MonoBehaviour
         SetSprintToggleEnabled(!sprintToggleEnabled);
     }
 
+    /// <summary>
+    /// Toggles focus input between hold and toggle modes for quick testing.
+    /// </summary>
     [Button(ButtonSizes.Small)]
     [FoldoutGroup("Actions")]
     public void ToggleFocusMode()
@@ -429,6 +475,9 @@ public class GlobalSettings : MonoBehaviour
         SetFocusToggleEnabled(!focusToggleEnabled);
     }
 
+    /// <summary>
+    /// Updates the configured sprint input mode and broadcasts the change when needed.
+    /// </summary>
     public void SetSprintToggleEnabled(bool enabled)
     {
         if (sprintToggleEnabled == enabled)
@@ -438,6 +487,9 @@ public class GlobalSettings : MonoBehaviour
         SettingsChanged?.Invoke();
     }
 
+    /// <summary>
+    /// Updates the configured focus input mode and broadcasts the change when needed.
+    /// </summary>
     public void SetFocusToggleEnabled(bool enabled)
     {
         if (focusToggleEnabled == enabled)

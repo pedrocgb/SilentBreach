@@ -153,6 +153,9 @@ public partial class EnemyCombatantAI : MonoBehaviour
     public FirearmData EquippedFirearm => equippedFirearm;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public bool HasConfiguredFirearmLoadout => equippedFirearm != null || stowedFirearm != null || startingFirearm != null;
+
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public ProjectileData CurrentProjectile => currentProjectile;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]

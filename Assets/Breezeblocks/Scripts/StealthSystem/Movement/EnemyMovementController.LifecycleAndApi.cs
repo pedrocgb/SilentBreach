@@ -297,6 +297,7 @@ public partial class EnemyMovementController
         alertChaseTarget = settings.ChaseTarget;
         alertNoiseFocusDuration = settings.AlertNoiseFocusDuration;
         alertTargetLostDuration = settings.AlertTargetLostDuration;
+        confusedByLightsOff = settings.ConfusedByLightsOff;
         defaultLookAroundDuration = settings.DefaultLookAroundDuration;
         lookAroundTurnInterval = settings.LookAroundTurnInterval;
         lookAroundRotationSpeed = settings.LookAroundRotationSpeed;

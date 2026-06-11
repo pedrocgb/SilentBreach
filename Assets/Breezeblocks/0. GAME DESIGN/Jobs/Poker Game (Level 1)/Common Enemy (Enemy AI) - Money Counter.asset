@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bfb037fa2fd9482fab94a9e06f6ba17f, type: 3}
-  m_Name: Common Enemy (Enemy AI)
+  m_Name: Common Enemy (Enemy AI) - Money Counter
   m_EditorClassIdentifier: Assembly-CSharp::EnemyStatsProfile
   Health:
     MaxHealth: 1
@@ -47,6 +47,7 @@ MonoBehaviour:
     ChaseTarget: 0
     AlertNoiseFocusDuration: 0
     AlertTargetLostDuration: 0
+    ConfusedByLightsOff: 1
     DefaultLookAroundDuration: 2.5
     LookAroundTurnInterval: 0.5
     LookAroundRotationSpeed: 360
@@ -67,6 +68,7 @@ MonoBehaviour:
     ForceZeroGravity: 1
     RecommendedInterpolation: 1
     RecommendedCollisionDetection: 1
+    AllowClosedDoorTraversalWhilePatrol: 1
     AllowClosedDoorTraversalWhileAlert: 1
     AllowClosedDoorTraversalWhileSuspicious: 1
     AllowClosedDoorTraversalWhileSearching: 1
@@ -74,6 +76,7 @@ MonoBehaviour:
     AllowClosedDoorTraversalWhileDetected: 1
     ClosedDoorPathTag: 1
     ClosedDoorTagPenalty: 0
+    ClosedDoorPatrolTagPenalty: 0
     DoorDetectionMask:
       serializedVersion: 2
       m_Bits: 8192
@@ -97,6 +100,7 @@ MonoBehaviour:
     FullDetectionRadius: 1
     FullDetectionSpeedMultiplier: 5
     ReactToFlashlight: 0
+    ReactToBodies: 1
     FlashlightSourceLostDuration: 2
     FlashlightSourceUpdateDistance: 0.75
     FlashlightVisibilitySampleCount: 5

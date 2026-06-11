@@ -46,7 +46,7 @@ MonoBehaviour:
       de roubar o livro de contabilidade."
     timeLimitSeconds: 300
   fixerName: Mara Velvet Quinn
-  jobImage: {fileID: 0}
+  jobImage: {fileID: -4161253881164705485, guid: 8b859e5929d41a1ad8694dab75504fc5, type: 3}
   missionSceneBuildIndex: 1
   missionSceneName: '[2] Poker Scene'
   unlockJobs: []

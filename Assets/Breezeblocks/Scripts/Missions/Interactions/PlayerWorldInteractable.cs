@@ -19,6 +19,8 @@ public abstract class PlayerWorldInteractable : MonoBehaviour
     public virtual Vector3 InteractionPosition => transform.position;
     public static System.Collections.Generic.IReadOnlyList<PlayerWorldInteractable> ActiveInteractables => PlayerWorldInteractableRegistry.ActiveInteractables;
 
+    public event System.Action<PlayerWorldInteractable> InteractionPresentationChanged;
+
     /// <summary>
     /// Registers the interactable so players can discover it at runtime.
     /// </summary>
@@ -57,6 +59,14 @@ public abstract class PlayerWorldInteractable : MonoBehaviour
     public bool TryInteract(GameObject interactorRoot)
     {
         return CanInteract(interactorRoot) && Interact(interactorRoot);
+    }
+
+    /// <summary>
+    /// Requests any listening UI to refresh labels or other presentation tied to this interactable.
+    /// </summary>
+    public void RefreshInteractionPresentation()
+    {
+        InteractionPresentationChanged?.Invoke(this);
     }
 
     /// <summary>

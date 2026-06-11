@@ -48,7 +48,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HitscanProjectile
   hitMask:
     serializedVersion: 2
-    m_Bits: 1408
+    m_Bits: 9600
+  maxRaycastHits: 16
   tracerLineRenderer: {fileID: 3228604103076080997}
   enableTracer: 1
   tracerWidth: 0.06

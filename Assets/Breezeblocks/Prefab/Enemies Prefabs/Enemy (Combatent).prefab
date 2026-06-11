@@ -1651,6 +1651,7 @@ MonoBehaviour:
   roomAwareness: 1
   roomCheckInterval: 0.15
   waitBeforeSwitchDuration: 1
+  confusedReactionDuration: 1.2
   lookAroundDurationAfterTurningLightsOn: 2.5
   lookAroundTurnInterval: 0.45
   lookAroundRotationSpeed: 420

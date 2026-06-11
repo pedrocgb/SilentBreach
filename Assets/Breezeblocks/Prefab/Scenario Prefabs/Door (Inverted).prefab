@@ -151,6 +151,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4664345644626027478}
   - component: {fileID: 477984493023383602}
+  - component: {fileID: 4793426397204418625}
   m_Layer: 0
   m_Name: Door (Inverted)
   m_TagString: Untagged
@@ -199,15 +200,14 @@ MonoBehaviour:
   defaultState: 2
   awarenessSamplePoint: {fileID: 4664345644626027478}
   visibilitySampleInterval: 0.1
-  startOpen: 0
   closedLocalAngle: 0
   openAngleOffset: -80
   animationDuration: 0.28
   animationEase: 9
   allowPlayerInteraction: 1
   allowEnemyAutoOpen: 1
-  openInteractionLabel: Open Door
-  closeInteractionLabel: Close Door
+  openInteractionLabel: Abrir
+  closeInteractionLabel: Fechar
   updateAstarDoorTags: 1
   openPathTag: 0
   closedPathTag: 1
@@ -239,6 +239,22 @@ MonoBehaviour:
     NoiseType: 1
     NoiseAmount: 0.35
     ExtremeNoise: 0
+--- !u!114 &4793426397204418625
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8231353842638243740}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4b62f9f9b3d4e4d99d81b1f8f3a2c71, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.Missions.DoorLockState
+  startsLocked: 0
+  lockedInteractionLabel: Destrancar
+  definition: {fileID: 0}
+  enemiesThatIgnoreLockedState: []
 --- !u!1 &8987184389477901474
 GameObject:
   m_ObjectHideFlags: 0

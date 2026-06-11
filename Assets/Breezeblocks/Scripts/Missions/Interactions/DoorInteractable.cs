@@ -33,6 +33,9 @@ public class DoorInteractable : PlayerWorldInteractable
 
         public bool ExtremeNoise;
 
+        /// <summary>
+        /// Validates the authored SFX and noise settings for this door action.
+        /// </summary>
         public void Validate()
         {
             Sfx ??= new AudioClipSet();
@@ -135,9 +138,11 @@ public class DoorInteractable : PlayerWorldInteractable
     public Bounds AwarenessBounds => ResolveAwarenessBounds();
 
     public override string InteractionDisplayName =>
-        isOpen
-            ? (string.IsNullOrWhiteSpace(closeInteractionLabel) ? base.InteractionDisplayName : closeInteractionLabel)
-            : (string.IsNullOrWhiteSpace(openInteractionLabel) ? base.InteractionDisplayName : openInteractionLabel);
+        doorLockState != null && doorLockState.IsLocked
+            ? doorLockState.LockedInteractionDisplayName
+            : isOpen
+                ? (string.IsNullOrWhiteSpace(closeInteractionLabel) ? base.InteractionDisplayName : closeInteractionLabel)
+                : (string.IsNullOrWhiteSpace(openInteractionLabel) ? base.InteractionDisplayName : openInteractionLabel);
 
     public override Vector3 InteractionPosition => interactionPoint != null ? interactionPoint.position : base.InteractionPosition;
 
@@ -146,12 +151,15 @@ public class DoorInteractable : PlayerWorldInteractable
     private Tween rotationTween;
     private bool isOpen;
     private bool isTransitioning;
-    private bool pendingTargetOpenState;
     private Bounds closedPathBounds;
     private bool hasClosedPathBounds;
     private float cachedVisibility = 1f;
     private float nextVisibilitySampleTime = float.NegativeInfinity;
+    private DoorLockState doorLockState;
 
+    /// <summary>
+    /// Caches nearby authoring references and records the currently authored closed angle when reset.
+    /// </summary>
     private void Reset()
     {
         ResolveReferences();
@@ -160,6 +168,9 @@ public class DoorInteractable : PlayerWorldInteractable
             closedLocalAngle = NormalizeAngle(doorPivot.localEulerAngles.z);
     }
 
+    /// <summary>
+    /// Registers the door in the runtime discovery list when it becomes active.
+    /// </summary>
     protected override void OnEnable()
     {
         base.OnEnable();
@@ -168,6 +179,9 @@ public class DoorInteractable : PlayerWorldInteractable
             ActiveDoorsInternal.Add(this);
     }
 
+    /// <summary>
+    /// Caches runtime references, validates state, and applies the authored initial door state.
+    /// </summary>
     private void Awake()
     {
         ResolveReferences();
@@ -178,14 +192,19 @@ public class DoorInteractable : PlayerWorldInteractable
         ApplyBlockingColliderState(initialOpenState);
         isOpen = initialOpenState;
         isTransitioning = false;
-        pendingTargetOpenState = initialOpenState;
     }
 
+    /// <summary>
+    /// Applies the initial A* door tags once all runtime references are ready.
+    /// </summary>
     private void Start()
     {
         ApplyDoorPathTags(flushGraphUpdates: true, repathEnemies: false);
     }
 
+    /// <summary>
+    /// Unregisters the door and stops any in-flight animation when it is disabled.
+    /// </summary>
     protected override void OnDisable()
     {
         base.OnDisable();
@@ -195,6 +214,9 @@ public class DoorInteractable : PlayerWorldInteractable
         isTransitioning = false;
     }
 
+    /// <summary>
+    /// Clamps authoring values, trims labels, and previews the current default state in the editor.
+    /// </summary>
     protected override void OnValidate()
     {
         base.OnValidate();
@@ -212,28 +234,42 @@ public class DoorInteractable : PlayerWorldInteractable
         }
     }
 
+    /// <summary>
+    /// Returns whether the player may currently interact with this door or start its lockpick flow.
+    /// </summary>
     public override bool CanInteract(GameObject interactorRoot)
     {
-        return allowPlayerInteraction &&
-               !isTransitioning &&
-               base.CanInteract(interactorRoot);
+        if (!allowPlayerInteraction || isTransitioning || !base.CanInteract(interactorRoot))
+            return false;
+
+        return doorLockState == null || !doorLockState.IsLocked || doorLockState.CanPlayerAttemptUnlock(interactorRoot);
     }
 
+    /// <summary>
+    /// Returns whether the supplied enemy may auto-open this door based on door state and lock overrides.
+    /// </summary>
     public bool CanBeAutoOpenedByEnemy(EnemyMovementController enemyMovementController)
     {
         return enemyMovementController != null &&
                allowEnemyAutoOpen &&
                !isTransitioning &&
                !isOpen &&
+               CanActorOperateDoor(enemyMovementController.gameObject) &&
                IsInteractionEnabled &&
                isActiveAndEnabled;
     }
 
+    /// <summary>
+    /// Attempts to open this door for the supplied enemy when auto-open rules allow it.
+    /// </summary>
     public bool TryOpenForEnemy(EnemyMovementController enemyMovementController)
     {
         return TrySetOpen(true, playFeedback: true, enemyMovementController != null ? enemyMovementController.gameObject : null);
     }
 
+    /// <summary>
+    /// Restores the door to its authored default state when one exists and the actor may operate the door.
+    /// </summary>
     public bool TryRestoreDefaultState(GameObject interactorRoot = null)
     {
         if (!TryResolveDefaultOpenState(out bool shouldBeOpen))
@@ -242,6 +278,9 @@ public class DoorInteractable : PlayerWorldInteractable
         return TrySetOpen(shouldBeOpen, playFeedback: true, interactorRoot);
     }
 
+    /// <summary>
+    /// Returns the currently sampled light visibility for this door's awareness point.
+    /// </summary>
     public float GetCurrentVisibility(bool forceRefresh = false)
     {
         if (!Application.isPlaying)
@@ -255,12 +294,14 @@ public class DoorInteractable : PlayerWorldInteractable
         return cachedVisibility;
     }
 
+    /// <summary>
+    /// Attempts to change the door state, respecting lock rules before animating or applying feedback.
+    /// </summary>
     public bool TrySetOpen(bool open, bool playFeedback = true, GameObject interactorRoot = null)
     {
-        if (isTransitioning || isOpen == open)
+        if (isTransitioning || isOpen == open || !CanActorOperateDoor(interactorRoot))
             return false;
 
-        pendingTargetOpenState = open;
         isTransitioning = true;
         ApplyBlockingColliderState(open);
 
@@ -290,11 +331,20 @@ public class DoorInteractable : PlayerWorldInteractable
         return true;
     }
 
+    /// <summary>
+    /// Starts lockpicking while locked, otherwise toggles the door between open and closed.
+    /// </summary>
     protected override bool Interact(GameObject interactorRoot)
     {
+        if (doorLockState != null && doorLockState.IsLocked)
+            return doorLockState.TryBeginLockpick(interactorRoot);
+
         return TrySetOpen(!isOpen, playFeedback: true, interactorRoot);
     }
 
+    /// <summary>
+    /// Resolves optional local references and same-object dependencies used by the door.
+    /// </summary>
     private void ResolveReferences()
     {
         if (doorPivot == null)
@@ -305,8 +355,13 @@ public class DoorInteractable : PlayerWorldInteractable
 
         if (worldSfxManager == null)
             worldSfxManager = WorldSfxManager.Instance;
+
+        doorLockState = GetComponent<DoorLockState>();
     }
 
+    /// <summary>
+    /// Clamps authored values and validates the nested feedback definitions.
+    /// </summary>
     private void ValidateState()
     {
         animationDuration = Mathf.Max(MinimumAnimationDuration, animationDuration);
@@ -319,6 +374,9 @@ public class DoorInteractable : PlayerWorldInteractable
         closedPathTag = Mathf.Clamp(closedPathTag, 0, 31);
     }
 
+    /// <summary>
+    /// Caches the doorway bounds used to apply local A* graph tag updates for open and closed states.
+    /// </summary>
     private void CacheClosedPathBounds()
     {
         Collider2D boundsSource = ResolvePathBoundsSource();
@@ -353,6 +411,9 @@ public class DoorInteractable : PlayerWorldInteractable
         Physics2D.SyncTransforms();
     }
 
+    /// <summary>
+    /// Resolves the collider used as the source for local pathfinding updates.
+    /// </summary>
     private Collider2D ResolvePathBoundsSource()
     {
         if (pathTagBoundsCollider != null)
@@ -361,6 +422,9 @@ public class DoorInteractable : PlayerWorldInteractable
         return blockingCollider;
     }
 
+    /// <summary>
+    /// Resolves the runtime awareness bounds used for room-door visibility checks.
+    /// </summary>
     private Bounds ResolveAwarenessBounds()
     {
         Collider2D boundsSource = ResolvePathBoundsSource();
@@ -370,17 +434,23 @@ public class DoorInteractable : PlayerWorldInteractable
         return new Bounds(transform.position, Vector3.zero);
     }
 
+    /// <summary>
+    /// Finalizes the new door state, refreshes pathfinding, and notifies any listeners or prompt UI.
+    /// </summary>
     private void CompleteDoorStateChange(bool open)
     {
         ApplyDoorVisualStateImmediate(open);
         ApplyBlockingColliderState(open);
         isOpen = open;
         isTransitioning = false;
-        pendingTargetOpenState = open;
         ApplyDoorPathTags(flushGraphUpdatesImmediately, repathEnemiesAfterStateChange);
         DoorStateChanged?.Invoke(this, isOpen);
+        RefreshInteractionPresentation();
     }
 
+    /// <summary>
+    /// Applies the requested open or closed angle immediately without tweening.
+    /// </summary>
     private void ApplyDoorVisualStateImmediate(bool open)
     {
         if (doorPivot == null)
@@ -402,16 +472,22 @@ public class DoorInteractable : PlayerWorldInteractable
         blockingCollider.enabled = !open;
     }
 
+    /// <summary>
+    /// Resolves the local Z angle that corresponds to the requested open or closed state.
+    /// </summary>
     private float ResolveTargetAngle(bool open)
     {
         return NormalizeAngle(open ? closedLocalAngle + openAngleOffset : closedLocalAngle);
     }
 
     /// <summary>
-    /// Resolves initial open state from authored default-state tags or the current configured door rotation.
+    /// Resolves initial open state from the lock setup, authored default-state tags, or the current configured door rotation.
     /// </summary>
     private bool ResolveInitialOpenState()
     {
+        if (doorLockState != null && doorLockState.StartsLocked)
+            return false;
+
         return defaultState switch
         {
             DoorDefaultState.Open => true,
@@ -434,6 +510,9 @@ public class DoorInteractable : PlayerWorldInteractable
         return openAngleDelta < closedAngleDelta;
     }
 
+    /// <summary>
+    /// Resolves the default open state from the authored awareness tag when one is assigned.
+    /// </summary>
     private bool TryResolveDefaultOpenState(out bool shouldBeOpen)
     {
         shouldBeOpen = false;
@@ -452,6 +531,17 @@ public class DoorInteractable : PlayerWorldInteractable
         }
     }
 
+    /// <summary>
+    /// Returns whether the supplied actor may currently operate this door based on its locked state.
+    /// </summary>
+    private bool CanActorOperateDoor(GameObject actorRoot)
+    {
+        return doorLockState == null || !doorLockState.IsLocked || doorLockState.CanActorBypassLockedState(actorRoot);
+    }
+
+    /// <summary>
+    /// Applies the door's local A* graph tag update and optionally repaths active enemies afterward.
+    /// </summary>
     private void ApplyDoorPathTags(bool flushGraphUpdates, bool repathEnemies)
     {
         if (!Application.isPlaying || !updateAstarDoorTags || !hasClosedPathBounds || AstarPath.active == null)
@@ -476,6 +566,9 @@ public class DoorInteractable : PlayerWorldInteractable
             enemyControllers[i]?.HandleEnvironmentPathingChanged();
     }
 
+    /// <summary>
+    /// Plays door SFX and emits matching world noise for the requested open or close action.
+    /// </summary>
     private void PlayDoorFeedback(bool opening)
     {
         DoorAudioDefinition audioDefinition = opening ? openAudio : closeAudio;
@@ -496,6 +589,9 @@ public class DoorInteractable : PlayerWorldInteractable
         worldSfxManager?.PlayClipSetAt(feedbackPosition, audioDefinition.Sfx, audioDefinition.NoiseType);
     }
 
+    /// <summary>
+    /// Normalizes an angle into the 0-to-360 degree range.
+    /// </summary>
     private static float NormalizeAngle(float angle)
     {
         angle %= 360f;

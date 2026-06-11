@@ -7,6 +7,7 @@ internal enum EnemyRoomAwarenessReactionType
 {
     None,
     Light,
+    ConfusedLight,
     DoorState
 }
 
@@ -21,6 +22,7 @@ public class EnemyRoomAwareness : MonoBehaviour
     private EnemyMovementController enemyMovementController;
     private AIHearing aiHearing;
     private EnemyVisionAI enemyVisionAI;
+    private EnemyConfusedReactionIndicator confusedReactionIndicator;
 
     [FoldoutGroup("Room Awareness")]
     [SerializeField] private bool roomAwareness = true;
@@ -30,6 +32,9 @@ public class EnemyRoomAwareness : MonoBehaviour
 
     [FoldoutGroup("Room Awareness"), MinValue(0f), SuffixLabel("s", true)]
     [SerializeField] private float waitBeforeSwitchDuration = 1f;
+
+    [FoldoutGroup("Room Awareness"), MinValue(MinimumInterval), SuffixLabel("s", true)]
+    [SerializeField] private float confusedReactionDuration = 1.2f;
 
     [FoldoutGroup("Room Awareness"), MinValue(0f), SuffixLabel("s", true)]
     [SerializeField] private float lookAroundDurationAfterTurningLightsOn = 2.5f;
@@ -59,6 +64,9 @@ public class EnemyRoomAwareness : MonoBehaviour
     public bool IsReactingToDarkRoom => reactionRoutine != null && currentReactionType == EnemyRoomAwarenessReactionType.Light;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public bool IsReactingToConfusedLight => reactionRoutine != null && currentReactionType == EnemyRoomAwarenessReactionType.ConfusedLight;
+
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsReactingToDoorState => reactionRoutine != null && currentReactionType == EnemyRoomAwarenessReactionType.DoorState;
 
     private EnemyRoomZone currentRoom;
@@ -67,6 +75,7 @@ public class EnemyRoomAwareness : MonoBehaviour
     private bool currentRoomLightsOn = true;
     private bool cancelReactionRequested;
     private bool cancelReactionKeepCurrentBehavior;
+    private bool pendingConfusedLightReaction;
     private EnemyRoomZone reactingRoom;
     private EnemyRoomAwarenessReactionType currentReactionType;
     private DoorInteractable reactingDoor;
@@ -134,6 +143,7 @@ public class EnemyRoomAwareness : MonoBehaviour
         SubscribeToCurrentRoom(null);
         currentRoom = null;
         currentRoomLightsOn = true;
+        pendingConfusedLightReaction = false;
         ForceEndReaction(resumeDefaultBehavior: false);
     }
 
@@ -149,6 +159,7 @@ public class EnemyRoomAwareness : MonoBehaviour
         lookAroundTurnInterval = Mathf.Max(MinimumInterval, lookAroundTurnInterval);
         lookAroundRotationSpeed = Mathf.Max(0f, lookAroundRotationSpeed);
         waitBeforeDoorStateFixDuration = Mathf.Max(0f, waitBeforeDoorStateFixDuration);
+        confusedReactionDuration = Mathf.Max(MinimumInterval, confusedReactionDuration);
     }
 
     /// <summary>
@@ -195,11 +206,23 @@ public class EnemyRoomAwareness : MonoBehaviour
             return;
 
         currentRoomLightsOn = lightsOn;
+        if (lightsOn)
+            pendingConfusedLightReaction = false;
+
         if (!roomAwareness)
             return;
 
         if (!lightsOn)
+        {
+            if (enemyMovementController != null &&
+                enemyMovementController.ConfusedByLightsOff &&
+                !IsHigherPriorityState(enemyMovementController.CurrentState))
+            {
+                pendingConfusedLightReaction = true;
+            }
+
             RequestCancelReaction(keepCurrentBehavior: false);
+        }
     }
 
     /// <summary>
@@ -213,6 +236,7 @@ public class EnemyRoomAwareness : MonoBehaviour
             SubscribeToCurrentRoom(nextRoom);
             currentRoom = nextRoom;
             currentRoomLightsOn = currentRoom == null || currentRoom.AreLightsOn;
+            pendingConfusedLightReaction = false;
 
             if (reactionRoutine != null && reactingRoom != null && reactingRoom != currentRoom)
                 RequestCancelReaction(keepCurrentBehavior: false);
@@ -253,6 +277,24 @@ public class EnemyRoomAwareness : MonoBehaviour
     }
 
     /// <summary>
+    /// Starts the confused-by-darkness reaction when the enemy witnessed the lights turning off.
+    /// </summary>
+    private void TryStartConfusedLightReaction(EnemyRoomZone room)
+    {
+        if (room == null ||
+            reactionRoutine != null ||
+            !pendingConfusedLightReaction ||
+            !CanStartRoomReaction(room))
+        {
+            return;
+        }
+
+        pendingConfusedLightReaction = false;
+        currentReactionType = EnemyRoomAwarenessReactionType.ConfusedLight;
+        reactionRoutine = StartCoroutine(ConfusedLightReactionRoutine(room));
+    }
+
+    /// <summary>
     /// Starts the highest-priority room-driven reaction for the current room.
     /// </summary>
     private void TryStartHighestPriorityRoomReaction()
@@ -262,7 +304,11 @@ public class EnemyRoomAwareness : MonoBehaviour
 
         if (!currentRoomLightsOn)
         {
-            TryStartDarkRoomReaction(currentRoom);
+            if (enemyMovementController != null && enemyMovementController.ConfusedByLightsOff)
+                TryStartConfusedLightReaction(currentRoom);
+            else
+                TryStartDarkRoomReaction(currentRoom);
+
             return;
         }
 
@@ -356,6 +402,35 @@ public class EnemyRoomAwareness : MonoBehaviour
         enemyMovementController.SetExternalInvestigation(transform.position, EnemyState.Suspicious);
         yield return LookAroundAfterTurningLightsOn(room);
         if (!cancelReactionRequested)
+            completedNormally = true;
+
+        FinishReaction(completedNormally);
+    }
+
+    /// <summary>
+    /// Drives the temporary confusion reaction used by enemies that freeze when lights go out.
+    /// </summary>
+    private IEnumerator ConfusedLightReactionRoutine(EnemyRoomZone room)
+    {
+        reactingRoom = room;
+        reactingDoor = null;
+        cancelReactionRequested = false;
+        cancelReactionKeepCurrentBehavior = false;
+        bool completedNormally = false;
+
+        enemyMovementController.SetExternalInvestigation(transform.position, EnemyState.Suspicious);
+        confusedReactionIndicator?.Play(confusedReactionDuration);
+
+        float endTime = Time.time + confusedReactionDuration;
+        while (!cancelReactionRequested && Time.time < endTime)
+        {
+            if (!CanContinueCurrentReaction(room, cancelIfLightsTurnOn: true, cancelIfLightsTurnOff: false))
+                break;
+
+            yield return null;
+        }
+
+        if (!cancelReactionRequested && Time.time >= endTime)
             completedNormally = true;
 
         FinishReaction(completedNormally);
@@ -654,6 +729,7 @@ public class EnemyRoomAwareness : MonoBehaviour
     /// </summary>
     private void FinishReaction(bool completedNormally)
     {
+        confusedReactionIndicator?.HideImmediate();
         enemyMovementController?.ClearExternalFacingOverride();
         enemyMovementController?.SetExternalTurnSpeedOverride(false, 0f);
         enemyMovementController?.ClearFacingOverride();
@@ -683,6 +759,7 @@ public class EnemyRoomAwareness : MonoBehaviour
 
         if (hadActiveReaction)
         {
+            confusedReactionIndicator?.HideImmediate();
             enemyMovementController?.ClearExternalFacingOverride();
             enemyMovementController?.SetExternalTurnSpeedOverride(false, 0f);
             enemyMovementController?.ClearFacingOverride();
@@ -719,6 +796,7 @@ public class EnemyRoomAwareness : MonoBehaviour
         enemyMovementController ??= GetComponent<EnemyMovementController>();
         aiHearing ??= GetComponent<AIHearing>();
         enemyVisionAI ??= GetComponent<EnemyVisionAI>();
+        confusedReactionIndicator ??= GetComponent<EnemyConfusedReactionIndicator>();
     }
 
     /// <summary>

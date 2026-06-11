@@ -279,6 +279,9 @@ public class EnemyMovementSettings
     [FoldoutGroup("Alert"), MinValue(0f), SuffixLabel("s", true)]
     public float AlertTargetLostDuration = 3f;
 
+    [FoldoutGroup("Room Awareness")]
+    public bool ConfusedByLightsOff;
+
     [FoldoutGroup("Look Around"), MinValue(0f), SuffixLabel("s", true)]
     public float DefaultLookAroundDuration = 2.5f;
 

@@ -278,6 +278,7 @@ public partial class EnemyMovementController : MonoBehaviour
     private bool alertChaseTarget = true;
     private float alertNoiseFocusDuration = 2f;
     private float alertTargetLostDuration = 3f;
+    private bool confusedByLightsOff;
     private float defaultLookAroundDuration = 2.5f;
     private float lookAroundTurnInterval = 0.5f;
     private float lookAroundRotationSpeed = 360f;
@@ -391,6 +392,9 @@ public partial class EnemyMovementController : MonoBehaviour
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool HasExternalInvestigation => hasExternalInvestigation;
+
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public bool ConfusedByLightsOff => confusedByLightsOff;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsAlertState => currentState == EnemyState.Alert;

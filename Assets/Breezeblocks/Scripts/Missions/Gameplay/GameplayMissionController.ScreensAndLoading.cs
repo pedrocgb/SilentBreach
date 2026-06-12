@@ -88,12 +88,15 @@ public partial class GameplayMissionController
     /// <summary>
     /// Fades to black, shows the requested end screen, and clears the overlay alpha.
     /// </summary>
-    private IEnumerator FadeAndShowScreen(GameObject screen)
+    private IEnumerator FadeAndShowScreen(GameObject screen, bool restoreFailureTimeScaleWhenShown = false)
     {
         yield return FadeOverlayToBlackForScreen();
 
         if (screen != null)
             screen.SetActive(true);
+
+        if (restoreFailureTimeScaleWhenShown)
+            RestoreFailureTimeScale();
 
         fadeImageFader?.SetAlphaImmediate(0f);
     }
@@ -101,18 +104,21 @@ public partial class GameplayMissionController
     /// <summary>
     /// Runs mission failure presentation flow for death or rule-based failure.
     /// </summary>
-    private IEnumerator HandleMissionFailedRoutine(bool playerWasKilled, string screenMessage)
+    private IEnumerator HandleMissionFailedRoutine(
+        bool playerWasKilled,
+        string screenMessage,
+        Transform focusTarget = null,
+        bool applyPlayerKilledTint = false)
     {
         if (missionEnded)
             yield break;
 
         missionEnded = true;
-        Time.timeScale = 1f;
         escapePromptSequence?.Kill();
         escapePromptSequence = null;
         StopTimeLimitWarningPulse();
         BlockPlayerControls(true);
-        SetEndScreenPointerVisible(true);
+        BeginFailurePresentation(focusTarget, applyPlayerKilledTint);
         if (TryResolveMissionMusicController())
             missionMusicController.PlayGameOverMusic();
 
@@ -124,19 +130,29 @@ public partial class GameplayMissionController
         else if (questFailMessageText != null)
             questFailMessageText.text = string.IsNullOrWhiteSpace(screenMessage) ? "Mission Failed." : screenMessage;
 
-        yield return FadeAndShowScreen(playerWasKilled ? playerKilledScreen : questFailScreen);
+        float screenDelay = ResolveFailureScreenDelay();
+        if (screenDelay > 0f)
+            yield return new WaitForSecondsRealtime(screenDelay);
+
+        yield return FadeAndShowScreen(
+            playerWasKilled ? playerKilledScreen : questFailScreen,
+            restoreFailureTimeScaleWhenShown: true);
+        SetEndScreenPointerVisible(true);
     }
 
     /// <summary>
     /// Flags a failure state as triggered and starts failure handling.
     /// </summary>
-    private void TriggerMissionFailure(FailureRuntimeState failureState)
+    private void TriggerMissionFailure(FailureRuntimeState failureState, Transform focusTarget = null)
     {
         if (failureState == null)
             return;
 
         failureState.Triggered = true;
-        StartCoroutine(HandleMissionFailedRoutine(playerWasKilled: false, screenMessage: ResolveFailureScreenMessage(failureState.Definition)));
+        StartCoroutine(HandleMissionFailedRoutine(
+            playerWasKilled: false,
+            screenMessage: ResolveFailureScreenMessage(failureState.Definition),
+            focusTarget: focusTarget));
     }
 
     /// <summary>
@@ -265,7 +281,7 @@ public partial class GameplayMissionController
     /// </summary>
     private IEnumerator LoadSceneRoutine(int sceneBuildIndex, string fallbackSceneName, bool clearCurrentJob, bool completeCurrentJob)
     {
-        Time.timeScale = 1f;
+        ResetFailurePresentation();
 
         if (!SceneLoadUtility.CanLoadScene(sceneBuildIndex, fallbackSceneName))
         {
@@ -330,7 +346,7 @@ public partial class GameplayMissionController
     /// </summary>
     private void ResetSceneScopedRuntimeState()
     {
-        Time.timeScale = 1f;
+        ResetFailurePresentation();
         MissionRuntimeEvents.ResetRuntimeState();
         GameplayConsoleCheatState.ResetRuntimeState();
         FocusRevealTarget.ResetRuntimeState();

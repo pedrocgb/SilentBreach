@@ -245,9 +245,9 @@ MonoBehaviour:
       _descriptiveName: Horizontal movement
       _positiveDescriptiveName: Move right
       _negativeDescriptiveName: Move left
-      _key:
-      _positiveKey:
-      _negativeKey:
+      _key: 
+      _positiveKey: 
+      _negativeKey: 
       _behaviorId: 0
       _userAssignable: 1
       _categoryId: 0
@@ -257,9 +257,9 @@ MonoBehaviour:
       _descriptiveName: Vertical movement
       _positiveDescriptiveName: Move up
       _negativeDescriptiveName: Move down
-      _key:
-      _positiveKey:
-      _negativeKey:
+      _key: 
+      _positiveKey: 
+      _negativeKey: 
       _behaviorId: 0
       _userAssignable: 1
       _categoryId: 0
@@ -267,11 +267,11 @@ MonoBehaviour:
       _name: Reserved
       _type: 1
       _descriptiveName: Reserved action
-      _positiveDescriptiveName:
-      _negativeDescriptiveName:
-      _key:
-      _positiveKey:
-      _negativeKey:
+      _positiveDescriptiveName: 
+      _negativeDescriptiveName: 
+      _key: 
+      _positiveKey: 
+      _negativeKey: 
       _behaviorId: 0
       _userAssignable: 1
       _categoryId: 0
@@ -279,11 +279,11 @@ MonoBehaviour:
       _name: Sprint
       _type: 1
       _descriptiveName: Sprint
-      _positiveDescriptiveName:
-      _negativeDescriptiveName:
-      _key:
-      _positiveKey:
-      _negativeKey:
+      _positiveDescriptiveName: 
+      _negativeDescriptiveName: 
+      _key: 
+      _positiveKey: 
+      _negativeKey: 
       _behaviorId: 0
       _userAssignable: 1
       _categoryId: 0
@@ -291,11 +291,11 @@ MonoBehaviour:
       _name: Toggle Speed MinMax
       _type: 1
       _descriptiveName: Toggle minimum and maximum walk speed
-      _positiveDescriptiveName:
-      _negativeDescriptiveName:
-      _key:
-      _positiveKey:
-      _negativeKey:
+      _positiveDescriptiveName: 
+      _negativeDescriptiveName: 
+      _key: 
+      _positiveKey: 
+      _negativeKey: 
       _behaviorId: 0
       _userAssignable: 1
       _categoryId: 0
@@ -303,11 +303,11 @@ MonoBehaviour:
       _name: Mouse Wheel
       _type: 0
       _descriptiveName: Mouse wheel axis
-      _positiveDescriptiveName:
-      _negativeDescriptiveName:
-      _key:
-      _positiveKey:
-      _negativeKey:
+      _positiveDescriptiveName: 
+      _negativeDescriptiveName: 
+      _key: 
+      _positiveKey: 
+      _negativeKey: 
       _behaviorId: 0
       _userAssignable: 1
       _categoryId: 0
@@ -315,11 +315,11 @@ MonoBehaviour:
       _name: Aim
       _type: 1
       _descriptiveName: Aim
-      _positiveDescriptiveName:
-      _negativeDescriptiveName:
-      _key:
-      _positiveKey:
-      _negativeKey:
+      _positiveDescriptiveName: 
+      _negativeDescriptiveName: 
+      _key: 
+      _positiveKey: 
+      _negativeKey: 
       _behaviorId: 0
       _userAssignable: 1
       _categoryId: 0
@@ -435,11 +435,11 @@ MonoBehaviour:
       _name: Focus
       _type: 1
       _descriptiveName: Enter focus mode
-      _positiveDescriptiveName:
-      _negativeDescriptiveName:
-      _key:
-      _positiveKey:
-      _negativeKey:
+      _positiveDescriptiveName: 
+      _negativeDescriptiveName: 
+      _key: 
+      _positiveKey: 
+      _negativeKey: 
       _behaviorId: 0
       _userAssignable: 1
       _categoryId: 0
@@ -447,11 +447,11 @@ MonoBehaviour:
       _name: SkipIntro
       _type: 1
       _descriptiveName: Skip intro cinematic
-      _positiveDescriptiveName:
-      _negativeDescriptiveName:
-      _key:
-      _positiveKey:
-      _negativeKey:
+      _positiveDescriptiveName: 
+      _negativeDescriptiveName: 
+      _key: 
+      _positiveKey: 
+      _negativeKey: 
       _behaviorId: 0
       _userAssignable: 1
       _categoryId: 0
@@ -459,11 +459,11 @@ MonoBehaviour:
       _name: ToggleConsole
       _type: 1
       _descriptiveName: Toggle gameplay console
-      _positiveDescriptiveName:
-      _negativeDescriptiveName:
-      _key:
-      _positiveKey:
-      _negativeKey:
+      _positiveDescriptiveName: 
+      _negativeDescriptiveName: 
+      _key: 
+      _positiveKey: 
+      _negativeKey: 
       _behaviorId: 0
       _userAssignable: 1
       _categoryId: 0
@@ -471,11 +471,23 @@ MonoBehaviour:
       _name: Show HUD
       _type: 1
       _descriptiveName: Show gameplay HUD
-      _positiveDescriptiveName:
-      _negativeDescriptiveName:
-      _key:
-      _positiveKey:
-      _negativeKey:
+      _positiveDescriptiveName: 
+      _negativeDescriptiveName: 
+      _key: 
+      _positiveKey: 
+      _negativeKey: 
+      _behaviorId: 0
+      _userAssignable: 1
+      _categoryId: 0
+    - _id: 20
+      _name: Escape
+      _type: 1
+      _descriptiveName: Escape Button
+      _positiveDescriptiveName: 
+      _negativeDescriptiveName: 
+      _key: 
+      _positiveKey: 
+      _negativeKey: 
       _behaviorId: 0
       _userAssignable: 1
       _categoryId: 0
@@ -489,7 +501,7 @@ MonoBehaviour:
     actionCategoryMap:
       list:
       - categoryId: 0
-        actionIds: 000000000100000002000000030000000400000005000000060000000700000008000000090000000a0000000b0000000c0000000d0000000e0000000f00000010000000110000001200000013000000
+        actionIds: 000000000100000002000000030000000400000005000000060000000700000008000000090000000a0000000b0000000c0000000d0000000e0000000f0000001000000011000000120000001300000014000000
     inputBehaviors:
     - _id: 0
       _name: Default
@@ -553,13 +565,13 @@ MonoBehaviour:
       customControllerUid: 0
       actionElementMaps:
       - _actionCategoryId: 0
-        _actionId: 0
+        _actionId: 1
         _elementType: 1
         _elementIdentifierId: -1
         _axisRange: 0
         _invert: 0
         _axisContribution: 0
-        _keyboardKeyCode: 100
+        _keyboardKeyCode: 119
         _modifierKey1: 0
         _modifierKey2: 0
         _modifierKey3: 0
@@ -580,19 +592,19 @@ MonoBehaviour:
         _elementIdentifierId: -1
         _axisRange: 0
         _invert: 0
-        _axisContribution: 0
-        _keyboardKeyCode: 119
+        _axisContribution: 1
+        _keyboardKeyCode: 115
         _modifierKey1: 0
         _modifierKey2: 0
         _modifierKey3: 0
       - _actionCategoryId: 0
-        _actionId: 1
+        _actionId: 0
         _elementType: 1
         _elementIdentifierId: -1
         _axisRange: 0
         _invert: 0
-        _axisContribution: 1
-        _keyboardKeyCode: 115
+        _axisContribution: 0
+        _keyboardKeyCode: 100
         _modifierKey1: 0
         _modifierKey2: 0
         _modifierKey3: 0
@@ -685,17 +697,6 @@ MonoBehaviour:
         _modifierKey2: 0
         _modifierKey3: 0
       - _actionCategoryId: 0
-        _actionId: 14
-        _elementType: 1
-        _elementIdentifierId: -1
-        _axisRange: 0
-        _invert: 0
-        _axisContribution: 0
-        _keyboardKeyCode: 113
-        _modifierKey1: 0
-        _modifierKey2: 0
-        _modifierKey3: 0
-      - _actionCategoryId: 0
         _actionId: 15
         _elementType: 1
         _elementIdentifierId: -1
@@ -703,6 +704,17 @@ MonoBehaviour:
         _invert: 0
         _axisContribution: 0
         _keyboardKeyCode: 101
+        _modifierKey1: 0
+        _modifierKey2: 0
+        _modifierKey3: 0
+      - _actionCategoryId: 0
+        _actionId: 14
+        _elementType: 1
+        _elementIdentifierId: -1
+        _axisRange: 0
+        _invert: 0
+        _axisContribution: 0
+        _keyboardKeyCode: 113
         _modifierKey1: 0
         _modifierKey2: 0
         _modifierKey3: 0
@@ -747,6 +759,17 @@ MonoBehaviour:
         _invert: 0
         _axisContribution: 0
         _keyboardKeyCode: 9
+        _modifierKey1: 0
+        _modifierKey2: 0
+        _modifierKey3: 0
+      - _actionCategoryId: 0
+        _actionId: 20
+        _elementType: 1
+        _elementIdentifierId: -1
+        _axisRange: 0
+        _invert: 0
+        _axisContribution: 0
+        _keyboardKeyCode: 27
         _modifierKey1: 0
         _modifierKey2: 0
         _modifierKey3: 0
@@ -807,7 +830,7 @@ MonoBehaviour:
     controllerMapLayoutManagerRuleSets: []
     controllerMapEnablerRuleSets: []
     playerIdCounter: 2
-    actionIdCounter: 20
+    actionIdCounter: 21
     actionCategoryIdCounter: 1
     inputBehaviorIdCounter: 1
     mapCategoryIdCounter: 1

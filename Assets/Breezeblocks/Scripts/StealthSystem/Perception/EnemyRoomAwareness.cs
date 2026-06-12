@@ -206,6 +206,13 @@ public class EnemyRoomAwareness : MonoBehaviour
             return;
 
         currentRoomLightsOn = lightsOn;
+        if (IsRoomPowerDisabled(room))
+        {
+            pendingConfusedLightReaction = false;
+            RequestCancelReaction(keepCurrentBehavior: false);
+            return;
+        }
+
         if (lightsOn)
             pendingConfusedLightReaction = false;
 
@@ -304,6 +311,9 @@ public class EnemyRoomAwareness : MonoBehaviour
 
         if (!currentRoomLightsOn)
         {
+            if (IsRoomPowerDisabled(currentRoom))
+                return;
+
             if (enemyMovementController != null && enemyMovementController.ConfusedByLightsOff)
                 TryStartConfusedLightReaction(currentRoom);
             else
@@ -320,7 +330,18 @@ public class EnemyRoomAwareness : MonoBehaviour
     /// </summary>
     private bool CanStartRoomReaction(EnemyRoomZone room)
     {
-        return CanReactToRoomStimuli() && room != null && !room.AreLightsOn;
+        return CanReactToRoomStimuli() &&
+               room != null &&
+               !IsRoomPowerDisabled(room) &&
+               !room.AreLightsOn;
+    }
+
+    /// <summary>
+    /// Returns whether a fuse-box shutdown permanently removed power from this room's switch.
+    /// </summary>
+    private static bool IsRoomPowerDisabled(EnemyRoomZone room)
+    {
+        return room != null && room.LightSwitch != null && room.LightSwitch.IsPowerDisabled;
     }
 
     /// <summary>

@@ -32,17 +32,27 @@ public class LightSwitchInteractable : PlayerWorldInteractable
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsOn => isOn;
 
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public bool IsPowerDisabled => isPowerDisabled;
+
     public IReadOnlyList<GameObject> ControlledLights => controlledLights;
 
     private bool isOn;
+    private bool isPowerDisabled;
 
+    /// <summary>
+    /// Applies the authored starting state unless an external power shutdown already disabled this switch.
+    /// </summary>
     protected override void OnEnable()
     {
         base.OnEnable();
-        isOn = startEnabled;
+        isOn = !isPowerDisabled && startEnabled;
         ApplyLightState();
     }
 
+    /// <summary>
+    /// Validates reusable switch audio settings while editing.
+    /// </summary>
     protected override void OnValidate()
     {
         base.OnValidate();
@@ -50,13 +60,30 @@ public class LightSwitchInteractable : PlayerWorldInteractable
         toggleSfx.Validate();
     }
 
+    /// <summary>
+    /// Returns whether this switch has power and currently accepts player interaction.
+    /// </summary>
+    public override bool CanInteract(GameObject interactorRoot)
+    {
+        return !isPowerDisabled && base.CanInteract(interactorRoot);
+    }
+
+    /// <summary>
+    /// Toggles powered lights when the player interacts with this switch.
+    /// </summary>
     protected override bool Interact(GameObject interactorRoot)
     {
         return SetLightState(!isOn, playSfx: true, interactorRoot);
     }
 
+    /// <summary>
+    /// Applies a requested light state unless permanent power loss prevents turning lights on.
+    /// </summary>
     public bool SetLightState(bool enabled, bool playSfx = true, GameObject interactorRoot = null)
     {
+        if (enabled && isPowerDisabled)
+            return false;
+
         if (isOn == enabled)
             return false;
 
@@ -70,6 +97,32 @@ public class LightSwitchInteractable : PlayerWorldInteractable
         return true;
     }
 
+    /// <summary>
+    /// Permanently disables or restores switch power, forcing controlled lights off when disabled.
+    /// </summary>
+    public void SetPowerDisabled(bool disabled)
+    {
+        if (isPowerDisabled == disabled && (!disabled || !isOn))
+            return;
+
+        bool powerStateChanged = isPowerDisabled != disabled;
+        isPowerDisabled = disabled;
+        bool stateChanged = disabled && isOn;
+        if (disabled)
+        {
+            isOn = false;
+            ApplyLightState();
+        }
+
+        if (disabled && (powerStateChanged || stateChanged))
+            LightStateChanged?.Invoke(this, false);
+
+        RefreshInteractionPresentation();
+    }
+
+    /// <summary>
+    /// Activates or deactivates every scene light controlled by this switch.
+    /// </summary>
     private void ApplyLightState()
     {
         for (int i = 0; i < controlledLights.Count; i++)
@@ -79,6 +132,9 @@ public class LightSwitchInteractable : PlayerWorldInteractable
         }
     }
 
+    /// <summary>
+    /// Plays the configured world-space switch feedback when available.
+    /// </summary>
     private void PlayToggleSfx()
     {
         if (toggleSfx == null || !toggleSfx.HasAnyClip)

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Breezeblocks.Input;
-using Breezeblocks.WeaponSystem;
 using DG.Tweening;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -175,6 +174,7 @@ public sealed class LockpickMinigameController : MonoBehaviour
 
     private readonly List<LockpickTumblerView> resolvedTumblerViews = new();
     private readonly List<TumblerRuntimeState> tumblerStates = new();
+    private readonly PlayerMinigameControlLock controlLock = new();
 
     private AudioSource uiAudioSource;
     private IPlayerInputReader inputReader;
@@ -186,14 +186,6 @@ public sealed class LockpickMinigameController : MonoBehaviour
     private MonoBehaviour activeLockpickTargetBehaviour;
     private LockpickMinigameDefinition activeDefinition;
     private GameObject activeInteractorRoot;
-    private PlayerEquipmentController playerEquipmentController;
-    private PlayerTopDownMotor2D playerMotor;
-    private PlayerVisionLight playerVisionLight;
-    private PlayerWeaponController playerWeaponController;
-    private PlayerUtilityController playerUtilityController;
-    private PlayerMeleeController playerMeleeController;
-    private PlayerPickupInteractor playerPickupInteractor;
-    private PlayerFocusController playerFocusController;
     private int activeTumblerCount;
     private int selectedIndex;
     private bool navigationAxisEngaged;
@@ -465,14 +457,7 @@ public sealed class LockpickMinigameController : MonoBehaviour
     /// </summary>
     private void CacheInteractorReferences(GameObject interactorRoot)
     {
-        playerEquipmentController = interactorRoot != null ? interactorRoot.GetComponent<PlayerEquipmentController>() : null;
-        playerMotor = interactorRoot != null ? interactorRoot.GetComponent<PlayerTopDownMotor2D>() : null;
-        playerVisionLight = interactorRoot != null ? interactorRoot.GetComponentInChildren<PlayerVisionLight>(true) : null;
-        playerWeaponController = interactorRoot != null ? interactorRoot.GetComponent<PlayerWeaponController>() : null;
-        playerUtilityController = interactorRoot != null ? interactorRoot.GetComponent<PlayerUtilityController>() : null;
-        playerMeleeController = interactorRoot != null ? interactorRoot.GetComponent<PlayerMeleeController>() : null;
-        playerPickupInteractor = interactorRoot != null ? interactorRoot.GetComponent<PlayerPickupInteractor>() : null;
-        playerFocusController = interactorRoot != null ? interactorRoot.GetComponent<PlayerFocusController>() : null;
+        controlLock.Bind(interactorRoot);
     }
 
     /// <summary>
@@ -480,14 +465,9 @@ public sealed class LockpickMinigameController : MonoBehaviour
     /// </summary>
     private void ApplyInteractorInputBlocked(bool blocked)
     {
-        playerEquipmentController?.SetInputBlocked(blocked);
-        playerMotor?.SetInputBlocked(blocked);
-        playerVisionLight?.SetInputBlocked(blocked);
-        playerWeaponController?.SetInputBlocked(blocked);
-        playerUtilityController?.SetInputBlocked(blocked);
-        playerMeleeController?.SetInputBlocked(blocked);
-        playerPickupInteractor?.SetInputBlocked(blocked);
-        playerFocusController?.SetInputBlocked(blocked);
+        controlLock.SetBlocked(blocked);
+        if (!blocked)
+            controlLock.Clear();
     }
 
     /// <summary>

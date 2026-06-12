@@ -2,6 +2,7 @@ using Sirenix.OdinInspector;
 using Unity.Cinemachine;
 using UnityEngine;
 using Breezeblocks.Input;
+using Breezeblocks.Settings;
 
 namespace Breezeblocks.WeaponSystem
 {
@@ -135,9 +136,55 @@ public class PlayerAimCamera2D : MonoBehaviour
         MaxAimPanDistance = Mathf.Max(0f, maxAimPanDistance);
     }
 
+    /// <summary>
+    /// Returns the current orthographic size from the active Cinemachine or fallback camera.
+    /// </summary>
+    public bool TryGetOrthographicSize(out float orthographicSize)
+    {
+        CacheReferences();
+
+        if (cinemachineCamera != null)
+        {
+            orthographicSize = cinemachineCamera.Lens.OrthographicSize;
+            return true;
+        }
+
+        if (targetCamera != null && targetCamera.orthographic)
+        {
+            orthographicSize = targetCamera.orthographicSize;
+            return true;
+        }
+
+        orthographicSize = 0f;
+        return false;
+    }
+
+    /// <summary>
+    /// Applies an orthographic size to the active Cinemachine or fallback camera.
+    /// </summary>
+    public void SetOrthographicSize(float orthographicSize)
+    {
+        CacheReferences();
+        float clampedSize = Mathf.Max(0.01f, orthographicSize);
+
+        if (cinemachineCamera != null)
+        {
+            LensSettings lens = cinemachineCamera.Lens;
+            lens.OrthographicSize = clampedSize;
+            cinemachineCamera.Lens = lens;
+            return;
+        }
+
+        if (targetCamera != null && targetCamera.orthographic)
+            targetCamera.orthographicSize = clampedSize;
+    }
+
     // Executes the PlayScreenshake routine.
     public void PlayScreenshake(float power, float duration)
     {
+        if (!GameSettingsRuntime.ScreenshakeEnabled)
+            return;
+
         power = Mathf.Max(0f, power);
         duration = Mathf.Max(0f, duration);
         if (power <= 0f || duration <= 0f)
@@ -342,6 +389,9 @@ public class PlayerAimCamera2D : MonoBehaviour
     // Executes the UpdateScreenshakeState routine.
     private void UpdateScreenshakeState()
     {
+        if (!GameSettingsRuntime.ScreenshakeEnabled)
+            shakeEndTime = float.NegativeInfinity;
+
         float remainingTime = Mathf.Max(0f, shakeEndTime - Time.unscaledTime);
         float shakeFactor = EvaluateRemainingShakeFactor(remainingTime);
         if (noiseComponent != null && _hasBaseNoiseState)
@@ -368,6 +418,9 @@ public class PlayerAimCamera2D : MonoBehaviour
     // Executes the CalculateScreenshakeOffset routine.
     private Vector3 CalculateScreenshakeOffset()
     {
+        if (!GameSettingsRuntime.ScreenshakeEnabled)
+            return Vector3.zero;
+
         if (noiseComponent != null && noiseComponent.IsValid)
             return Vector3.zero;
 

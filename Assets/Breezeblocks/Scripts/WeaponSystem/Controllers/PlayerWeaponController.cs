@@ -691,7 +691,7 @@ public class PlayerWeaponController : MonoBehaviour
 
         if (playerVisionLight != null)
         {
-            CurrentAimDirection = playerVisionLight.DriveMouseLook(effectiveSpeed, Time.deltaTime);
+            CurrentAimDirection = playerVisionLight.DriveMouseLook(effectiveSpeed, Time.deltaTime, IsAiming);
             if (CurrentAimDirection.sqrMagnitude <= MinDirectionSqr)
                 CurrentAimDirection = ResolveFallbackAimDirection();
 

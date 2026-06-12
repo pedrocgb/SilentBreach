@@ -26,6 +26,7 @@ public partial class GameplayMissionController
     {
         EnemyRuntimeBlockedAtMissionStart = true;
         CacheReferences();
+        PrepareFailurePresentation();
         ResetSceneScopedRuntimeState();
         GameplayConsoleController.EnsureOn(gameObject);
         CachePlayerComponentDefaultStates();
@@ -147,6 +148,7 @@ public partial class GameplayMissionController
         StopContinuousCarDrive();
         StopAllCarAudio(suppressAutoRestart: false);
         ClearMissionStatusEntries();
+        ResetFailurePresentation();
 
         if (playerVisionLight != null)
             playerVisionLight.enabled = playerVisionLightDefaultEnabled;

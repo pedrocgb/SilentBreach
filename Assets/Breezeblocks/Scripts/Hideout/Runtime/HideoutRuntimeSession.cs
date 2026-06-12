@@ -60,7 +60,7 @@ public static class HideoutRuntimeSession
             return;
 
         initialized = true;
-        if (HideoutSaveSystem.TryLoad(out HideoutSaveSnapshot snapshot))
+        if (HideoutSaveSystem.TryLoad(out HideoutSaveSnapshot snapshot) && snapshot.HasHideoutProgress)
             ApplyLoadedSnapshot(snapshot);
         else
             ApplyDefaultState(startingCash, startingInfluencePoints, startingPerkPoints);
@@ -359,6 +359,7 @@ public static class HideoutRuntimeSession
 
         HideoutSaveSnapshot snapshot = new()
         {
+            HasHideoutProgress = true,
             Cash = Mathf.Max(0, cash),
             InfluencePoints = Mathf.Max(0, influencePoints),
             PerkPoints = Mathf.Max(0, perkPoints),

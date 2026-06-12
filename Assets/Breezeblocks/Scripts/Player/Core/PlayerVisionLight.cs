@@ -2,6 +2,7 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 using Breezeblocks.Input;
+using Breezeblocks.Settings;
 using Breezeblocks.WeaponSystem;
 
 [ExecuteAlways]
@@ -164,13 +165,13 @@ public class PlayerVisionLight : MonoBehaviour
     }
 
     // Executes the DriveMouseLook routine.
-    public Vector2 DriveMouseLook(float smoothing, float deltaTime)
+    public Vector2 DriveMouseLook(float smoothing, float deltaTime, bool isAiming = false)
     {
         if (_inputBlocked)
             return FacingDirection;
 
         lookAtMouse = true;
-        UpdateRotation(deltaTime, smoothing);
+        UpdateRotation(deltaTime, GameSettingsRuntime.ResolveLookSmoothing(smoothing, isAiming));
         _externallyDrivenThisFrame = true;
         return FacingDirection;
     }

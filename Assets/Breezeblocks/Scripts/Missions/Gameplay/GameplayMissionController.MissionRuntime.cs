@@ -94,7 +94,7 @@ public partial class GameplayMissionController
             if (failureState.Definition.FailureType != HideoutJobFailureType.DontAlert)
                 continue;
 
-            TriggerMissionFailure(failureState);
+            TriggerMissionFailure(failureState, stateEvent.Controller != null ? stateEvent.Controller.transform : null);
             return;
         }
     }
@@ -119,7 +119,10 @@ public partial class GameplayMissionController
             if (failureState.Definition.FailureType != HideoutJobFailureType.DontBeDetected)
                 continue;
 
-            TriggerMissionFailure(failureState);
+            Transform failureFocusTarget = detectionEvent.Controller != null
+                ? detectionEvent.Controller.transform
+                : detectionEvent.VisionAI != null ? detectionEvent.VisionAI.transform : null;
+            TriggerMissionFailure(failureState, failureFocusTarget);
             return;
         }
     }
@@ -132,7 +135,10 @@ public partial class GameplayMissionController
         if (missionEnded)
             return;
 
-        StartCoroutine(HandleMissionFailedRoutine(playerWasKilled: true, screenMessage: ResolvePlayerKilledMessage()));
+        StartCoroutine(HandleMissionFailedRoutine(
+            playerWasKilled: true,
+            screenMessage: ResolvePlayerKilledMessage(),
+            applyPlayerKilledTint: true));
     }
 
     /// <summary>

@@ -82,7 +82,9 @@ public sealed class RewiredPlayerInputReader : IPlayerInputReader, IPointerInput
     /// </summary>
     public bool GetButton(string actionName)
     {
-        return TryResolvePlayer() && !string.IsNullOrWhiteSpace(actionName) && rewiredPlayer.GetButton(actionName);
+        return TryResolvePlayer() &&
+               !string.IsNullOrWhiteSpace(actionName) &&
+               RewiredToggleActionState.GetButton(rewiredPlayer, actionName);
     }
 
     /// <summary>

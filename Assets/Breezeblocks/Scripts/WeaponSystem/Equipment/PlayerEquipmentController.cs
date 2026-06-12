@@ -1087,7 +1087,7 @@ public class PlayerEquipmentController : MonoBehaviour
         if (actorStaggerController != null)
             lookSpeed *= actorStaggerController.TurnSpeedMultiplier;
 
-        playerVisionLight.DriveMouseLook(lookSpeed, Time.deltaTime);
+        playerVisionLight.DriveMouseLook(lookSpeed, Time.deltaTime, IsUnarmedAiming);
     }
 
     /// <summary>

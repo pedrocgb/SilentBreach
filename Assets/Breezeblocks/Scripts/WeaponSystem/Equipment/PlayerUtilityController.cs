@@ -209,7 +209,7 @@ public class PlayerUtilityController : MonoBehaviour
             if (actorStaggerController != null)
                 lookSpeed *= actorStaggerController.TurnSpeedMultiplier;
 
-            playerVisionLight.DriveMouseLook(lookSpeed, Time.deltaTime);
+            playerVisionLight.DriveMouseLook(lookSpeed, Time.deltaTime, IsAiming);
         }
 
         if (EquippedUtility is ThrowableUtilityData throwableData)
@@ -640,7 +640,7 @@ public class PlayerUtilityController : MonoBehaviour
         if (actorStaggerController != null)
             lookSpeed *= actorStaggerController.TurnSpeedMultiplier;
 
-        playerVisionLight.DriveMouseLook(lookSpeed, Time.deltaTime);
+        playerVisionLight.DriveMouseLook(lookSpeed, Time.deltaTime, IsAiming);
     }
 }
 

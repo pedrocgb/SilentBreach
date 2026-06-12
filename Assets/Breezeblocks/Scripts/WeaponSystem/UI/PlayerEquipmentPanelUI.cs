@@ -689,15 +689,17 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         SetPrefixedText(firearmContext.meleeSlotsText, settings.SlotsPrefix, FormatAllowedSlots(meleeWeaponData.AllowedSlots, settings), true);
     }
 
+    /// <summary>
+    /// Populates and reveals the armor equipment context.
+    /// </summary>
     private void PopulateArmorContext(ArmorData armorData)
     {
         EquipmentContextUiSettings settings = ResolveUiSettings();
-        SetActive(armorContext.root, true);
         HideArmorContextDetailFields();
 
         SetImage(armorContext.iconImage, armorData.Icon);
         SetPlainText(armorContext.nameText, armorData.DisplayName, true);
-        SetPlainText(armorContext.descriptionText, string.Empty, false);
+        SetPlainText(armorContext.descriptionText, armorData.Description, true);
         SetPrefixedText(armorContext.armorClassText, settings.ArmorClassPrefix, armorData.ArmorClass.ToString(), true);
         SetPrefixedText(armorContext.armorValueText, settings.ArmorValuePrefix, armorData.ArmorValue.ToString("0.##"), true);
         SetPrefixedText(armorContext.rotationPenaltyText, settings.RotationPenaltyPrefix, $"{armorData.RotationPenalty:0.##}%", true);
@@ -711,6 +713,7 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
             settings.MovementSpeedPenaltyPrefix,
             $"{armorData.MovementSpeedPenaltyPercent:0.##}%",
             true);
+        SetActive(armorContext.root, true);
     }
 
     private void HideAllContexts()

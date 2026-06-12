@@ -38,7 +38,7 @@ MonoBehaviour:
     timeLimitSeconds: 300
   - failureType: 5
     displayText: "N\xE3o seja detectado!"
-    failureScreenMessage: "Voc\xEA foi detactado..."
+    failureScreenMessage: "Voc\xEA foi detectado..."
     timeLimitSeconds: 300
   - failureType: 6
     displayText: Finalize o trabalho antes do tempo.
@@ -58,19 +58,15 @@ MonoBehaviour:
     firearmProjectile: {fileID: 0}
     availabilityProbability: 1
     maxQuantity: 1
-    price: 65
   - item: {fileID: 11400000, guid: 0737f1ad190f7437dbbde44e2a77107f, type: 2}
     firearmProjectile: {fileID: 0}
     availabilityProbability: 1
     maxQuantity: 1
-    price: 60
   - item: {fileID: 11400000, guid: ea95feac09de47846a21232d81534981, type: 2}
     firearmProjectile: {fileID: 0}
     availabilityProbability: 1
     maxQuantity: 1
-    price: 4250
   - item: {fileID: 11400000, guid: ae90121673569524f9f2365dd21a1725, type: 2}
     firearmProjectile: {fileID: 0}
     availabilityProbability: 1
     maxQuantity: 1
-    price: 175

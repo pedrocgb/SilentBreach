@@ -127,14 +127,10 @@ public sealed class HideoutFenceOfferDefinition
     [MinValue(1)]
     [SerializeField] internal int maxQuantity = 1;
 
-    [MinValue(0)]
-    [SerializeField] internal int price = 100;
-
     public EquipmentItemData Item => item;
     public ProjectileData FirearmProjectile => firearmProjectile;
     public float AvailabilityProbability => availabilityProbability;
     public int MaxQuantity => maxQuantity;
-    public int Price => price;
 
     private bool UsesProjectile => item is FirearmData;
 }
@@ -264,7 +260,6 @@ public sealed class HideoutJobDefinition : ScriptableObject
 
             offer.availabilityProbability = Mathf.Clamp01(offer.availabilityProbability);
             offer.maxQuantity = Mathf.Max(1, offer.maxQuantity);
-            offer.price = Mathf.Max(0, offer.price);
 
             if (offer.item is not FirearmData)
                 offer.firearmProjectile = null;

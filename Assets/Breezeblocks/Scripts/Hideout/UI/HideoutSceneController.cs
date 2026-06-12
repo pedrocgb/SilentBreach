@@ -900,6 +900,9 @@ public sealed class HideoutSceneController : MonoBehaviour
             jobsPanel.proceedButton.interactable = true;
     }
 
+    /// <summary>
+    /// Generates the active fence inventory from the selected job's item pool.
+    /// </summary>
     private void GenerateFenceInventory(HideoutJobDefinition job)
     {
         activeFenceOffers.Clear();
@@ -929,7 +932,7 @@ public sealed class HideoutSceneController : MonoBehaviour
                 Definition = definition,
                 Item = definition.Item,
                 Projectile = definition.FirearmProjectile,
-                Price = definition.Price,
+                Price = definition.Item.ShopPrice,
                 InitialQuantity = Mathf.Max(1, quantity),
                 RemainingQuantity = Mathf.Max(1, quantity)
             });
@@ -942,7 +945,7 @@ public sealed class HideoutSceneController : MonoBehaviour
                 Definition = fallbackDefinition,
                 Item = fallbackDefinition.Item,
                 Projectile = fallbackDefinition.FirearmProjectile,
-                Price = fallbackDefinition.Price,
+                Price = fallbackDefinition.Item.ShopPrice,
                 InitialQuantity = 1,
                 RemainingQuantity = 1
             });

@@ -30,7 +30,7 @@ tools/ai-harness/rules/
 - Add XML summary comments to all methods in touched files.
 - Check for obsolete APIs.
 - Remove all new warnings before finishing.
-- If `RTK.md` exists, follow it for shell command usage.
+- Always use RTK shell commands, so before any editing, read RTK rules under: `tools/ai-harness/rules/RTK.md`
 
 ---
 
@@ -38,7 +38,6 @@ tools/ai-harness/rules/
 
 Read the relevant files before editing:
 
-- Use RTK shell commands when needed: `tools/ai-harness/rules/RTK.md`
 - General Unity rules: `tools/ai-harness/rules/unity.md`
 - Architecture / S.O.L.I.D. / DRY: `tools/ai-harness/rules/architecture-solid.md`
 - Component references and serialization: `tools/ai-harness/rules/component-references.md`

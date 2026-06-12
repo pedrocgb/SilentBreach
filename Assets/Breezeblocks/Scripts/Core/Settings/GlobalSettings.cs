@@ -1,7 +1,9 @@
 using System;
+using Breezeblocks.Settings;
 using Breezeblocks.WeaponSystem;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Audio;
 
 [Serializable]
 public sealed class EquipmentContextUiSettings
@@ -364,6 +366,41 @@ public sealed class HudUiSettings
     public float FadeOutDuration => Mathf.Max(0f, fadeOutDuration);
 }
 
+[Serializable]
+public sealed class MissionFailurePresentationSettings
+{
+    [FoldoutGroup("Timing"), Range(0.01f, 1f), LabelText("Target Time Scale")]
+    [SerializeField] private float targetTimeScale = 0.3f;
+
+    [FoldoutGroup("Timing"), MinValue(0f), SuffixLabel("s", true), LabelText("Slow Motion Duration")]
+    [SerializeField] private float slowMotionDuration = 0.6f;
+
+    [FoldoutGroup("Timing"), MinValue(0f), SuffixLabel("s", true), LabelText("Screen Delay")]
+    [SerializeField] private float screenDelay = 1.5f;
+
+    [FoldoutGroup("Enemy Focus Zoom"), MinValue(0.01f), LabelText("Orthographic Size")]
+    [Tooltip("Target camera orthographic size during enemy-focused failures. Smaller values zoom in further.")]
+    [SerializeField] private float enemyFocusOrthographicSize = 3f;
+
+    [FoldoutGroup("Enemy Focus Zoom"), MinValue(0f), SuffixLabel("s", true), LabelText("Zoom Duration")]
+    [Tooltip("Unscaled duration used to reach the enemy-focus zoom.")]
+    [SerializeField] private float enemyFocusZoomDuration = 0.6f;
+
+    [FoldoutGroup("Player Killed Tint"), ColorUsage(false, false), LabelText("Tint Color")]
+    [SerializeField] private Color playerKilledTintColor = new(1f, 0.18f, 0.18f, 1f);
+
+    [FoldoutGroup("Player Killed Tint"), MinValue(0f), SuffixLabel("s", true), LabelText("Tint Duration")]
+    [SerializeField] private float playerKilledTintDuration = 0.8f;
+
+    public float TargetTimeScale => Mathf.Clamp(targetTimeScale, 0.01f, 1f);
+    public float SlowMotionDuration => Mathf.Max(0f, slowMotionDuration);
+    public float ScreenDelay => Mathf.Max(0f, screenDelay);
+    public float EnemyFocusOrthographicSize => Mathf.Max(0.01f, enemyFocusOrthographicSize);
+    public float EnemyFocusZoomDuration => Mathf.Max(0f, enemyFocusZoomDuration);
+    public Color PlayerKilledTintColor => playerKilledTintColor;
+    public float PlayerKilledTintDuration => Mathf.Max(0f, playerKilledTintDuration);
+}
+
 [AddComponentMenu("Breezeblocks/Global Settings")]
 public class GlobalSettings : MonoBehaviour
 {
@@ -377,6 +414,25 @@ public class GlobalSettings : MonoBehaviour
 
     [FoldoutGroup("Input Modes"), Tooltip("If true, dragging a body requires holding interact. If false, interact toggles dragging on and off.")]
     [SerializeField] private bool dragRequiresHoldInput = true;
+
+    [FoldoutGroup("Player Settings")]
+    [FoldoutGroup("Player Settings/Audio"), AssetsOnly]
+    [SerializeField] private AudioMixer settingsAudioMixer;
+
+    [FoldoutGroup("Player Settings/Audio")]
+    [SerializeField] private string masterVolumeParameter = "MasterVolume";
+
+    [FoldoutGroup("Player Settings/Audio")]
+    [SerializeField] private string musicVolumeParameter = "MusicVolume";
+
+    [FoldoutGroup("Player Settings/Audio")]
+    [SerializeField] private string sfxVolumeParameter = "SfxVolume";
+
+    [FoldoutGroup("Player Settings/Audio")]
+    [SerializeField] private string uiVolumeParameter = "UiVolume";
+
+    [FoldoutGroup("Player Settings/Audio")]
+    [SerializeField] private string ambientVolumeParameter = "AmbientVolume";
 
     [FoldoutGroup("Noise"), MinValue(0f)]
     [Tooltip("How long a firearm shot noise spike lasts.")]
@@ -404,6 +460,9 @@ public class GlobalSettings : MonoBehaviour
     [FoldoutGroup("HUD"), InlineProperty]
     [SerializeField] private HudUiSettings hudUi = new();
 
+    [FoldoutGroup("Mission Failure"), InlineProperty]
+    [SerializeField] private MissionFailurePresentationSettings missionFailurePresentation = new();
+
     public bool SprintToggleEnabled => sprintToggleEnabled;
     public bool FocusToggleEnabled => focusToggleEnabled;
     public bool DragRequiresHoldInput => dragRequiresHoldInput;
@@ -414,6 +473,8 @@ public class GlobalSettings : MonoBehaviour
     public float DragSlowPercentage => dragSlowPercentage;
     public EquipmentContextUiSettings EquipmentContextUi => equipmentContextUi ??= new EquipmentContextUiSettings();
     public HudUiSettings HudUi => hudUi ??= new HudUiSettings();
+    public MissionFailurePresentationSettings MissionFailurePresentation =>
+        missionFailurePresentation ??= new MissionFailurePresentationSettings();
 
     public event Action SettingsChanged;
 
@@ -430,6 +491,7 @@ public class GlobalSettings : MonoBehaviour
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
+        GameSettingsRuntime.ApplyToGlobalSettings();
     }
 
     /// <summary>
@@ -453,6 +515,7 @@ public class GlobalSettings : MonoBehaviour
         dragSlowPercentage = Mathf.Clamp(dragSlowPercentage, 0f, 100f);
         equipmentContextUi ??= new EquipmentContextUiSettings();
         hudUi ??= new HudUiSettings();
+        missionFailurePresentation ??= new MissionFailurePresentationSettings();
     }
 
     /// <summary>
@@ -497,5 +560,45 @@ public class GlobalSettings : MonoBehaviour
 
         focusToggleEnabled = enabled;
         SettingsChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Updates the configured drag interaction mode and broadcasts the change when needed.
+    /// </summary>
+    public void SetDragRequiresHoldInput(bool requiresHold)
+    {
+        if (dragRequiresHoldInput == requiresHold)
+            return;
+
+        dragRequiresHoldInput = requiresHold;
+        SettingsChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Applies persisted player preferences that depend on designer-wired global assets.
+    /// </summary>
+    public void ApplyPlayerSettings(GameSettingsSaveData settings)
+    {
+        if (settings == null)
+            return;
+
+        SetSprintToggleEnabled(settings.ToggleSprint);
+        SetDragRequiresHoldInput(!settings.ToggleDragBody);
+        ApplyMixerVolume(masterVolumeParameter, settings.MasterVolume);
+        ApplyMixerVolume(musicVolumeParameter, settings.MusicVolume);
+        ApplyMixerVolume(sfxVolumeParameter, settings.SfxVolume);
+        ApplyMixerVolume(uiVolumeParameter, settings.UiVolume);
+        ApplyMixerVolume(ambientVolumeParameter, settings.AmbientVolume);
+    }
+
+    /// <summary>
+    /// Applies one zero-to-one-hundred volume value to an exposed mixer parameter.
+    /// </summary>
+    private void ApplyMixerVolume(string parameterName, float percentage)
+    {
+        if (settingsAudioMixer == null || string.IsNullOrWhiteSpace(parameterName))
+            return;
+
+        settingsAudioMixer.SetFloat(parameterName.Trim(), GameSettingsRuntime.VolumePercentToDecibels(percentage));
     }
 }

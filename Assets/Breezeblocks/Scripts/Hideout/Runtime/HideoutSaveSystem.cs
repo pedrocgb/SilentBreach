@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Breezeblocks.Settings;
 using UnityEngine;
 
 namespace Breezeblocks.HideoutSystem
@@ -9,6 +10,7 @@ namespace Breezeblocks.HideoutSystem
 [Serializable]
 public sealed class HideoutSaveSnapshot
 {
+    public bool HasHideoutProgress;
     public int Cash;
     public int InfluencePoints;
     public int PerkPoints;
@@ -21,21 +23,36 @@ public sealed class HideoutSaveSnapshot
     public List<string> UnlockedJobIds = new();
     public List<string> CompletedJobIds = new();
     public List<string> FailedJobIds = new();
+    public GameSettingsSaveData Settings = GameSettingsSaveData.CreateDefaults();
 }
 
 public static class HideoutSaveSystem
 {
-    private const int CurrentSchemaVersion = 1;
+    private const int CurrentSchemaVersion = 2;
     private const string SaveFileName = "hideout_save.json";
     private const string BackupExtension = ".bak";
     private const string TempExtension = ".tmp";
 
     [Serializable]
-    private sealed class HideoutSaveEnvelope
+    private sealed class HideoutSaveVersionProbe
+    {
+        public int schemaVersion;
+    }
+
+    [Serializable]
+    private sealed class HideoutSaveEnvelopeV1
+    {
+        public int schemaVersion = 1;
+        public long savedAtUtcTicks;
+        public HideoutSavePayloadV1 payload = new();
+    }
+
+    [Serializable]
+    private sealed class HideoutSaveEnvelopeV2
     {
         public int schemaVersion = CurrentSchemaVersion;
         public long savedAtUtcTicks;
-        public HideoutSavePayloadV1 payload = new();
+        public HideoutSavePayloadV2 payload = new();
     }
 
     [Serializable]
@@ -55,6 +72,17 @@ public static class HideoutSaveSystem
         public List<string> failedJobIds = new();
     }
 
+    [Serializable]
+    private sealed class HideoutSavePayloadV2
+    {
+        public bool hasHideoutProgress;
+        public HideoutSavePayloadV1 hideoutProgress = new();
+        public GameSettingsSaveData settings = GameSettingsSaveData.CreateDefaults();
+    }
+
+    /// <summary>
+    /// Loads the latest valid primary or backup save snapshot.
+    /// </summary>
     public static bool TryLoad(out HideoutSaveSnapshot snapshot)
     {
         if (TryReadSnapshot(GetPrimaryPath(), out snapshot))
@@ -67,9 +95,14 @@ public static class HideoutSaveSystem
         return false;
     }
 
+    /// <summary>
+    /// Writes a versioned snapshot atomically while preserving a backup.
+    /// </summary>
     public static void Save(HideoutSaveSnapshot snapshot)
     {
         snapshot ??= new HideoutSaveSnapshot();
+        if (GameSettingsRuntime.IsInitialized)
+            snapshot.Settings = GameSettingsRuntime.ExportSaveData();
 
         try
         {
@@ -80,11 +113,11 @@ public static class HideoutSaveSystem
             if (!string.IsNullOrWhiteSpace(directoryPath) && !Directory.Exists(directoryPath))
                 Directory.CreateDirectory(directoryPath);
 
-            HideoutSaveEnvelope envelope = new()
+            HideoutSaveEnvelopeV2 envelope = new()
             {
                 schemaVersion = CurrentSchemaVersion,
                 savedAtUtcTicks = DateTime.UtcNow.Ticks,
-                payload = BuildPayload(snapshot)
+                payload = BuildPayloadV2(snapshot)
             };
 
             string json = JsonUtility.ToJson(envelope, true);
@@ -104,6 +137,9 @@ public static class HideoutSaveSystem
         }
     }
 
+    /// <summary>
+    /// Attempts to deserialize a supported save schema from the supplied file.
+    /// </summary>
     private static bool TryReadSnapshot(string filePath, out HideoutSaveSnapshot snapshot)
     {
         snapshot = new HideoutSaveSnapshot();
@@ -118,11 +154,25 @@ public static class HideoutSaveSystem
         {
             if (json.IndexOf("\"schemaVersion\"", StringComparison.Ordinal) >= 0)
             {
-                HideoutSaveEnvelope envelope = JsonUtility.FromJson<HideoutSaveEnvelope>(json);
-                if (envelope?.payload == null)
+                HideoutSaveVersionProbe versionProbe = JsonUtility.FromJson<HideoutSaveVersionProbe>(json);
+                if (versionProbe == null)
                     return false;
 
-                snapshot = BuildSnapshot(envelope.payload);
+                if (versionProbe.schemaVersion >= 2)
+                {
+                    HideoutSaveEnvelopeV2 envelope = JsonUtility.FromJson<HideoutSaveEnvelopeV2>(json);
+                    if (envelope?.payload == null)
+                        return false;
+
+                    snapshot = BuildSnapshot(envelope.payload);
+                    return true;
+                }
+
+                HideoutSaveEnvelopeV1 legacyEnvelope = JsonUtility.FromJson<HideoutSaveEnvelopeV1>(json);
+                if (legacyEnvelope?.payload == null)
+                    return false;
+
+                snapshot = BuildSnapshot(legacyEnvelope.payload);
                 return true;
             }
 
@@ -144,11 +194,15 @@ public static class HideoutSaveSystem
         return false;
     }
 
+    /// <summary>
+    /// Migrates a version-one hideout payload into the current runtime snapshot.
+    /// </summary>
     private static HideoutSaveSnapshot BuildSnapshot(HideoutSavePayloadV1 payload)
     {
         payload ??= new HideoutSavePayloadV1();
         return new HideoutSaveSnapshot
         {
+            HasHideoutProgress = true,
             Cash = Mathf.Max(0, payload.cash),
             InfluencePoints = Mathf.Max(0, payload.influencePoints),
             PerkPoints = Mathf.Max(0, payload.perkPoints),
@@ -160,11 +214,44 @@ public static class HideoutSaveSystem
             UnlockedPerkIds = SanitizeIds(payload.unlockedPerkIds),
             UnlockedJobIds = SanitizeIds(payload.unlockedJobIds),
             CompletedJobIds = SanitizeIds(payload.completedJobIds),
-            FailedJobIds = SanitizeIds(payload.failedJobIds)
+            FailedJobIds = SanitizeIds(payload.failedJobIds),
+            Settings = GameSettingsSaveData.CreateDefaults()
         };
     }
 
-    private static HideoutSavePayloadV1 BuildPayload(HideoutSaveSnapshot snapshot)
+    /// <summary>
+    /// Converts the current version-two payload into a sanitized runtime snapshot.
+    /// </summary>
+    private static HideoutSaveSnapshot BuildSnapshot(HideoutSavePayloadV2 payload)
+    {
+        payload ??= new HideoutSavePayloadV2();
+        HideoutSaveSnapshot snapshot = BuildSnapshot(payload.hideoutProgress);
+        snapshot.HasHideoutProgress = payload.hasHideoutProgress;
+        snapshot.Settings = payload.settings?.Clone() ?? GameSettingsSaveData.CreateDefaults();
+        snapshot.Settings.Sanitize();
+        return snapshot;
+    }
+
+    /// <summary>
+    /// Builds the current version-two payload from a runtime snapshot.
+    /// </summary>
+    private static HideoutSavePayloadV2 BuildPayloadV2(HideoutSaveSnapshot snapshot)
+    {
+        GameSettingsSaveData settings = snapshot.Settings?.Clone() ?? GameSettingsSaveData.CreateDefaults();
+        settings.Sanitize();
+
+        return new HideoutSavePayloadV2
+        {
+            hasHideoutProgress = snapshot.HasHideoutProgress,
+            hideoutProgress = BuildPayloadV1(snapshot),
+            settings = settings
+        };
+    }
+
+    /// <summary>
+    /// Builds the stable hideout-progress portion shared by current and legacy saves.
+    /// </summary>
+    private static HideoutSavePayloadV1 BuildPayloadV1(HideoutSaveSnapshot snapshot)
     {
         return new HideoutSavePayloadV1
         {
@@ -183,6 +270,9 @@ public static class HideoutSaveSystem
         };
     }
 
+    /// <summary>
+    /// Removes empty and duplicate identifiers before persistence.
+    /// </summary>
     private static List<string> SanitizeIds(List<string> source)
     {
         List<string> sanitized = new();
@@ -202,21 +292,33 @@ public static class HideoutSaveSystem
         return sanitized;
     }
 
+    /// <summary>
+    /// Trims a persisted stable identifier.
+    /// </summary>
     private static string SanitizeId(string value)
     {
         return value != null ? value.Trim() : string.Empty;
     }
 
+    /// <summary>
+    /// Returns the primary save file path.
+    /// </summary>
     private static string GetPrimaryPath()
     {
         return Path.Combine(Application.persistentDataPath, SaveFileName);
     }
 
+    /// <summary>
+    /// Returns the backup save file path.
+    /// </summary>
     private static string GetBackupPath()
     {
         return GetPrimaryPath() + BackupExtension;
     }
 
+    /// <summary>
+    /// Returns the temporary atomic-write file path.
+    /// </summary>
     private static string GetTempPath()
     {
         return GetPrimaryPath() + TempExtension;

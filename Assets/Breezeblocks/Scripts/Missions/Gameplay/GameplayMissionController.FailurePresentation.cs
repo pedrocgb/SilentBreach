@@ -155,7 +155,10 @@ public partial class GameplayMissionController
     /// </summary>
     private void ApplyFailureOrthographicSize(float orthographicSize)
     {
-        failureAimCamera?.SetOrthographicSize(orthographicSize);
+        if (failureAimCamera == null)
+            return;
+
+        failureAimCamera.SetOrthographicSize(orthographicSize);
     }
 
     /// <summary>

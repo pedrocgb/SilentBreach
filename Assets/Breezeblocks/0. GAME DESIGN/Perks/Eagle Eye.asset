@@ -16,6 +16,22 @@ MonoBehaviour:
   perkId: eagle_eye
   cost: 2
   description: "Sua mira encontra o alvo antes que ele encontre voc\xEA."
-  effect: "O tempo necess\xE1rio para entrar no Modo Atirador \xE9 reduzida em 50%."
+  effect: "O tempo necess\xE1rio para entrar no Modo Atirador \xE9 reduzido."
   tier: 1
+  runtimeEffects:
+  - effectType: 7
+    floatValue: 0.2
+    boolValue: 1
+    firearmClass: 0
+    speedLevelValues:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
   icon: {fileID: 926205834, guid: fd2bf8ab7d5d552c2a0d8f9e9f4f9902, type: 3}

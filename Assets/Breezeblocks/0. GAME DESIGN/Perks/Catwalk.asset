@@ -16,7 +16,22 @@ MonoBehaviour:
   perkId: catwalk
   cost: 3
   description: "A movimenta\xE7\xE3o como um gato \xE9 uma arte conhecida por poucos."
-  effect: 'Reduz o barulho ao caminhar em: 100% / 80% / 60% / 50% / 40% / 30% / 30%/
-    20% / 20 % / 20%'
+  effect: "Reduz o barulho ao caminhar. Afeta todos os n\xEDveis de velocidade."
   tier: 2
+  runtimeEffects:
+  - effectType: 12
+    floatValue: 1
+    boolValue: 1
+    firearmClass: 0
+    speedLevelValues:
+    - 0
+    - 0.4
+    - 0.5
+    - 0.6
+    - 0.7
+    - 0.8
+    - 0.9
+    - 0.95
+    - 1
+    - 1
   icon: {fileID: 1097056706, guid: 1ef0be22b8a86fcc4abbd56c5393160c, type: 3}

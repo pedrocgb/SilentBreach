@@ -16,7 +16,7 @@ MonoBehaviour:
   perkId: iron_lung
   cost: 1
   description: Anos correndo, lutando e sobrevivendo fortaleceram seu corpo.
-  effect: "Aumenta seu Vigor m\xE1ximo em 40."
+  effect: "Aumenta seu Vigor m\xE1ximo."
   tier: 0
   runtimeEffects:
   - effectType: 0

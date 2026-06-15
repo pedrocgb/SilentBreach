@@ -5,7 +5,6 @@ using DG.Tweening;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
 
 namespace Breezeblocks.Missions
 {
@@ -175,12 +174,12 @@ public sealed class LockpickMinigameController : MonoBehaviour
     private readonly List<LockpickTumblerView> resolvedTumblerViews = new();
     private readonly List<TumblerRuntimeState> tumblerStates = new();
     private readonly PlayerMinigameControlLock controlLock = new();
+    private readonly MinigameBokehBlurController blurController = new();
 
     private AudioSource uiAudioSource;
     private IPlayerInputReader inputReader;
     private Tween panelFadeTween;
     private Tween selectorTween;
-    private Tween blurTween;
     private Tween successDelayTween;
     private ILockpickSessionTarget activeLockpickTarget;
     private MonoBehaviour activeLockpickTargetBehaviour;
@@ -191,24 +190,6 @@ public sealed class LockpickMinigameController : MonoBehaviour
     private bool navigationAxisEngaged;
     private bool waitForPushRelease;
     private bool successClosePending;
-    private DepthOfField depthOfField;
-    private bool baseDepthOfFieldActive;
-    private bool baseDepthOfFieldModeOverrideState;
-    private bool baseDepthOfFieldFocusDistanceOverrideState;
-    private bool baseDepthOfFieldApertureOverrideState;
-    private bool baseDepthOfFieldFocalLengthOverrideState;
-    private bool baseDepthOfFieldBladeCountOverrideState;
-    private bool baseDepthOfFieldBladeCurvatureOverrideState;
-    private bool baseDepthOfFieldBladeRotationOverrideState;
-    private DepthOfFieldMode baseDepthOfFieldMode = DepthOfFieldMode.Off;
-    private float baseDepthOfFieldFocusDistance = 10f;
-    private float baseDepthOfFieldAperture = 5.6f;
-    private float baseDepthOfFieldFocalLength = 50f;
-    private int baseDepthOfFieldBladeCount = 5;
-    private float baseDepthOfFieldBladeCurvature = 1f;
-    private float baseDepthOfFieldBladeRotation;
-    private float appliedBlurStrength;
-    private bool hasCachedBlurBaseline;
     private bool CanStartSessions => panelRoot != null && selectorRect != null && resolvedTumblerViews.Count > 0;
 
     /// <summary>
@@ -248,8 +229,7 @@ public sealed class LockpickMinigameController : MonoBehaviour
         panelFadeTween = null;
         selectorTween?.Kill();
         selectorTween = null;
-        blurTween?.Kill();
-        blurTween = null;
+        blurController.KillTween();
         successDelayTween?.Kill();
         successDelayTween = null;
         StopShakeLoopSfx();
@@ -924,129 +904,22 @@ public sealed class LockpickMinigameController : MonoBehaviour
     }
 
     /// <summary>
-    /// Resolves the player-facing post-processing volume and caches the depth-of-field override used for minigame blur.
-    /// </summary>
-    private void CacheBlurOverride()
-    {
-        if (hasCachedBlurBaseline)
-            return;
-
-        if (targetVolume == null)
-            targetVolume = PlayerSceneReferenceUtility.FindPlayerVolume(activeInteractorRoot != null ? activeInteractorRoot : gameObject);
-
-        if (targetVolume == null)
-            return;
-
-        VolumeProfile runtimeVolumeProfile = targetVolume.profile;
-        if (runtimeVolumeProfile == null)
-            return;
-
-        if (!runtimeVolumeProfile.TryGet(out depthOfField))
-            depthOfField = runtimeVolumeProfile.Add<DepthOfField>(true);
-
-        if (depthOfField == null)
-            return;
-
-        baseDepthOfFieldActive = depthOfField.active;
-        baseDepthOfFieldMode = depthOfField.mode.value;
-        baseDepthOfFieldFocusDistance = depthOfField.focusDistance.value;
-        baseDepthOfFieldAperture = depthOfField.aperture.value;
-        baseDepthOfFieldFocalLength = depthOfField.focalLength.value;
-        baseDepthOfFieldBladeCount = depthOfField.bladeCount.value;
-        baseDepthOfFieldBladeCurvature = depthOfField.bladeCurvature.value;
-        baseDepthOfFieldBladeRotation = depthOfField.bladeRotation.value;
-        baseDepthOfFieldModeOverrideState = depthOfField.mode.overrideState;
-        baseDepthOfFieldFocusDistanceOverrideState = depthOfField.focusDistance.overrideState;
-        baseDepthOfFieldApertureOverrideState = depthOfField.aperture.overrideState;
-        baseDepthOfFieldFocalLengthOverrideState = depthOfField.focalLength.overrideState;
-        baseDepthOfFieldBladeCountOverrideState = depthOfField.bladeCount.overrideState;
-        baseDepthOfFieldBladeCurvatureOverrideState = depthOfField.bladeCurvature.overrideState;
-        baseDepthOfFieldBladeRotationOverrideState = depthOfField.bladeRotation.overrideState;
-        hasCachedBlurBaseline = true;
-    }
-
-    /// <summary>
-    /// Animates the lockpick blur in or out by driving a temporary depth-of-field override on the player volume.
+    /// Animates the shared Bokeh blur in or out using this lockpick panel's authored values.
     /// </summary>
     private void AnimateBlur(bool blurred, bool immediate)
     {
-        CacheBlurOverride();
-        if (depthOfField == null)
-            return;
-
-        blurTween?.Kill();
-        blurTween = null;
-
-        float startStrength = ResolveCurrentBlurStrength();
-        float targetStrength = blurred ? 1f : 0f;
-        if (immediate || blurTransitionDuration <= 0f)
-        {
-            ApplyBlurStrengthImmediate(targetStrength);
-            return;
-        }
-
-        blurTween = DOVirtual
-            .Float(startStrength, targetStrength, blurTransitionDuration, ApplyBlurStrengthImmediate)
-            .SetEase(Ease.InOutSine)
-            .SetUpdate(true)
-            .OnComplete(() => blurTween = null);
-    }
-
-    /// <summary>
-    /// Applies the requested blur strength directly to the cached depth-of-field override.
-    /// </summary>
-    private void ApplyBlurStrengthImmediate(float strength)
-    {
-        if (depthOfField == null)
-            return;
-
-        float clampedStrength = Mathf.Clamp01(strength);
-        if (clampedStrength <= 0f)
-        {
-            depthOfField.active = baseDepthOfFieldActive;
-            depthOfField.mode.overrideState = baseDepthOfFieldModeOverrideState;
-            depthOfField.focusDistance.overrideState = baseDepthOfFieldFocusDistanceOverrideState;
-            depthOfField.aperture.overrideState = baseDepthOfFieldApertureOverrideState;
-            depthOfField.focalLength.overrideState = baseDepthOfFieldFocalLengthOverrideState;
-            depthOfField.bladeCount.overrideState = baseDepthOfFieldBladeCountOverrideState;
-            depthOfField.bladeCurvature.overrideState = baseDepthOfFieldBladeCurvatureOverrideState;
-            depthOfField.bladeRotation.overrideState = baseDepthOfFieldBladeRotationOverrideState;
-            depthOfField.mode.value = baseDepthOfFieldMode;
-            depthOfField.focusDistance.value = baseDepthOfFieldFocusDistance;
-            depthOfField.aperture.value = baseDepthOfFieldAperture;
-            depthOfField.focalLength.value = baseDepthOfFieldFocalLength;
-            depthOfField.bladeCount.value = baseDepthOfFieldBladeCount;
-            depthOfField.bladeCurvature.value = baseDepthOfFieldBladeCurvature;
-            depthOfField.bladeRotation.value = baseDepthOfFieldBladeRotation;
-            appliedBlurStrength = 0f;
-            hasCachedBlurBaseline = false;
-            return;
-        }
-
-        appliedBlurStrength = clampedStrength;
-        depthOfField.active = true;
-        depthOfField.mode.overrideState = true;
-        depthOfField.focusDistance.overrideState = true;
-        depthOfField.aperture.overrideState = true;
-        depthOfField.focalLength.overrideState = true;
-        depthOfField.bladeCount.overrideState = true;
-        depthOfField.bladeCurvature.overrideState = true;
-        depthOfField.bladeRotation.overrideState = true;
-        depthOfField.mode.value = DepthOfFieldMode.Bokeh;
-        depthOfField.focusDistance.value = Mathf.Lerp(baseDepthOfFieldFocusDistance, blurBokehFocusDistance, clampedStrength);
-        depthOfField.aperture.value = Mathf.Lerp(baseDepthOfFieldAperture, blurBokehAperture, clampedStrength);
-        depthOfField.focalLength.value = Mathf.Lerp(baseDepthOfFieldFocalLength, blurBokehFocalLength, clampedStrength);
-        depthOfField.bladeCount.value = Mathf.RoundToInt(Mathf.Lerp(baseDepthOfFieldBladeCount, blurBokehBladeCount, clampedStrength));
-        depthOfField.bladeCurvature.value = Mathf.Lerp(baseDepthOfFieldBladeCurvature, blurBokehBladeCurvature, clampedStrength);
-        depthOfField.bladeRotation.value = Mathf.Lerp(baseDepthOfFieldBladeRotation, blurBokehBladeRotation, clampedStrength);
-    }
-
-    /// <summary>
-    /// Estimates the currently applied lockpick blur strength from the cached depth-of-field settings.
-    /// </summary>
-    private float ResolveCurrentBlurStrength()
-    {
-        return Mathf.Clamp01(appliedBlurStrength);
+        blurController.Animate(
+            blurred,
+            immediate,
+            targetVolume,
+            activeInteractorRoot != null ? activeInteractorRoot : gameObject,
+            blurTransitionDuration,
+            blurBokehFocusDistance,
+            blurBokehAperture,
+            blurBokehFocalLength,
+            blurBokehBladeCount,
+            blurBokehBladeCurvature,
+            blurBokehBladeRotation);
     }
 
     /// <summary>

@@ -46,7 +46,14 @@ public sealed class HideoutSceneController : MonoBehaviour
         public TMP_Text titleText;
         public TMP_Text cashText;
         public TMP_Text influenceText;
+        [ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
+        public List<TMP_Text> cashTexts = new();
+        [ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
+        public List<TMP_Text> influenceTexts = new();
+        [ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
+        public List<TMP_Text> perkPointsTexts = new();
         public TMP_Text messageText;
+        public HideoutProgressionDisplayUI progressionDisplay;
     }
 
     [Serializable]
@@ -65,6 +72,9 @@ public sealed class HideoutSceneController : MonoBehaviour
         public TMP_Text emptyStateText;
         public TMP_Text jobNameText;
         public TMP_Text jobLevelText;
+        public TMP_Text jobTypeText;
+        public TMP_Text jobTypeDescriptionText;
+        public TMP_Text jobExperienceRewardText;
         public TMP_Text jobDescriptionText;
         public TMP_Text jobRewardText;
         public TMP_Text jobObjectivesText;
@@ -321,6 +331,7 @@ public sealed class HideoutSceneController : MonoBehaviour
         {
             perksPanelUi.Confirmed -= HandlePerksPanelConfirmed;
             perksPanelUi.CloseRequested -= HandlePerksPanelCloseRequested;
+            perksPanelUi.PerkPointsChanged -= RefreshCurrencyTexts;
         }
 
         UnbindSlotEvents();
@@ -558,13 +569,16 @@ public sealed class HideoutSceneController : MonoBehaviour
         {
             perksPanelUi.Confirmed -= HandlePerksPanelConfirmed;
             perksPanelUi.CloseRequested -= HandlePerksPanelCloseRequested;
+            perksPanelUi.PerkPointsChanged -= RefreshCurrencyTexts;
         }
 
         perksPanelUi = resolvedPanelUi;
         perksPanelUi.Confirmed -= HandlePerksPanelConfirmed;
         perksPanelUi.CloseRequested -= HandlePerksPanelCloseRequested;
+        perksPanelUi.PerkPointsChanged -= RefreshCurrencyTexts;
         perksPanelUi.Confirmed += HandlePerksPanelConfirmed;
         perksPanelUi.CloseRequested += HandlePerksPanelCloseRequested;
+        perksPanelUi.PerkPointsChanged += RefreshCurrencyTexts;
     }
 
     private void CacheSlotViews()
@@ -672,6 +686,7 @@ public sealed class HideoutSceneController : MonoBehaviour
 
     private void HandlePerksPanelConfirmed()
     {
+        RefreshCurrencyTexts();
         RequestView(HideoutView.MainMenu);
     }
 
@@ -865,6 +880,9 @@ public sealed class HideoutSceneController : MonoBehaviour
         RebuildJobList();
     }
 
+    /// <summary>
+    /// Refreshes every selected-job detail field and its proceed availability.
+    /// </summary>
     private void RefreshJobDetails()
     {
         if (isTearingDown)
@@ -874,6 +892,9 @@ public sealed class HideoutSceneController : MonoBehaviour
         {
             SetText(jobsPanel.jobNameText, "No Job Selected");
             SetText(jobsPanel.jobLevelText, string.Empty);
+            SetText(jobsPanel.jobTypeText, string.Empty);
+            SetText(jobsPanel.jobTypeDescriptionText, string.Empty);
+            SetText(jobsPanel.jobExperienceRewardText, string.Empty);
             SetText(jobsPanel.jobDescriptionText, "Select a contract to inspect it.");
             SetText(jobsPanel.jobRewardText, string.Empty);
             SetText(jobsPanel.jobObjectivesText, string.Empty);
@@ -889,6 +910,11 @@ public sealed class HideoutSceneController : MonoBehaviour
 
         SetText(jobsPanel.jobNameText, selectedJob.JobTitle);
         SetText(jobsPanel.jobLevelText, ResolveJobLevelText(selectedJob.JobLevel));
+        SetText(jobsPanel.jobTypeText, selectedJob.JobTypeDisplayName);
+        SetText(jobsPanel.jobTypeDescriptionText, selectedJob.JobTypeDescription);
+        SetText(
+            jobsPanel.jobExperienceRewardText,
+            HideoutResourceTextUtility.FormatExperienceReward(selectedJob.TotalExperienceReward));
         SetText(jobsPanel.jobDescriptionText, selectedJob.JobDescription);
         SetText(jobsPanel.jobRewardText, selectedJob.RewardText);
         SetText(jobsPanel.jobObjectivesText, selectedJob.ObjectivesText);
@@ -1766,10 +1792,24 @@ public sealed class HideoutSceneController : MonoBehaviour
         return null;
     }
 
+    /// <summary>
+    /// Refreshes persistent hideout currencies and player progression presentation.
+    /// </summary>
     private void RefreshCurrencyTexts()
     {
-        SetText(header.cashText, $"Dinheiro: R${HideoutRuntimeSession.Cash}");
-        SetText(header.influenceText, $"Influência: {HideoutRuntimeSession.InfluencePoints}");
+        HideoutResourceTextUtility.SetTexts(
+            header.cashText,
+            header.cashTexts,
+            HideoutResourceTextUtility.FormatMoney(HideoutRuntimeSession.Cash));
+        HideoutResourceTextUtility.SetTexts(
+            header.influenceText,
+            header.influenceTexts,
+            HideoutResourceTextUtility.FormatInfluencePoints(HideoutRuntimeSession.InfluencePoints));
+        HideoutResourceTextUtility.SetTexts(
+            null,
+            header.perkPointsTexts,
+            HideoutResourceTextUtility.FormatPerkPoints(HideoutRuntimeSession.PerkPoints));
+        header.progressionDisplay?.Refresh();
     }
 
     private void SetMessage(string message)

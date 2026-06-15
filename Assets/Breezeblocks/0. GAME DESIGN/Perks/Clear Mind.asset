@@ -16,6 +16,22 @@ MonoBehaviour:
   perkId: clear_mind
   cost: 2
   description: "Voc\xEA recupera seu foco constantemente."
-  effect: "Voc\xEA regenera 5 pontos de Foco por segundo."
+  effect: "Voc\xEA regenera pontos de Foco por segundo."
   tier: 1
+  runtimeEffects:
+  - effectType: 10
+    floatValue: 0.5
+    boolValue: 1
+    firearmClass: 0
+    speedLevelValues:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
   icon: {fileID: -1708000380, guid: fd2bf8ab7d5d552c2a0d8f9e9f4f9902, type: 3}

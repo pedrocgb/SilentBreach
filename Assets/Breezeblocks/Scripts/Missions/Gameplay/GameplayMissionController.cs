@@ -237,6 +237,9 @@ public partial class GameplayMissionController : MonoBehaviour
     [FoldoutGroup("Fade and Screens/Win")]
     [SerializeField] private Button gameWinContinueButton;
 
+    [FoldoutGroup("Fade and Screens/Win")]
+    [SerializeField] private GameplayJobSuccessRewardsUI jobSuccessRewardsUi;
+
     [FoldoutGroup("Scene Loading"), LabelText("Hideout Scene Build Index"), MinValue(-1)]
     [SerializeField] private int hideoutSceneBuildIndex;
 
@@ -364,6 +367,8 @@ public partial class GameplayMissionController : MonoBehaviour
     private Tween activeCinematicPlayerMoveTween;
     private Coroutine missionStatusEntryBuildRoutine;
     private HideoutJobDefinition currentJob;
+    private JobCompletionRewardResult jobCompletionRewardResult;
+    private bool jobCompletionRewardPrepared;
     private Color timeLimitDefaultColor = Color.white;
     private bool gameplayStarted;
     private bool missionEnded;

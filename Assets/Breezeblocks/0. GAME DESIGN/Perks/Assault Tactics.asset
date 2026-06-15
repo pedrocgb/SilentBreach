@@ -16,6 +16,22 @@ MonoBehaviour:
   perkId: assault_tactics
   cost: 3
   description: Poucas pessoas possuem um trienamento com rifles de assalto.
-  effect: "Reduz a Dispers\xE3o ao atirar com Rifles de Assalto em 60%"
+  effect: "Reduz a Dispers\xE3o ao atirar com Rifles de Assalto."
   tier: 2
+  runtimeEffects:
+  - effectType: 5
+    floatValue: 0.6
+    boolValue: 1
+    firearmClass: 7
+    speedLevelValues:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
   icon: {fileID: -786538541, guid: 1ef0be22b8a86fcc4abbd56c5393160c, type: 3}

@@ -761,7 +761,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ActorStatsInitializer
   playerProfile: {fileID: 0}
-  enemyProfile: {fileID: 11400000, guid: 926e26ff698135a48b031d6675c1a475, type: 2}
+  enemyProfile: {fileID: 11400000, guid: 81e8482309c5df6febc0e04ecebbb056, type: 2}
 --- !u!114 &2398642840823831577
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -877,7 +877,7 @@ MonoBehaviour:
   - StepName: Itinerary Step
     StepType: 0
     IdlePoint: {fileID: 0}
-    IdleDuration: 55
+    IdleDuration: 25
     IdleFacing:
       FacingMode: 1
       CustomAngle: 0

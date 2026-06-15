@@ -16,10 +16,11 @@ MonoBehaviour:
   jobId: PokerNightStakeout
   jobDescription: "Entre sorrateiramente na sala de p\xF4quer, recupere o livro de
     contabilidade e saia antes que a mesa perceba que foi roubada. "
-  jobLevel: 0
-  rewardCash: 5000
+  jobLevel: 3
+  jobType: 6
+  rewardCash: 750
   rewardInfluencePoints: 1
-  rewardText: "R$ 5000 e 1 ponto de influ\xEAncia"
+  rewardText: "R$ 750,00 e 1 ponto de influ\xEAncia."
   objectivesText: '- Encontre e pegue o livro de contabilidade;
 
     - Fuja sem ser

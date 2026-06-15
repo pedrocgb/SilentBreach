@@ -17,6 +17,7 @@ MonoBehaviour:
   cost: 2
   description: "N\xE3o \xE9 f\xE1cil manter o coice de uma submetralhadora, mas voc\xEA
     consegue."
-  effect: "Reduz a Dispers\xE3o ao atirar com Submetralhadoras em 60%"
+  effect: "Reduz a Dispers\xE3o ao atirar com Submetralhadoras."
   tier: 1
+  runtimeEffects: []
   icon: {fileID: -1587553665, guid: 1ef0be22b8a86fcc4abbd56c5393160c, type: 3}

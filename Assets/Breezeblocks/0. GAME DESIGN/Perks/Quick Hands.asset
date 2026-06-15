@@ -16,6 +16,22 @@ MonoBehaviour:
   perkId: quick_hands
   cost: 1
   description: "Recarregar armas pequenas j\xE1 virou rotina."
-  effect: Reduz a velocidade de Recarga em 50%.
+  effect: Reduz a velocidade de Recarga de todas as armas.
   tier: 0
+  runtimeEffects:
+  - effectType: 6
+    floatValue: 0.5
+    boolValue: 1
+    firearmClass: 0
+    speedLevelValues:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
   icon: {fileID: -232376819, guid: 1ef0be22b8a86fcc4abbd56c5393160c, type: 3}

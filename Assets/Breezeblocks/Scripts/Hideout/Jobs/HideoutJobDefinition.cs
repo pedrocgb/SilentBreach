@@ -150,6 +150,9 @@ public sealed class HideoutJobDefinition : ScriptableObject
     [FoldoutGroup("Job")]
     [SerializeField] private HideoutJobLevel jobLevel = HideoutJobLevel.Easy;
 
+    [FoldoutGroup("Job")]
+    [SerializeField] private HideoutJobType jobType = HideoutJobType.Furto;
+
     [FoldoutGroup("Rewards"), MinValue(0)]
     [SerializeField] private int rewardCash;
 
@@ -204,6 +207,12 @@ public sealed class HideoutJobDefinition : ScriptableObject
     public string JobId => string.IsNullOrWhiteSpace(jobId) ? name : jobId;
     public string JobDescription => jobDescription ?? string.Empty;
     public HideoutJobLevel JobLevel => jobLevel;
+    public HideoutJobType JobType => jobType;
+    public string JobTypeDisplayName => HideoutJobTypeUtility.GetDisplayName(jobType);
+    public string JobTypeDescription => HideoutJobTypeUtility.GetDescription(jobType);
+    public int JobTypeExperienceReward => HideoutJobTypeUtility.GetExperienceReward(jobType);
+    public int DifficultyExperienceReward => PlayerProgressionRules.GetDifficultyExperienceReward(jobLevel);
+    public int TotalExperienceReward => JobTypeExperienceReward + DifficultyExperienceReward;
     public int RewardCash => Mathf.Max(0, rewardCash);
     public int RewardInfluencePoints => Mathf.Max(0, rewardInfluencePoints);
     public string RewardText => rewardText != null ? rewardText.Trim() : string.Empty;

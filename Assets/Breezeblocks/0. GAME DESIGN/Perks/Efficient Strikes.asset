@@ -16,7 +16,7 @@ MonoBehaviour:
   perkId: effiecient_strikes
   cost: 1
   description: "Cada golpe \xE9 calculado, brutal e nunca desperdi\xE7ado."
-  effect: Reduz o custo de Vigor ao atacar com Armas Brancas em 50%.
+  effect: Reduz o custo de Vigor ao atacar com Armas Brancas.
   tier: 0
   runtimeEffects:
   - effectType: 4

@@ -1,0 +1,359 @@
+fileFormatVersion: 2
+guid: 84a29c573ef65cdd18582f80775cbc5f
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 2370375752534335
+    second: Companies Logos_0
+  - first:
+      213: 4413241262548932261
+    second: Companies Logos_1
+  - first:
+      213: -1618513615263232021
+    second: Companies Logos_2
+  - first:
+      213: -5512386300830460860
+    second: Companies Logos_3
+  - first:
+      213: 8489340603935672000
+    second: Companies Logos_4
+  - first:
+      213: -1464142308954744413
+    second: Companies Logos_5
+  - first:
+      213: 6751095303756130512
+    second: Companies Logos_6
+  - first:
+      213: -8607174685463838046
+    second: Companies Logos_7
+  - first:
+      213: -3066786789960843432
+    second: Companies Logos_8
+  - first:
+      213: -8719480964678457050
+    second: Companies Logos_9
+  - first:
+      213: 1659318170861621826
+    second: Companies Logos_10
+  - first:
+      213: -8093556196398481179
+    second: Companies Logos_11
+  - first:
+      213: 2727870681633036706
+    second: Companies Logos_12
+  - first:
+      213: -7200783141012168396
+    second: Companies Logos_13
+  - first:
+      213: 8996064068765391942
+    second: Companies Logos_14
+  - first:
+      213: -8868787622949440409
+    second: Companies Logos_15
+  - first:
+      213: 1460915502232848886
+    second: Companies Logos_16
+  - first:
+      213: -5582571733566578440
+    second: Companies Logos_17
+  - first:
+      213: -3118607387257391989
+    second: Companies Logos_18
+  - first:
+      213: -4485251085615959238
+    second: Companies Logos_19
+  - first:
+      213: 8771833110809343024
+    second: Companies Logos_20
+  - first:
+      213: -1938572481505344797
+    second: Companies Logos_21
+  - first:
+      213: -3020078097025160854
+    second: Companies Logos_22
+  - first:
+      213: 2851914800204425523
+    second: Companies Logos_23
+  - first:
+      213: 6484173150846721305
+    second: Companies Logos_24
+  - first:
+      213: -1204186397184352209
+    second: Companies Logos_25
+  - first:
+      213: 4988629912656679436
+    second: Companies Logos_26
+  - first:
+      213: 8558273239820439413
+    second: Companies Logos_27
+  - first:
+      213: 7233903075262128479
+    second: Companies Logos_28
+  - first:
+      213: -5788358593326679280
+    second: Companies Logos_29
+  - first:
+      213: -6419762687626466344
+    second: Companies Logos_30
+  - first:
+      213: 4073714655664535296
+    second: Companies Logos_31
+  - first:
+      213: 8113870089457029528
+    second: Companies Logos_32
+  - first:
+      213: -2234588775046867665
+    second: Companies Logos_33
+  - first:
+      213: 4368825850081027613
+    second: Companies Logos_34
+  - first:
+      213: -3549721683832288154
+    second: Companies Logos_35
+  - first:
+      213: -8222896583030434449
+    second: Companies Logos_36
+  - first:
+      213: -6262309323463818672
+    second: Companies Logos_37
+  - first:
+      213: 5171759761178416959
+    second: Companies Logos_38
+  - first:
+      213: -1668423126858256883
+    second: Companies Logos_39
+  - first:
+      213: -1527238191016721629
+    second: Companies Logos_40
+  - first:
+      213: -5759704166031183974
+    second: Companies Logos_41
+  - first:
+      213: 7919403740551589271
+    second: Companies Logos_42
+  - first:
+      213: -5048348342885157462
+    second: Companies Logos_43
+  - first:
+      213: -4824139212546185969
+    second: Companies Logos_44
+  - first:
+      213: -8634822041422299928
+    second: Companies Logos_45
+  - first:
+      213: 1073089463122721648
+    second: Companies Logos_46
+  - first:
+      213: -610868867836076686
+    second: Companies Logos_47
+  - first:
+      213: -8115843157994161443
+    second: Companies Logos_48
+  - first:
+      213: 2897688265796595251
+    second: Companies Logos_49
+  - first:
+      213: -7142043785399977697
+    second: Companies Logos_50
+  - first:
+      213: 7971032820559218161
+    second: Companies Logos_51
+  - first:
+      213: 6049883206200689345
+    second: Companies Logos_52
+  - first:
+      213: 7236935697413287469
+    second: Companies Logos_53
+  - first:
+      213: 4205233916585786109
+    second: Companies Logos_54
+  - first:
+      213: 3201294852634703058
+    second: Companies Logos_55
+  - first:
+      213: -3162350797200995201
+    second: Companies Logos_56
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Companies Logos_0
+      rect:
+        serializedVersion: 2
+        x: 26
+        y: 386
+        width: 458
+        height: 355
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f39c6bc18db680000800000000000000
+      internalID: 2370375752534335
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Companies Logos_1
+      rect:
+        serializedVersion: 2
+        x: 521
+        y: 351
+        width: 408
+        height: 387
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3dea058d99cacac779bc4827f1f2282a
+      internalID: 1312366290
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Companies Logos_2
+      rect:
+        serializedVersion: 2
+        x: 950
+        y: 359
+        width: 466
+        height: 373
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: aab29fff8a89826e98922a2b5d21be10
+      internalID: -2143420454
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 97d77acb85d013c7a8e9cac492428b0f
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":1448.0,"y":1086.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":2,"keepEmptyRects":false,"isAlternate":false}'
+    nameFileIdTable:
+      Companies Logos_0: 2370375752534335
+      Companies Logos_1: 1312366290
+      Companies Logos_2: -2143420454
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

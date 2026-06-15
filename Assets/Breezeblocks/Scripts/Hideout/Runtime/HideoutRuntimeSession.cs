@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text;
+using Breezeblocks.Settings;
 using UnityEngine;
 
 namespace Breezeblocks.HideoutSystem
@@ -11,6 +12,8 @@ public static class HideoutRuntimeSession
     private static int cash;
     private static int influencePoints;
     private static int perkPoints;
+    private static int currentExperience;
+    private static int currentLevel;
     private static int unlockedTierOnePerkCount;
     private static int unlockedTierTwoPerkCount;
     private static bool tierTwoUnlocked;
@@ -27,6 +30,9 @@ public static class HideoutRuntimeSession
     public static int Cash => cash;
     public static int InfluencePoints => influencePoints;
     public static int PerkPoints => perkPoints;
+    public static int CurrentExperience => currentExperience;
+    public static int CurrentLevel => currentLevel;
+    public static PlayerBadgeId CurrentBadgeId => PlayerProgressionRules.GetBadgeId(currentLevel);
     public static HideoutJobDefinition CurrentJob => currentJob;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -36,6 +42,8 @@ public static class HideoutRuntimeSession
         cash = 0;
         influencePoints = 0;
         perkPoints = 0;
+        currentExperience = 0;
+        currentLevel = PlayerProgressionRules.MinimumLevel;
         unlockedTierOnePerkCount = 0;
         unlockedTierTwoPerkCount = 0;
         tierTwoUnlocked = false;
@@ -47,6 +55,27 @@ public static class HideoutRuntimeSession
         unlockedJobIds.Clear();
         failedJobIds.Clear();
         unlockedPerkIds.Clear();
+    }
+
+    /// <summary>
+    /// Loads existing player progression before the first scene begins without overriding new-game defaults.
+    /// </summary>
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void LoadSavedStateBeforeFirstScene()
+    {
+        GameSettingsRuntime.EnsureInitialized();
+        if (initialized ||
+            !HideoutSaveSystem.TryLoad(out HideoutSaveSnapshot snapshot) ||
+            !snapshot.HasHideoutProgress)
+        {
+            return;
+        }
+
+        initialized = true;
+        ApplyLoadedSnapshot(snapshot);
+        currentJob = null;
+        ResolvePendingMissionFailureFromSave();
+        PersistState();
     }
 
     public static void EnsureInitialized(int startingCash, int startingInfluencePoints)
@@ -252,13 +281,28 @@ public static class HideoutRuntimeSession
         return !string.IsNullOrWhiteSpace(message);
     }
 
+    /// <summary>
+    /// Completes the selected job and grants its rewards once.
+    /// </summary>
     public static bool CompleteCurrentJob()
     {
         return CompleteJob(currentJob);
     }
 
+    /// <summary>
+    /// Completes a job while preserving the existing boolean completion API.
+    /// </summary>
     public static bool CompleteJob(HideoutJobDefinition jobDefinition)
     {
+        return TryCompleteJob(jobDefinition, out _);
+    }
+
+    /// <summary>
+    /// Completes a job once and returns the committed reward values for presentation.
+    /// </summary>
+    public static bool TryCompleteJob(HideoutJobDefinition jobDefinition, out JobCompletionRewardResult rewardResult)
+    {
+        rewardResult = default;
         if (jobDefinition == null)
         {
             currentJob = null;
@@ -282,8 +326,19 @@ public static class HideoutRuntimeSession
             return false;
         }
 
+        int experienceBefore = currentExperience;
+        int levelBefore = currentLevel;
+        int perkPointsBefore = perkPoints;
+        int cashBefore = cash;
+        int experienceAward = Mathf.Max(0, jobDefinition.TotalExperienceReward);
+        PlayerProgressionAward progressionAward =
+            PlayerProgressionRules.ApplyExperience(currentExperience, currentLevel, experienceAward);
+
         cash += Mathf.Max(0, jobDefinition.RewardCash);
         influencePoints += Mathf.Max(0, jobDefinition.RewardInfluencePoints);
+        currentExperience = progressionAward.Experience;
+        currentLevel = progressionAward.Level;
+        perkPoints += progressionAward.LevelUps;
 
         int unlockedCount = 0;
         IReadOnlyList<HideoutJobDefinition> unlockJobs = jobDefinition.UnlockJobs;
@@ -298,6 +353,18 @@ public static class HideoutRuntimeSession
         }
 
         pendingHideoutMessage = BuildCompletionMessage(jobDefinition, unlockedCount);
+        rewardResult = new JobCompletionRewardResult(
+            wasAwarded: true,
+            experienceAwarded: experienceAward,
+            experienceBefore: experienceBefore,
+            experienceAfter: currentExperience,
+            levelBefore: levelBefore,
+            levelAfter: currentLevel,
+            levelUps: progressionAward.LevelUps,
+            perkPointsBefore: perkPointsBefore,
+            perkPointsAfter: perkPoints,
+            cashBefore: cashBefore,
+            cashAfter: cash);
         PersistState();
         return true;
     }
@@ -308,6 +375,8 @@ public static class HideoutRuntimeSession
         cash = Mathf.Max(0, snapshot.Cash);
         influencePoints = Mathf.Max(0, snapshot.InfluencePoints);
         perkPoints = Mathf.Max(0, snapshot.PerkPoints);
+        currentLevel = PlayerProgressionRules.SanitizeLevel(snapshot.CurrentLevel);
+        currentExperience = PlayerProgressionRules.SanitizeExperience(snapshot.CurrentExperience, currentLevel);
         unlockedTierOnePerkCount = Mathf.Max(0, snapshot.UnlockedTierOnePerkCount);
         unlockedTierTwoPerkCount = Mathf.Max(0, snapshot.UnlockedTierTwoPerkCount);
         tierTwoUnlocked = snapshot.TierTwoUnlocked;
@@ -326,6 +395,8 @@ public static class HideoutRuntimeSession
         cash = Mathf.Max(0, startingCash);
         influencePoints = Mathf.Max(0, startingInfluencePoints);
         perkPoints = Mathf.Max(0, startingPerkPoints);
+        currentExperience = 0;
+        currentLevel = PlayerProgressionRules.MinimumLevel;
         unlockedTierOnePerkCount = 0;
         unlockedTierTwoPerkCount = 0;
         tierTwoUnlocked = false;
@@ -363,6 +434,9 @@ public static class HideoutRuntimeSession
             Cash = Mathf.Max(0, cash),
             InfluencePoints = Mathf.Max(0, influencePoints),
             PerkPoints = Mathf.Max(0, perkPoints),
+            CurrentExperience = currentExperience,
+            CurrentLevel = currentLevel,
+            BadgeId = (int)CurrentBadgeId,
             UnlockedTierOnePerkCount = Mathf.Max(0, unlockedTierOnePerkCount),
             UnlockedTierTwoPerkCount = Mathf.Max(0, unlockedTierTwoPerkCount),
             TierTwoUnlocked = tierTwoUnlocked || unlockedTierOnePerkCount >= 3,

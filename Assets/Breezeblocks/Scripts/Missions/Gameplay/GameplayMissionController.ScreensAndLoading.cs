@@ -20,6 +20,7 @@ public partial class GameplayMissionController
 
         missionEnded = true;
         Time.timeScale = 1f;
+        PrepareJobSuccessRewards();
         escapePromptSequence?.Kill();
         escapePromptSequence = null;
         StopTimeLimitWarningPulse();
@@ -32,6 +33,7 @@ public partial class GameplayMissionController
                 gameWinMessageText.text = ResolveMissionCompletedMessage();
 
             yield return FadeAndShowScreen(gameWinScreen);
+            PlayJobSuccessRewardsPresentation();
             yield break;
         }
 
@@ -83,6 +85,7 @@ public partial class GameplayMissionController
             gameWinScreen.SetActive(true);
 
         fadeImageFader?.SetAlphaImmediate(0f);
+        PlayJobSuccessRewardsPresentation();
     }
 
     /// <summary>
@@ -273,7 +276,43 @@ public partial class GameplayMissionController
             return;
 
         sceneTransitionInProgress = true;
-        StartCoroutine(LoadSceneRoutine(hideoutSceneBuildIndex, hideoutSceneName, clearCurrentJob: false, completeCurrentJob: true));
+        StartCoroutine(LoadSceneRoutine(hideoutSceneBuildIndex, hideoutSceneName, clearCurrentJob: false, completeCurrentJob: false));
+    }
+
+    /// <summary>
+    /// Commits successful job rewards once before their saved values are presented by the win screen.
+    /// </summary>
+    private void PrepareJobSuccessRewards()
+    {
+        if (jobCompletionRewardPrepared)
+            return;
+
+        jobCompletionRewardPrepared = HideoutRuntimeSession.TryCompleteJob(currentJob, out jobCompletionRewardResult);
+        if (gameWinContinueButton != null)
+            gameWinContinueButton.interactable = false;
+    }
+
+    /// <summary>
+    /// Starts the success reward presentation or immediately restores controls when no presenter is configured.
+    /// </summary>
+    private void PlayJobSuccessRewardsPresentation()
+    {
+        if (!jobCompletionRewardPrepared || jobSuccessRewardsUi == null)
+        {
+            EnableWinCompletionControls();
+            return;
+        }
+
+        jobSuccessRewardsUi.Play(jobCompletionRewardResult, EnableWinCompletionControls);
+    }
+
+    /// <summary>
+    /// Enables the mission success continuation control after reward presentation finishes.
+    /// </summary>
+    private void EnableWinCompletionControls()
+    {
+        if (gameWinContinueButton != null)
+            gameWinContinueButton.interactable = true;
     }
 
     /// <summary>

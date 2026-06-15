@@ -40,6 +40,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
     [FoldoutGroup("References")]
     [SerializeField] private TMP_Text perkPointsText;
 
+    [FoldoutGroup("References"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
+    [SerializeField] private List<TMP_Text> perkPointsTexts = new();
+
     [FoldoutGroup("References")]
     [SerializeField] private TMP_Text emptyStateText;
 
@@ -93,6 +96,7 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
 
     public event Action Confirmed;
     public event Action CloseRequested;
+    public event Action PerkPointsChanged;
 
     private void Awake()
     {
@@ -226,6 +230,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         selectedPerk = configuredPerks.Count > 0 ? configuredPerks[0] : null;
     }
 
+    /// <summary>
+    /// Rebuilds perk selection, details, tier locks, and all configured perk-point labels.
+    /// </summary>
     public void RefreshView()
     {
         if (!initialized)
@@ -236,7 +243,10 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         if (titleText != null && string.IsNullOrWhiteSpace(titleText.text))
             titleText.text = "Perks";
 
-        SetText(perkPointsText, HideoutRuntimeSession.PerkPoints.ToString());
+        HideoutResourceTextUtility.SetTexts(
+            perkPointsText,
+            perkPointsTexts,
+            HideoutResourceTextUtility.FormatPerkPoints(HideoutRuntimeSession.PerkPoints));
         RefreshTierLocks();
         RefreshSelectedPerkDetails();
         RebuildTierLists();
@@ -400,6 +410,7 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
             return;
         }
 
+        PerkPointsChanged?.Invoke();
         RefreshView();
     }
 

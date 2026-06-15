@@ -104,7 +104,7 @@ public sealed class CutWireMinigameDefinition : ScriptableObject
     }
 
     /// <summary>
-    /// Clamps authored values and maintains a unique wire entry for every active difficulty slot.
+    /// Clamps authored values and maintains one wire entry for every active difficulty slot.
     /// </summary>
     private void OnValidate()
     {
@@ -118,19 +118,10 @@ public sealed class CutWireMinigameDefinition : ScriptableObject
         while (wires.Count > targetCount)
             wires.RemoveAt(wires.Count - 1);
 
-        bool[] usedColors = new bool[MaximumWireCount];
         bool hasRequiredWire = false;
         for (int i = 0; i < wires.Count; i++)
         {
             wires[i] ??= new CutWireSlotDefinition();
-            int colorIndex = (int)wires[i].Color;
-            if (colorIndex < 0 || colorIndex >= MaximumWireCount || usedColors[colorIndex])
-            {
-                colorIndex = FindFirstUnusedColor(usedColors);
-                wires[i].SetColor((CutWireColor)colorIndex);
-            }
-
-            usedColors[colorIndex] = true;
             hasRequiredWire |= wires[i].MustBeCut;
         }
 
@@ -149,20 +140,6 @@ public sealed class CutWireMinigameDefinition : ScriptableObject
             CutWireDifficulty.Medium => 4,
             _ => MaximumWireCount
         };
-    }
-
-    /// <summary>
-    /// Finds the first wire color not already used by the current preset.
-    /// </summary>
-    private static int FindFirstUnusedColor(IReadOnlyList<bool> usedColors)
-    {
-        for (int i = 0; i < MaximumWireCount; i++)
-        {
-            if (!usedColors[i])
-                return i;
-        }
-
-        return 0;
     }
 }
 

@@ -14,6 +14,9 @@ public sealed class HideoutSaveSnapshot
     public int Cash;
     public int InfluencePoints;
     public int PerkPoints;
+    public int CurrentExperience;
+    public int CurrentLevel = PlayerProgressionRules.MinimumLevel;
+    public int BadgeId;
     public int UnlockedTierOnePerkCount;
     public int UnlockedTierTwoPerkCount;
     public bool TierTwoUnlocked;
@@ -28,7 +31,7 @@ public sealed class HideoutSaveSnapshot
 
 public static class HideoutSaveSystem
 {
-    private const int CurrentSchemaVersion = 2;
+    private const int CurrentSchemaVersion = 3;
     private const string SaveFileName = "hideout_save.json";
     private const string BackupExtension = ".bak";
     private const string TempExtension = ".tmp";
@@ -50,9 +53,17 @@ public static class HideoutSaveSystem
     [Serializable]
     private sealed class HideoutSaveEnvelopeV2
     {
-        public int schemaVersion = CurrentSchemaVersion;
+        public int schemaVersion = 2;
         public long savedAtUtcTicks;
         public HideoutSavePayloadV2 payload = new();
+    }
+
+    [Serializable]
+    private sealed class HideoutSaveEnvelopeV3
+    {
+        public int schemaVersion = CurrentSchemaVersion;
+        public long savedAtUtcTicks;
+        public HideoutSavePayloadV3 payload = new();
     }
 
     [Serializable]
@@ -77,6 +88,23 @@ public static class HideoutSaveSystem
     {
         public bool hasHideoutProgress;
         public HideoutSavePayloadV1 hideoutProgress = new();
+        public GameSettingsSaveData settings = GameSettingsSaveData.CreateDefaults();
+    }
+
+    [Serializable]
+    private sealed class PlayerProgressionSavePayloadV3
+    {
+        public int currentExperience;
+        public int currentLevel = PlayerProgressionRules.MinimumLevel;
+        public int badgeId;
+    }
+
+    [Serializable]
+    private sealed class HideoutSavePayloadV3
+    {
+        public bool hasHideoutProgress;
+        public HideoutSavePayloadV1 hideoutProgress = new();
+        public PlayerProgressionSavePayloadV3 playerProgression = new();
         public GameSettingsSaveData settings = GameSettingsSaveData.CreateDefaults();
     }
 
@@ -113,11 +141,11 @@ public static class HideoutSaveSystem
             if (!string.IsNullOrWhiteSpace(directoryPath) && !Directory.Exists(directoryPath))
                 Directory.CreateDirectory(directoryPath);
 
-            HideoutSaveEnvelopeV2 envelope = new()
+            HideoutSaveEnvelopeV3 envelope = new()
             {
                 schemaVersion = CurrentSchemaVersion,
                 savedAtUtcTicks = DateTime.UtcNow.Ticks,
-                payload = BuildPayloadV2(snapshot)
+                payload = BuildPayloadV3(snapshot)
             };
 
             string json = JsonUtility.ToJson(envelope, true);
@@ -134,6 +162,38 @@ public static class HideoutSaveSystem
         catch (Exception exception)
         {
             Debug.LogWarning($"Could not save hideout progress: {exception.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Deletes every primary, backup, and temporary file owned by the hideout save system.
+    /// </summary>
+    public static int DeleteAllSaveFiles()
+    {
+        int deletedFileCount = 0;
+        deletedFileCount += TryDeleteSaveFile(GetPrimaryPath());
+        deletedFileCount += TryDeleteSaveFile(GetBackupPath());
+        deletedFileCount += TryDeleteSaveFile(GetTempPath());
+        return deletedFileCount;
+    }
+
+    /// <summary>
+    /// Deletes one save-system-owned file and reports whether a file was removed.
+    /// </summary>
+    private static int TryDeleteSaveFile(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+            return 0;
+
+        try
+        {
+            File.Delete(filePath);
+            return 1;
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning($"Could not delete save file at {filePath}: {exception.Message}");
+            return 0;
         }
     }
 
@@ -158,7 +218,17 @@ public static class HideoutSaveSystem
                 if (versionProbe == null)
                     return false;
 
-                if (versionProbe.schemaVersion >= 2)
+                if (versionProbe.schemaVersion >= 3)
+                {
+                    HideoutSaveEnvelopeV3 envelope = JsonUtility.FromJson<HideoutSaveEnvelopeV3>(json);
+                    if (envelope?.payload == null)
+                        return false;
+
+                    snapshot = BuildSnapshot(envelope.payload);
+                    return true;
+                }
+
+                if (versionProbe.schemaVersion == 2)
                 {
                     HideoutSaveEnvelopeV2 envelope = JsonUtility.FromJson<HideoutSaveEnvelopeV2>(json);
                     if (envelope?.payload == null)
@@ -233,17 +303,43 @@ public static class HideoutSaveSystem
     }
 
     /// <summary>
-    /// Builds the current version-two payload from a runtime snapshot.
+    /// Converts the current version-three payload into a sanitized runtime snapshot.
     /// </summary>
-    private static HideoutSavePayloadV2 BuildPayloadV2(HideoutSaveSnapshot snapshot)
+    private static HideoutSaveSnapshot BuildSnapshot(HideoutSavePayloadV3 payload)
+    {
+        payload ??= new HideoutSavePayloadV3();
+        HideoutSaveSnapshot snapshot = BuildSnapshot(payload.hideoutProgress);
+        PlayerProgressionSavePayloadV3 progression = payload.playerProgression ?? new PlayerProgressionSavePayloadV3();
+        int sanitizedLevel = PlayerProgressionRules.SanitizeLevel(progression.currentLevel);
+
+        snapshot.HasHideoutProgress = payload.hasHideoutProgress;
+        snapshot.CurrentLevel = sanitizedLevel;
+        snapshot.CurrentExperience = PlayerProgressionRules.SanitizeExperience(progression.currentExperience, sanitizedLevel);
+        snapshot.BadgeId = (int)PlayerProgressionRules.GetBadgeId(sanitizedLevel);
+        snapshot.Settings = payload.settings?.Clone() ?? GameSettingsSaveData.CreateDefaults();
+        snapshot.Settings.Sanitize();
+        return snapshot;
+    }
+
+    /// <summary>
+    /// Builds the current version-three payload from a runtime snapshot.
+    /// </summary>
+    private static HideoutSavePayloadV3 BuildPayloadV3(HideoutSaveSnapshot snapshot)
     {
         GameSettingsSaveData settings = snapshot.Settings?.Clone() ?? GameSettingsSaveData.CreateDefaults();
         settings.Sanitize();
+        int sanitizedLevel = PlayerProgressionRules.SanitizeLevel(snapshot.CurrentLevel);
 
-        return new HideoutSavePayloadV2
+        return new HideoutSavePayloadV3
         {
             hasHideoutProgress = snapshot.HasHideoutProgress,
             hideoutProgress = BuildPayloadV1(snapshot),
+            playerProgression = new PlayerProgressionSavePayloadV3
+            {
+                currentExperience = PlayerProgressionRules.SanitizeExperience(snapshot.CurrentExperience, sanitizedLevel),
+                currentLevel = sanitizedLevel,
+                badgeId = (int)PlayerProgressionRules.GetBadgeId(sanitizedLevel)
+            },
             settings = settings
         };
     }

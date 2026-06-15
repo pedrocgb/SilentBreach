@@ -16,6 +16,7 @@ MonoBehaviour:
   perkId: instinto_afiado
   cost: 1
   description: "Voc\xEA percebe detalhes que outros deixam passar, mesmo sob press\xE3o."
-  effect: "Aumenta seu Foco m\xE1ximo em 20."
+  effect: "Aumenta seu Foco m\xE1ximo."
   tier: 0
+  runtimeEffects: []
   icon: {fileID: -1718580267, guid: fd2bf8ab7d5d552c2a0d8f9e9f4f9902, type: 3}

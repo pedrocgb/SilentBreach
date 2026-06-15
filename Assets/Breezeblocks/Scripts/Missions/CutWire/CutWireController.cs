@@ -5,6 +5,7 @@ using DG.Tweening;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.UI;
 
 namespace Breezeblocks.Missions
@@ -12,8 +13,8 @@ namespace Breezeblocks.Missions
 
 [RequireComponent(typeof(AudioSource))]
 [DisallowMultipleComponent]
-[AddComponentMenu("Breezeblocks/Missions/Cut Wire/Minigame Controller")]
-public sealed class CutWireMinigameController : MonoBehaviour
+[AddComponentMenu("Breezeblocks/Missions/Cut Wire/Cut Wire Controller")]
+public sealed class CutWireController : MonoBehaviour
 {
     private enum SessionOutcome
     {
@@ -24,7 +25,7 @@ public sealed class CutWireMinigameController : MonoBehaviour
 
     private const float MinimumDuration = 0f;
 
-    private static CutWireMinigameController activeInstance;
+    private static CutWireController activeInstance;
 
     [FoldoutGroup("Rewired"), MinValue(0)]
     [SerializeField] private int rewiredPlayerId;
@@ -44,6 +45,12 @@ public sealed class CutWireMinigameController : MonoBehaviour
     [FoldoutGroup("References")]
     [SerializeField] private Image companyLogoImage;
 
+    [FoldoutGroup("References")]
+    [SerializeField] private CutWireFuseBoxDoorView fuseBoxDoorView;
+
+    [FoldoutGroup("References")]
+    [SerializeField] private Volume targetVolume;
+
     [FoldoutGroup("References"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
     [SerializeField] private List<CutWireWireView> wireViews = new();
 
@@ -55,6 +62,27 @@ public sealed class CutWireMinigameController : MonoBehaviour
 
     [FoldoutGroup("Animation"), MinValue(MinimumDuration), SuffixLabel("s", true)]
     [SerializeField] private float outcomeCloseDelay = 0.6f;
+
+    [FoldoutGroup("Blur"), MinValue(MinimumDuration), SuffixLabel("s", true)]
+    [SerializeField] private float blurTransitionDuration = 0.16f;
+
+    [FoldoutGroup("Blur"), MinValue(0f)]
+    [SerializeField] private float blurBokehFocusDistance = 2.5f;
+
+    [FoldoutGroup("Blur"), MinValue(0.1f)]
+    [SerializeField] private float blurBokehAperture = 0.8f;
+
+    [FoldoutGroup("Blur"), MinValue(1f)]
+    [SerializeField] private float blurBokehFocalLength = 75f;
+
+    [FoldoutGroup("Blur"), Range(3, 9)]
+    [SerializeField] private int blurBokehBladeCount = 7;
+
+    [FoldoutGroup("Blur"), Range(0f, 1f)]
+    [SerializeField] private float blurBokehBladeCurvature = 0.9f;
+
+    [FoldoutGroup("Blur"), Range(-180f, 180f)]
+    [SerializeField] private float blurBokehBladeRotation;
 
     [FoldoutGroup("Audio"), AssetsOnly]
     [SerializeField] private AudioClip cutWireSfx;
@@ -88,6 +116,7 @@ public sealed class CutWireMinigameController : MonoBehaviour
 
     private readonly List<CutWireWireView> resolvedWireViews = new();
     private readonly PlayerMinigameControlLock controlLock = new();
+    private readonly MinigameBokehBlurController blurController = new();
 
     private AudioSource uiAudioSource;
     private CanvasGroup panelCanvasGroup;
@@ -99,7 +128,12 @@ public sealed class CutWireMinigameController : MonoBehaviour
     private CutWireMinigameDefinition activeDefinition;
     private GameObject activeInteractorRoot;
     private SessionOutcome pendingOutcome;
+    private bool isClosing;
     private bool CanStartSessions => panelRoot != null && resolvedWireViews.Count > 0;
+    private bool CanCutWires => IsSessionActive &&
+                                !IsOutcomePending &&
+                                !isClosing &&
+                                (fuseBoxDoorView == null || fuseBoxDoorView.IsOpen);
 
     /// <summary>
     /// Caches same-object services, resolves wired views, and applies a hidden initial panel state.
@@ -122,11 +156,12 @@ public sealed class CutWireMinigameController : MonoBehaviour
         ResolvePanelCanvasGroup();
         RebuildResolvedWireViews();
         SubscribeWireViews();
+        SubscribeFuseBoxDoorView();
         if (closeButton != null)
             closeButton.onClick.AddListener(CloseActiveSession);
 
         if (activeInstance != null && activeInstance != this)
-            Debug.LogWarning("Multiple CutWireMinigameController instances are active. Newest instance will be used.", this);
+            Debug.LogWarning("Multiple CutWireController instances are active. Newest instance will be used.", this);
 
         activeInstance = this;
     }
@@ -139,6 +174,7 @@ public sealed class CutWireMinigameController : MonoBehaviour
         if (closeButton != null)
             closeButton.onClick.RemoveListener(CloseActiveSession);
 
+        UnsubscribeFuseBoxDoorView();
         UnsubscribeWireViews();
         ForceCloseSessionImmediate();
         KillOwnedTweens();
@@ -154,6 +190,13 @@ public sealed class CutWireMinigameController : MonoBehaviour
     {
         panelFadeDuration = Mathf.Max(MinimumDuration, panelFadeDuration);
         outcomeCloseDelay = Mathf.Max(MinimumDuration, outcomeCloseDelay);
+        blurTransitionDuration = Mathf.Max(MinimumDuration, blurTransitionDuration);
+        blurBokehFocusDistance = Mathf.Max(0f, blurBokehFocusDistance);
+        blurBokehAperture = Mathf.Max(0.1f, blurBokehAperture);
+        blurBokehFocalLength = Mathf.Max(1f, blurBokehFocalLength);
+        blurBokehBladeCount = Mathf.Clamp(blurBokehBladeCount, 3, 9);
+        blurBokehBladeCurvature = Mathf.Clamp01(blurBokehBladeCurvature);
+        blurBokehBladeRotation = Mathf.Clamp(blurBokehBladeRotation, -180f, 180f);
         cutWireVolume = Mathf.Clamp01(cutWireVolume);
         successVolume = Mathf.Clamp01(successVolume);
         failureVolume = Mathf.Clamp01(failureVolume);
@@ -167,6 +210,9 @@ public sealed class CutWireMinigameController : MonoBehaviour
     private void Update()
     {
         if (!IsSessionActive)
+            return;
+
+        if (isClosing)
             return;
 
         if (activeTargetBehaviour == null || !activeTargetBehaviour.isActiveAndEnabled)
@@ -217,10 +263,15 @@ public sealed class CutWireMinigameController : MonoBehaviour
         activeDefinition = target.Definition;
         activeInteractorRoot = interactorRoot;
         pendingOutcome = SessionOutcome.None;
+        isClosing = false;
         controlLock.Bind(interactorRoot);
         controlLock.SetBlocked(true);
+        SetCursorVisible(true);
+        SetHeaderVisible(true);
         RefreshHeader();
+        fuseBoxDoorView?.ResetClosedImmediate();
         RefreshWireViews();
+        fuseBoxDoorView?.SetInteractionEnabled(true);
         ShowPanel();
         return true;
     }
@@ -230,7 +281,7 @@ public sealed class CutWireMinigameController : MonoBehaviour
     /// </summary>
     public void CloseActiveSession()
     {
-        if (IsSessionActive && !IsOutcomePending)
+        if (IsSessionActive && !IsOutcomePending && !isClosing)
             CloseSessionInternal();
     }
 
@@ -239,7 +290,7 @@ public sealed class CutWireMinigameController : MonoBehaviour
     /// </summary>
     private void HandleWireCutRequested(CutWireWireView wireView)
     {
-        if (!IsSessionActive || IsOutcomePending || wireView == null || wireView.IsCut)
+        if (!CanCutWires || wireView == null || wireView.IsCut)
             return;
 
         int wireIndex = wireView.WireIndex;
@@ -312,21 +363,27 @@ public sealed class CutWireMinigameController : MonoBehaviour
     }
 
     /// <summary>
-    /// Restores player control, fades the panel out, and clears transient session ownership.
+    /// Starts the close sequence while keeping player control blocked until all UI animation finishes.
     /// </summary>
     private void CloseSessionInternal()
     {
-        if (!IsSessionActive)
+        if (!IsSessionActive || isClosing)
             return;
 
-        ICutWireSessionTarget closedTarget = activeTarget;
+        isClosing = true;
         outcomeDelayTween?.Kill();
         outcomeDelayTween = null;
-        controlLock.SetBlocked(false);
-        controlLock.Clear();
-        HidePanel();
-        ClearSessionState();
-        SessionClosed?.Invoke(closedTarget);
+        SetWireInteractionEnabled(false);
+        fuseBoxDoorView?.SetInteractionEnabled(false);
+        SetPanelInteractionEnabled(false);
+
+        if (fuseBoxDoorView != null)
+        {
+            fuseBoxDoorView.Close(HidePanelAndCompleteClose);
+            return;
+        }
+
+        HidePanelAndCompleteClose();
     }
 
     /// <summary>
@@ -343,6 +400,31 @@ public sealed class CutWireMinigameController : MonoBehaviour
         controlLock.SetBlocked(false);
         controlLock.Clear();
         HidePanelImmediate();
+        SetCursorVisible(false);
+        ClearSessionState();
+        SessionClosed?.Invoke(closedTarget);
+    }
+
+    /// <summary>
+    /// Fades the panel only after the fuse-box door has fully returned to its closed position.
+    /// </summary>
+    private void HidePanelAndCompleteClose()
+    {
+        HidePanel(CompleteSessionClose);
+    }
+
+    /// <summary>
+    /// Restores gameplay control and clears session ownership after every close animation finishes.
+    /// </summary>
+    private void CompleteSessionClose()
+    {
+        if (!IsSessionActive)
+            return;
+
+        ICutWireSessionTarget closedTarget = activeTarget;
+        controlLock.SetBlocked(false);
+        controlLock.Clear();
+        SetCursorVisible(false);
         ClearSessionState();
         SessionClosed?.Invoke(closedTarget);
     }
@@ -357,6 +439,7 @@ public sealed class CutWireMinigameController : MonoBehaviour
         activeDefinition = null;
         activeInteractorRoot = null;
         pendingOutcome = SessionOutcome.None;
+        isClosing = false;
     }
 
     /// <summary>
@@ -402,7 +485,7 @@ public sealed class CutWireMinigameController : MonoBehaviour
             wireView.SetRuntimeVisible(true);
             bool isCut = activeTarget.CutStates != null && i < activeTarget.CutStates.Count && activeTarget.CutStates[i];
             wireView.Configure(i, wireDefinition.Color, isCut);
-            wireView.SetInteractionEnabled(!IsOutcomePending);
+            wireView.SetInteractionEnabled(CanCutWires);
         }
     }
 
@@ -450,6 +533,53 @@ public sealed class CutWireMinigameController : MonoBehaviour
     }
 
     /// <summary>
+    /// Subscribes to the optional fuse-box door so it can reveal wires and control header visibility.
+    /// </summary>
+    private void SubscribeFuseBoxDoorView()
+    {
+        if (fuseBoxDoorView == null)
+            return;
+
+        fuseBoxDoorView.Opened -= HandleFuseBoxDoorOpened;
+        fuseBoxDoorView.Opened += HandleFuseBoxDoorOpened;
+        fuseBoxDoorView.HeaderVisibilityChanged -= SetHeaderVisible;
+        fuseBoxDoorView.HeaderVisibilityChanged += SetHeaderVisible;
+    }
+
+    /// <summary>
+    /// Removes callbacks owned by this controller from the optional fuse-box door view.
+    /// </summary>
+    private void UnsubscribeFuseBoxDoorView()
+    {
+        if (fuseBoxDoorView == null)
+            return;
+
+        fuseBoxDoorView.Opened -= HandleFuseBoxDoorOpened;
+        fuseBoxDoorView.HeaderVisibilityChanged -= SetHeaderVisible;
+    }
+
+    /// <summary>
+    /// Enables cutting only after the player has fully opened the fuse-box door.
+    /// </summary>
+    private void HandleFuseBoxDoorOpened()
+    {
+        if (CanCutWires)
+            SetWireInteractionEnabled(true);
+    }
+
+    /// <summary>
+    /// Shows or hides fuse-box identity objects when the door crosses its configured pivot threshold.
+    /// </summary>
+    private void SetHeaderVisible(bool visible)
+    {
+        if (fuseBoxNameText != null)
+            fuseBoxNameText.gameObject.SetActive(visible);
+
+        if (companyLogoImage != null)
+            companyLogoImage.gameObject.SetActive(visible);
+    }
+
+    /// <summary>
     /// Resolves the panel CanvasGroup from the externally assigned panel root.
     /// </summary>
     private void ResolvePanelCanvasGroup()
@@ -470,11 +600,15 @@ public sealed class CutWireMinigameController : MonoBehaviour
         panelRoot.SetActive(true);
 
         if (panelCanvasGroup == null)
+        {
+            AnimateBlur(true, immediate: false);
             return;
+        }
 
         panelCanvasGroup.alpha = panelFadeDuration > 0f ? 0f : 1f;
         panelCanvasGroup.interactable = true;
         panelCanvasGroup.blocksRaycasts = true;
+        AnimateBlur(true, immediate: panelFadeDuration <= 0f);
         if (panelFadeDuration <= 0f)
             return;
 
@@ -486,23 +620,27 @@ public sealed class CutWireMinigameController : MonoBehaviour
     }
 
     /// <summary>
-    /// Fades out the minigame panel before deactivating its external root.
+    /// Fades out the minigame panel before deactivating its external root and publishing completion.
     /// </summary>
-    private void HidePanel()
+    private void HidePanel(Action completed)
     {
         if (panelRoot == null)
-            return;
-
-        panelFadeTween?.Kill();
-        panelFadeTween = null;
-        if (panelCanvasGroup == null || panelFadeDuration <= 0f)
         {
-            HidePanelImmediate();
+            completed?.Invoke();
             return;
         }
 
-        panelCanvasGroup.interactable = false;
-        panelCanvasGroup.blocksRaycasts = false;
+        panelFadeTween?.Kill();
+        panelFadeTween = null;
+        AnimateBlur(false, immediate: panelFadeDuration <= 0f);
+        if (panelCanvasGroup == null || panelFadeDuration <= 0f)
+        {
+            HidePanelImmediate();
+            completed?.Invoke();
+            return;
+        }
+
+        SetPanelInteractionEnabled(false);
         panelFadeTween = panelCanvasGroup
             .DOFade(0f, panelFadeDuration)
             .SetEase(panelFadeEase)
@@ -512,6 +650,8 @@ public sealed class CutWireMinigameController : MonoBehaviour
                 panelFadeTween = null;
                 if (panelRoot != null && panelRoot != gameObject)
                     panelRoot.SetActive(false);
+
+                completed?.Invoke();
             });
     }
 
@@ -522,16 +662,58 @@ public sealed class CutWireMinigameController : MonoBehaviour
     {
         panelFadeTween?.Kill();
         panelFadeTween = null;
+        AnimateBlur(false, immediate: true);
+        fuseBoxDoorView?.ResetClosedImmediate();
+        SetCursorVisible(false);
 
         if (panelCanvasGroup != null)
         {
             panelCanvasGroup.alpha = 0f;
-            panelCanvasGroup.interactable = false;
-            panelCanvasGroup.blocksRaycasts = false;
+            SetPanelInteractionEnabled(false);
         }
 
         if (panelRoot != null && panelRoot != gameObject)
             panelRoot.SetActive(false);
+    }
+
+    /// <summary>
+    /// Enables or disables all panel raycasts without changing its current fade value.
+    /// </summary>
+    private void SetPanelInteractionEnabled(bool enabled)
+    {
+        if (panelCanvasGroup == null)
+            return;
+
+        panelCanvasGroup.interactable = enabled;
+        panelCanvasGroup.blocksRaycasts = enabled;
+    }
+
+    /// <summary>
+    /// Applies the expected system cursor state while the mouse-driven cut-wire panel owns input.
+    /// </summary>
+    private static void SetCursorVisible(bool visible)
+    {
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = visible;
+    }
+
+    /// <summary>
+    /// Animates the shared Bokeh blur in or out using this cut-wire panel's authored values.
+    /// </summary>
+    private void AnimateBlur(bool blurred, bool immediate)
+    {
+        blurController.Animate(
+            blurred,
+            immediate,
+            targetVolume,
+            activeInteractorRoot != null ? activeInteractorRoot : gameObject,
+            blurTransitionDuration,
+            blurBokehFocusDistance,
+            blurBokehAperture,
+            blurBokehFocalLength,
+            blurBokehBladeCount,
+            blurBokehBladeCurvature,
+            blurBokehBladeRotation);
     }
 
     /// <summary>
@@ -565,6 +747,7 @@ public sealed class CutWireMinigameController : MonoBehaviour
         panelFadeTween = null;
         outcomeDelayTween?.Kill();
         outcomeDelayTween = null;
+        blurController.KillTween();
     }
 }
 

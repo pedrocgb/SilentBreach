@@ -14,15 +14,25 @@ public sealed class CutWireOutcomeUnityEvent : UnityEvent
 
 [DisallowMultipleComponent]
 [AddComponentMenu("Breezeblocks/Missions/Cut Wire/Interactable")]
-public sealed class CutWireInteractable : PlayerWorldInteractable, ICutWireSessionTarget
+public sealed class CutWireInteractable : PlayerWorldInteractable, ICutWireSessionTarget, ILockpickSessionTarget
 {
     private const string DefaultInteractionLabel = "Painel de Energia";
+    private const string DefaultLockedInteractionLabel = "Pick Lock";
 
     [FoldoutGroup("Cut Wire")]
     [SerializeField] private string interactionLabel = DefaultInteractionLabel;
 
     [FoldoutGroup("Cut Wire"), AssetsOnly]
     [SerializeField] private CutWireMinigameDefinition definition;
+
+    [FoldoutGroup("Lock")]
+    [SerializeField] private bool startsLocked;
+
+    [FoldoutGroup("Lock")]
+    [SerializeField] private string lockedInteractionLabel = DefaultLockedInteractionLabel;
+
+    [FoldoutGroup("Lock"), AssetsOnly, ShowIf(nameof(startsLocked))]
+    [SerializeField] private LockpickMinigameDefinition lockpickDefinition;
 
     [FoldoutGroup("Events")]
     [SerializeField] private CutWireOutcomeUnityEvent onSucceeded = new();
@@ -39,13 +49,30 @@ public sealed class CutWireInteractable : PlayerWorldInteractable, ICutWireSessi
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public IReadOnlyList<bool> CutStates => cutStates;
 
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public bool IsLocked => isLocked;
+
     public CutWireMinigameDefinition Definition => definition;
     public override string InteractionDisplayName =>
-        string.IsNullOrWhiteSpace(interactionLabel) ? DefaultInteractionLabel : interactionLabel;
+        isLocked
+            ? string.IsNullOrWhiteSpace(lockedInteractionLabel) ? DefaultLockedInteractionLabel : lockedInteractionLabel
+            : string.IsNullOrWhiteSpace(interactionLabel) ? DefaultInteractionLabel : interactionLabel;
+
+    LockpickMinigameDefinition ILockpickSessionTarget.Definition => lockpickDefinition;
 
     private bool[] cutStates = Array.Empty<bool>();
     private bool isResolved;
     private bool wasSuccessful;
+    private bool isLocked;
+
+    /// <summary>
+    /// Initializes the authored lock state before the fuse box becomes interactable.
+    /// </summary>
+    private void Awake()
+    {
+        isLocked = startsLocked;
+        EnsureCutStateCapacity();
+    }
 
     /// <summary>
     /// Normalizes the player-facing interaction label while editing.
@@ -56,6 +83,9 @@ public sealed class CutWireInteractable : PlayerWorldInteractable, ICutWireSessi
         interactionLabel = string.IsNullOrWhiteSpace(interactionLabel)
             ? DefaultInteractionLabel
             : interactionLabel.Trim();
+        lockedInteractionLabel = string.IsNullOrWhiteSpace(lockedInteractionLabel)
+            ? DefaultLockedInteractionLabel
+            : lockedInteractionLabel.Trim();
     }
 
     /// <summary>
@@ -68,23 +98,40 @@ public sealed class CutWireInteractable : PlayerWorldInteractable, ICutWireSessi
     }
 
     /// <summary>
-    /// Returns whether this unresolved fuse box can start the shared cut-wire session.
+    /// Returns whether this unresolved fuse box can start its currently required minigame session.
     /// </summary>
     public override bool CanInteract(GameObject interactorRoot)
     {
-        return !isResolved &&
-               definition != null &&
-               CutWireMinigameController.HasRegisteredInstance &&
-               base.CanInteract(interactorRoot);
+        if (isResolved || definition == null || !base.CanInteract(interactorRoot))
+            return false;
+
+        return isLocked
+            ? lockpickDefinition != null && LockpickMinigameController.HasRegisteredInstance
+            : CutWireController.HasRegisteredInstance;
     }
 
     /// <summary>
-    /// Opens the shared cut-wire panel for this independent fuse-box target.
+    /// Routes locked fuse boxes through lockpicking and unlocked fuse boxes through cut-wire gameplay.
     /// </summary>
     protected override bool Interact(GameObject interactorRoot)
     {
+        if (isLocked)
+            return LockpickMinigameController.TryBeginActiveSession(interactorRoot, this);
+
         EnsureCutStateCapacity();
-        return CutWireMinigameController.TryBeginActiveSession(interactorRoot, this);
+        return CutWireController.TryBeginActiveSession(interactorRoot, this);
+    }
+
+    /// <summary>
+    /// Enables cut-wire interaction after the shared lockpicking minigame succeeds.
+    /// </summary>
+    public void NotifyUnlocked(GameObject interactorRoot)
+    {
+        if (!isLocked)
+            return;
+
+        isLocked = false;
+        RefreshInteractionPresentation();
     }
 
     /// <summary>
@@ -133,6 +180,7 @@ public sealed class CutWireInteractable : PlayerWorldInteractable, ICutWireSessi
     {
         isResolved = false;
         wasSuccessful = false;
+        isLocked = startsLocked;
         EnsureCutStateCapacity(clearExisting: true);
         RefreshInteractionPresentation();
     }

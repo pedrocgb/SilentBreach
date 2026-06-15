@@ -184,6 +184,12 @@ public sealed class EquipmentContextUiSettings
     [FoldoutGroup("Hideout UI/Perks"), LabelText("Perk Cost Prefix")]
     [SerializeField] private string perkCostText = "Cost: ";
 
+    [FoldoutGroup("Hideout UI/Perks"), LabelText("Perks Text")]
+    [SerializeField] private string perksText = "Pontos de Talento";
+
+    [FoldoutGroup("Hideout UI/Progression"), LabelText("Experience Text")]
+    [SerializeField] private string experienceText = "Experiência";
+
     public string YesText => Fallback(yesText, "Yes");
     public string NoText => Fallback(noText, "No");
     public string RoundsPerSecondText => Fallback(roundsPerSecondText, "rounds/s");
@@ -217,6 +223,8 @@ public sealed class EquipmentContextUiSettings
     public string JobLevelPrefix => Fallback(jobLevelPrefix, "Level: ");
     public string PerkTierText => Fallback(perkTierText, "Tier: ");
     public string PerkCostText => Fallback(perkCostText, "Cost: ");
+    public string PerksText => Fallback(perksText, "Pontos de Talento");
+    public string ExperienceText => Fallback(experienceText, "Experiência");
 
     /// <summary>
     /// Returns the localized text used for a boolean equipment value.
@@ -472,6 +480,8 @@ public class GlobalSettings : MonoBehaviour
     public float IncapacitatedWakeUpDelay => incapacitatedWakeUpDelay;
     public float DragSlowPercentage => dragSlowPercentage;
     public EquipmentContextUiSettings EquipmentContextUi => equipmentContextUi ??= new EquipmentContextUiSettings();
+    public string PerksText => EquipmentContextUi.PerksText;
+    public string ExperienceText => EquipmentContextUi.ExperienceText;
     public HudUiSettings HudUi => hudUi ??= new HudUiSettings();
     public MissionFailurePresentationSettings MissionFailurePresentation =>
         missionFailurePresentation ??= new MissionFailurePresentationSettings();

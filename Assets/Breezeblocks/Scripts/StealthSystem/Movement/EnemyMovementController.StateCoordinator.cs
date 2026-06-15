@@ -408,12 +408,20 @@ public partial class EnemyMovementController
     }
 
     /// <summary>
-    /// Enters alert mode and optionally moves toward the configured alert hold point.
+    /// Routes an alert request into flee behavior or the configured alert hold behavior.
     /// </summary>
     public void EnterAlertState(bool force = false)
     {
         if (currentState == EnemyState.Disabled)
             return;
+
+        if (ResolveDetectionBehavior() == EnemyDetectionBehavior.FleeToPoint)
+        {
+            if (currentState != EnemyState.Fleeing)
+                Flee();
+
+            return;
+        }
 
         if (currentState == EnemyState.Alert)
         {

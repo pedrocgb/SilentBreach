@@ -16,6 +16,22 @@ MonoBehaviour:
   perkId: ghost_step
   cost: 2
   description: "Voc\xEA se move r\xE1pido sem deixar mais que um sussurro para tr\xE1s."
-  effect: "Voc\xEA produz 40% menos barulho ao Correr."
+  effect: "Voc\xEA produz menos barulho ao Correr."
   tier: 1
+  runtimeEffects:
+  - effectType: 8
+    floatValue: 0.6
+    boolValue: 1
+    firearmClass: 0
+    speedLevelValues:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
   icon: {fileID: -1238634147, guid: 1ef0be22b8a86fcc4abbd56c5393160c, type: 3}

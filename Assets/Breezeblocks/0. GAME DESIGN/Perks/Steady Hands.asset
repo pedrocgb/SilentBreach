@@ -16,6 +16,22 @@ MonoBehaviour:
   perkId: steady_hands
   cost: 1
   description: "Sua m\xE3o permanece firme, mesmo quando tudo vira caos."
-  effect: "Reduz a Dispers\xE3o ao atirar com Pistolas em 80%"
+  effect: "Reduz a Dispers\xE3o ao atirar com Pistolas e Revolvers."
   tier: 0
+  runtimeEffects:
+  - effectType: 5
+    floatValue: 0.2
+    boolValue: 1
+    firearmClass: 0
+    speedLevelValues:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
   icon: {fileID: 2051724732, guid: 1ef0be22b8a86fcc4abbd56c5393160c, type: 3}

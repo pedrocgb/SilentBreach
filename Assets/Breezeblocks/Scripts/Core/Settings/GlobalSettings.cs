@@ -54,6 +54,9 @@ public sealed class EquipmentContextUiSettings
     [FoldoutGroup("Equipment UI/Prefixes"), LabelText("Slots Prefix")]
     [SerializeField] private string slotsPrefix = "Slots: ";
 
+    [FoldoutGroup("Equipment UI/Prefixes"), LabelText("Item Kind Prefix")]
+    [SerializeField] private string itemKindPrefix = "Tipo: ";
+
     [FoldoutGroup("Equipment UI/Prefixes"), LabelText("Class Prefix")]
     [SerializeField] private string classPrefix = "Class: ";
 
@@ -122,6 +125,15 @@ public sealed class EquipmentContextUiSettings
 
     [FoldoutGroup("Equipment UI/Utility Types"), LabelText("Flashbang Text")]
     [SerializeField] private string throwableFlashbangText = "Flashbang";
+
+    [FoldoutGroup("Equipment UI/Item Kinds"), LabelText("Melee Text")]
+    [SerializeField] private string meleeItemKindText = "Arma Branca";
+
+    [FoldoutGroup("Equipment UI/Item Kinds"), LabelText("Firearm Text")]
+    [SerializeField] private string firearmItemKindText = "Arma de Fogo";
+
+    [FoldoutGroup("Equipment UI/Item Kinds"), LabelText("Utility Text")]
+    [SerializeField] private string utilityItemKindText = "Utilitário";
 
     [FoldoutGroup("Equipment UI/Firearm Classes"), LabelText("Pistol Text")]
     [SerializeField] private string pistolClassText = "Pistol";
@@ -201,6 +213,7 @@ public sealed class EquipmentContextUiSettings
     public string ArmorPenetrationPrefix => Fallback(armorPenetrationPrefix, "Armor Penetration: ");
     public string FirearmPenetrationPrefix => Fallback(firearmPenetrationPrefix, "Penetration: ");
     public string SlotsPrefix => Fallback(slotsPrefix, "Slots: ");
+    public string ItemKindPrefix => Fallback(itemKindPrefix, "Tipo: ");
     public string ClassPrefix => Fallback(classPrefix, "Class: ");
     public string FireModePrefix => Fallback(fireModePrefix, "Fire Mode: ");
     public string FireRatePrefix => Fallback(fireRatePrefix, "Fire Rate: ");
@@ -246,6 +259,21 @@ public sealed class EquipmentContextUiSettings
             EquipmentSlotType.Belt => Fallback(beltSlotName, "Belt"),
             EquipmentSlotType.Armor => Fallback(armorSlotName, "Armor"),
             _ => "None"
+        };
+    }
+
+    /// <summary>
+    /// Returns the configured display label for an equipment item kind.
+    /// </summary>
+    public string GetItemKindText(EquipmentItemKind itemKind)
+    {
+        return itemKind switch
+        {
+            EquipmentItemKind.Melee => Fallback(meleeItemKindText, "Arma Branca"),
+            EquipmentItemKind.Firearm => Fallback(firearmItemKindText, "Arma de Fogo"),
+            EquipmentItemKind.Utility => Fallback(utilityItemKindText, "Utilitário"),
+            EquipmentItemKind.Armor => GetSlotDisplayName(EquipmentSlotType.Armor),
+            _ => "Item"
         };
     }
 

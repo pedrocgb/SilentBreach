@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: Brick
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.WeaponSystem.ThrowableUtilityData
   itemDisplayName: Tijolo
-  itemIcon: {fileID: -1711322894099672135, guid: a546e2bb4f5f7cc1a99b7d9bc511c989, type: 3}
+  itemIcon: {fileID: -2985673437700937513, guid: f66f6aa33031fee42a54a5bbece4662b, type: 3}
   itemDescription: "Um tijolo avulso, pode atordoar se jogado na cabe\xE7a de algu\xE9m."
+  shopPrice: 10
   heldVisualSprite: {fileID: -8956814414099503266, guid: c64ffc7784d1b116a9498ef7a6770ad0, type: 3}
-  allowedSlots: 4
   equipTime: 0.2
   holsterTime: 0.2
   aimPanDistance: 22

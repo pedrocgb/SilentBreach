@@ -21,7 +21,9 @@ public abstract class EquipmentItemData : ScriptableObject
     [FoldoutGroup("Item"), ShowInInspector, ReadOnly]
     public abstract EquipmentItemKind ItemKind { get; }
 
-    public virtual EquipmentSlotMask AllowedSlots => EquipmentSlotMask.None;
+    public virtual EquipmentSlotMask AllowedSlots => ItemKind == EquipmentItemKind.Armor
+        ? EquipmentSlotMask.Armor
+        : EquipmentSlotMask.HandSlots;
     public virtual Sprite HeldVisualSprite => Icon;
     public string DisplayName => string.IsNullOrWhiteSpace(itemDisplayName) ? name : itemDisplayName;
     public Sprite Icon => itemIcon;

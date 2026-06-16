@@ -6,12 +6,9 @@ namespace Breezeblocks.WeaponSystem
 
 public abstract class UtilityItemData : EquipmentItemData
 {
+    [FoldoutGroup("Utility")]
     [FoldoutGroup("Utility/Visuals"), PreviewField(72, ObjectFieldAlignment.Left)]
     [SerializeField] private Sprite heldVisualSprite;
-
-    [FoldoutGroup("Utility")]
-    [FoldoutGroup("Utility/Loadout"), EnumToggleButtons]
-    [SerializeField] private EquipmentSlotMask allowedSlots = EquipmentSlotMask.Belt;
 
     [FoldoutGroup("Utility/Handling"), MinValue(0f)]
     [SerializeField] private float equipTime = 0.2f;
@@ -50,7 +47,6 @@ public abstract class UtilityItemData : EquipmentItemData
     [SerializeField] private bool holsterExtremeNoise;
 
     public override EquipmentItemKind ItemKind => EquipmentItemKind.Utility;
-    public override EquipmentSlotMask AllowedSlots => allowedSlots & EquipmentSlotMask.HandSlots;
     public override Sprite HeldVisualSprite => heldVisualSprite != null ? heldVisualSprite : Icon;
 
     public float EquipTime => equipTime;
@@ -67,13 +63,12 @@ public abstract class UtilityItemData : EquipmentItemData
     public bool HolsterExtremeNoise => holsterExtremeNoise;
     public virtual string UtilityTypeName => "Utility";
 
+    /// <summary>
+    /// Normalizes shared utility tuning values after inspector edits.
+    /// </summary>
     protected virtual void OnValidate()
     {
         ValidateCommonItemFields();
-        allowedSlots &= EquipmentSlotMask.HandSlots;
-        if (allowedSlots == EquipmentSlotMask.None)
-            allowedSlots = EquipmentSlotMask.Belt;
-
         equipTime = Mathf.Max(0f, equipTime);
         holsterTime = Mathf.Max(0f, holsterTime);
         aimPanDistance = Mathf.Max(0f, aimPanDistance);

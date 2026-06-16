@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: Taurus M975
   m_EditorClassIdentifier: Assembly-CSharp::FirearmData
   itemDisplayName: Taurus M975
-  itemIcon: {fileID: 6236557453034510034, guid: a546e2bb4f5f7cc1a99b7d9bc511c989, type: 3}
+  itemIcon: {fileID: 5798706290265224291, guid: f66f6aa33031fee42a54a5bbece4662b, type: 3}
   itemDescription: "A Taurus PT92 \xE9 uma arma de a\xE7\xE3o dupla e simples em
     9mm, com carregador bifilar, semiautom\xE1tica."
+  shopPrice: 6000
   heldVisualSprite: {fileID: 4319395737909131107, guid: dbcf16bc7a0ff9d40960f0ec2e6b4682, type: 3}
   firearmClass: 0
-  allowedSlots: 3
   gripType: 0
   twoHandedFrontHandForwardOffset: 0.14
   fireRate: 2

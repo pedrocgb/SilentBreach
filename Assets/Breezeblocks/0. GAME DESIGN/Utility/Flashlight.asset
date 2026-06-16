@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: Flashlight
   m_EditorClassIdentifier: Assembly-CSharp::FlashlightUtilityData
   itemDisplayName: Lanterna
-  itemIcon: {fileID: -5634727919168234485, guid: a546e2bb4f5f7cc1a99b7d9bc511c989, type: 3}
+  itemIcon: {fileID: 645031768988294154, guid: f66f6aa33031fee42a54a5bbece4662b, type: 3}
   itemDescription: "Uma simples lanterna de m\xE3o com capacidade de ilumina\xE7\xE3o
     fraca."
+  shopPrice: 45
   heldVisualSprite: {fileID: -2638390803197812687, guid: fa6a6ce2231a6a64d87a2b9d6ee561e2, type: 3}
-  allowedSlots: 7
   equipTime: 0.2
   holsterTime: 0.2
   aimPanDistance: 22

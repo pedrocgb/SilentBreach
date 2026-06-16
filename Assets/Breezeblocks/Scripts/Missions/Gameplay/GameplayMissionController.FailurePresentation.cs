@@ -32,6 +32,12 @@ public partial class GameplayMissionController
     private bool failureColorAdjustmentsBaselineActive;
     private bool failureTintBaselineOverrideState;
     private Color failureTintBaselineColor = Color.white;
+    private bool failureAimSystemsSuspended;
+    private bool failurePlayerVisionLightWasEnabled = true;
+    private bool failurePlayerEquipmentControllerWasEnabled = true;
+    private bool failurePlayerWeaponControllerWasEnabled = true;
+    private bool failurePlayerUtilityControllerWasEnabled = true;
+    private bool failurePlayerMeleeControllerWasEnabled = true;
 
     /// <summary>
     /// Resolves and caches presentation dependencies before a failure can occur.
@@ -57,12 +63,10 @@ public partial class GameplayMissionController
     private void BeginFailurePresentation(Transform focusTarget, bool applyPlayerKilledTint)
     {
         PrepareFailurePresentation();
+        SuspendPlayerAimSystemsForFailure();
 
         if (focusTarget != null && failureAimCamera != null)
-        {
-            failureAimCamera.SetAimState(false, 0f);
-            failureAimCamera.SetFollowTarget(focusTarget);
-        }
+            failureAimCamera.SetTemporaryCameraOverride(focusTarget, false, 0f);
 
         if (focusTarget != null)
             StartEnemyFocusZoom();
@@ -260,10 +264,13 @@ public partial class GameplayMissionController
         failureTintTween?.Kill();
         failureTintTween = null;
 
+        RestorePlayerAimSystemsAfterFailure();
+
         if (failureAimCamera != null && playerRoot != null)
         {
-            failureAimCamera.SetAimState(false, 0f);
+            failureAimCamera.ClearTemporaryCameraOverride();
             failureAimCamera.SetFollowTarget(playerRoot);
+            failureAimCamera.SetAimState(false, 0f);
         }
 
         if (failureZoomBaselineCached)
@@ -275,6 +282,64 @@ public partial class GameplayMissionController
         failureColorAdjustments.colorFilter.value = failureTintBaselineColor;
         failureColorAdjustments.colorFilter.overrideState = failureTintBaselineOverrideState;
         failureColorAdjustments.active = failureColorAdjustmentsBaselineActive;
+    }
+
+    /// <summary>
+    /// Temporarily disables the player's aim-driving components so fail-camera focus cannot be overridden by fresh aim input.
+    /// </summary>
+    private void SuspendPlayerAimSystemsForFailure()
+    {
+        if (failureAimSystemsSuspended)
+            return;
+
+        failurePlayerVisionLightWasEnabled = playerVisionLight != null && playerVisionLight.enabled;
+        failurePlayerEquipmentControllerWasEnabled = playerEquipmentController != null && playerEquipmentController.enabled;
+        failurePlayerWeaponControllerWasEnabled = playerWeaponController != null && playerWeaponController.enabled;
+        failurePlayerUtilityControllerWasEnabled = playerUtilityController != null && playerUtilityController.enabled;
+        failurePlayerMeleeControllerWasEnabled = playerMeleeController != null && playerMeleeController.enabled;
+
+        if (playerVisionLight != null)
+            playerVisionLight.enabled = false;
+
+        if (playerEquipmentController != null)
+            playerEquipmentController.enabled = false;
+
+        if (playerWeaponController != null)
+            playerWeaponController.enabled = false;
+
+        if (playerUtilityController != null)
+            playerUtilityController.enabled = false;
+
+        if (playerMeleeController != null)
+            playerMeleeController.enabled = false;
+
+        failureAimSystemsSuspended = true;
+    }
+
+    /// <summary>
+    /// Restores the player's aim-driving components to their pre-failure enabled state.
+    /// </summary>
+    private void RestorePlayerAimSystemsAfterFailure()
+    {
+        if (!failureAimSystemsSuspended)
+            return;
+
+        if (playerVisionLight != null)
+            playerVisionLight.enabled = failurePlayerVisionLightWasEnabled;
+
+        if (playerEquipmentController != null)
+            playerEquipmentController.enabled = failurePlayerEquipmentControllerWasEnabled;
+
+        if (playerWeaponController != null)
+            playerWeaponController.enabled = failurePlayerWeaponControllerWasEnabled;
+
+        if (playerUtilityController != null)
+            playerUtilityController.enabled = failurePlayerUtilityControllerWasEnabled;
+
+        if (playerMeleeController != null)
+            playerMeleeController.enabled = failurePlayerMeleeControllerWasEnabled;
+
+        failureAimSystemsSuspended = false;
     }
 
     /// <summary>

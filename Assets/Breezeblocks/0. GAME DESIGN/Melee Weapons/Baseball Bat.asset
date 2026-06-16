@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: Baseball Bat
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.WeaponSystem.MeleeWeaponData
   itemDisplayName: Taco de Beisebol
-  itemIcon: {fileID: -4501218827343490994, guid: a546e2bb4f5f7cc1a99b7d9bc511c989, type: 3}
+  itemIcon: {fileID: -8141219322014433838, guid: f66f6aa33031fee42a54a5bbece4662b, type: 3}
   itemDescription: "Taco de madeira maci\xE7o."
+  shopPrice: 110
   heldVisualSprite: {fileID: -5516936181717576582, guid: c710ada61c2fd6d4aa38a2dba6ea0637, type: 3}
-  allowedSlots: 1
   gripType: 1
   equipTime: 0.5
   holsterTime: 0.4

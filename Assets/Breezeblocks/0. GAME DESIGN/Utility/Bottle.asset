@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: Bottle
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.WeaponSystem.ThrowableUtilityData
   itemDisplayName: Garrafa
-  itemIcon: {fileID: -580582653620731741, guid: dcefdf37c5de7263da334df5d25a249e, type: 3}
+  itemIcon: {fileID: 7338976106772695760, guid: f66f6aa33031fee42a54a5bbece4662b, type: 3}
   itemDescription: "Uma garrafa de cerveja vazia, \xF3tima para fazer barulho."
+  shopPrice: 5
   heldVisualSprite: {fileID: 5059017354114133550, guid: c64ffc7784d1b116a9498ef7a6770ad0, type: 3}
-  allowedSlots: 4
   equipTime: 0.2
   holsterTime: 0.2
   aimPanDistance: 22
@@ -59,6 +59,7 @@ MonoBehaviour:
   directHitDamage: 20
   directHitPenetration: 0
   directHitStaggerDuration: 0.1
+  directHitIsLethal: 1
   detonationMode: 1
   detonationDelay: 3
   detonationNoise: 1
@@ -78,6 +79,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 0
   explosionDamage: 50
+  explosionIsLethal: 1
   applyExplosionKnockback: 1
   explosionKnockbackForce: 8
   flashbangDuration: 8

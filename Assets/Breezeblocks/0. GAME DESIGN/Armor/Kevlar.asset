@@ -12,12 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8fbcfa2a133348a4094c2d6474ef6e10, type: 3}
   m_Name: Kevlar
   m_EditorClassIdentifier: Assembly-CSharp::ArmorData
-  itemDisplayName: Kevlar
-  itemIcon: {fileID: 6291751927935500005, guid: a546e2bb4f5f7cc1a99b7d9bc511c989, type: 3}
-  itemDescription: "The thinnest, lightest, and one of the strongest ballistic panels
-    available. Born of breakthrough technologies and exclusive materials, SX\u2122
-    offers unmatched performance for comfort, flexibility, durability, and strength
-    in a hybrid design."
+  itemDisplayName: Colete a prova de Balas
+  itemIcon: {fileID: -477137186574945396, guid: f66f6aa33031fee42a54a5bbece4662b, type: 3}
+  itemDescription: "Colete feito com o famoso material Kevlar, capaz de parar muni\xE7\xF5es
+    at\xE9 9mm."
+  shopPrice: 1500
   armorClass: 1
   armorValue: 25
   rotationPenalty: 80.4

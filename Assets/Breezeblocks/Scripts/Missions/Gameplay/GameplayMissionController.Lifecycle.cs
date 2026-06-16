@@ -340,7 +340,12 @@ public partial class GameplayMissionController
     private void PrepareUiDefaults()
     {
         if (fadeImageFader != null)
+        {
+            if (!fadeImageFader.gameObject.activeSelf)
+                fadeImageFader.gameObject.SetActive(true);
+
             fadeImageFader.SetAlphaImmediate(1f);
+        }
 
         RegisterMissionStatusEntryPrefabs();
         ClearMissionStatusEntries();

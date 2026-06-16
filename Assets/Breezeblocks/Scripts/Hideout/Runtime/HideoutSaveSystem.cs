@@ -22,6 +22,7 @@ public sealed class HideoutSaveSnapshot
     public bool TierTwoUnlocked;
     public bool TierThreeUnlocked;
     public string ActiveMissionJobId = string.Empty;
+    public List<string> EquippedPerkIds = new();
     public List<string> UnlockedPerkIds = new();
     public List<string> UnlockedJobIds = new();
     public List<string> CompletedJobIds = new();
@@ -77,6 +78,7 @@ public static class HideoutSaveSystem
         public bool tierTwoUnlocked;
         public bool tierThreeUnlocked;
         public string activeMissionJobId = string.Empty;
+        public List<string> equippedPerkIds = new();
         public List<string> unlockedPerkIds = new();
         public List<string> unlockedJobIds = new();
         public List<string> completedJobIds = new();
@@ -281,6 +283,7 @@ public static class HideoutSaveSystem
             TierTwoUnlocked = payload.tierTwoUnlocked,
             TierThreeUnlocked = payload.tierThreeUnlocked,
             ActiveMissionJobId = SanitizeId(payload.activeMissionJobId),
+            EquippedPerkIds = SanitizeIds(payload.equippedPerkIds),
             UnlockedPerkIds = SanitizeIds(payload.unlockedPerkIds),
             UnlockedJobIds = SanitizeIds(payload.unlockedJobIds),
             CompletedJobIds = SanitizeIds(payload.completedJobIds),
@@ -359,6 +362,7 @@ public static class HideoutSaveSystem
             tierTwoUnlocked = snapshot.TierTwoUnlocked,
             tierThreeUnlocked = snapshot.TierThreeUnlocked,
             activeMissionJobId = SanitizeId(snapshot.ActiveMissionJobId),
+            equippedPerkIds = SanitizeIds(snapshot.EquippedPerkIds),
             unlockedPerkIds = SanitizeIds(snapshot.UnlockedPerkIds),
             unlockedJobIds = SanitizeIds(snapshot.UnlockedJobIds),
             completedJobIds = SanitizeIds(snapshot.CompletedJobIds),

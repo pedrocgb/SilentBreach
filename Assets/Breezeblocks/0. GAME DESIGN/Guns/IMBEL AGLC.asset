@@ -13,13 +13,13 @@ MonoBehaviour:
   m_Name: IMBEL AGLC
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.WeaponSystem.FirearmData
   itemDisplayName: IMBEL AGLC
-  itemIcon: {fileID: 4464088399468828612, guid: dcefdf37c5de7263da334df5d25a249e, type: 3}
+  itemIcon: {fileID: 6744713032217520389, guid: f66f6aa33031fee42a54a5bbece4662b, type: 3}
   itemDescription: "O IMBEL AGLC \xE9 um fuzil de precis\xE3o, operado por a\xE7\xE3o
     de ferrolho manual tipo Mauser, com duas sali\xEAncias frontais, calibre 7,62x51mm
     NATO"
+  shopPrice: 16900
   heldVisualSprite: {fileID: -8051703123925731266, guid: ee12efe9a4100823187856aa82dabb40, type: 3}
   firearmClass: 9
-  allowedSlots: 1
   gripType: 1
   twoHandedFrontHandForwardOffset: 0.14
   fireRate: 1

@@ -98,18 +98,27 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
     public event Action CloseRequested;
     public event Action PerkPointsChanged;
 
+    /// <summary>
+    /// Initializes perk configuration and draws the first panel state.
+    /// </summary>
     private void Awake()
     {
         EnsureInitialized();
         RefreshView();
     }
 
+    /// <summary>
+    /// Rebuilds panel state whenever the perks panel becomes active.
+    /// </summary>
     private void OnEnable()
     {
         EnsureInitialized();
         RefreshView();
     }
 
+    /// <summary>
+    /// Collects runtime data, wires callbacks, and restores the current equipped selection once.
+    /// </summary>
     private void EnsureInitialized()
     {
         if (initialized)
@@ -125,6 +134,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         initialized = true;
     }
 
+    /// <summary>
+    /// Connects the confirm and close buttons to the panel actions.
+    /// </summary>
     private void BindButtons()
     {
         if (confirmButton != null)
@@ -140,6 +152,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Builds the configured perk list from explicit references or Resources and deduplicates by perk id.
+    /// </summary>
     private void CollectConfiguredPerks()
     {
         configuredPerks.Clear();
@@ -161,6 +176,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         HideoutRuntimeSession.SyncPerkTierUnlocks(configuredPerks);
     }
 
+    /// <summary>
+    /// Adds one valid perk definition into the configured runtime list when it has not already been seen.
+    /// </summary>
     private void TryAddConfiguredPerk(HideoutPerkDefinition perkDefinition, HashSet<string> addedPerkIds)
     {
         if (perkDefinition == null || addedPerkIds == null || string.IsNullOrWhiteSpace(perkDefinition.PerkId))
@@ -172,6 +190,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         configuredPerks.Add(perkDefinition);
     }
 
+    /// <summary>
+    /// Hides the template item instances so only runtime clones remain visible.
+    /// </summary>
     private void PrepareTemplates()
     {
         if (availablePerkItemPrefab != null)
@@ -181,6 +202,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
             selectedPerkItemPrefab.gameObject.SetActive(false);
     }
 
+    /// <summary>
+    /// Applies fallback tier titles when the scene text fields are still empty.
+    /// </summary>
     private void ConfigureTierTitles()
     {
         ConfigureTierTitle(tierOneSection, "Tier I");
@@ -188,6 +212,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         ConfigureTierTitle(tierThreeSection, "Tier III");
     }
 
+    /// <summary>
+    /// Caches the default background color for each tier section before lock tinting is applied.
+    /// </summary>
     private void CacheTierBackgroundDefaults()
     {
         CacheTierBackgroundDefault(tierOneSection);
@@ -195,6 +222,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         CacheTierBackgroundDefault(tierThreeSection);
     }
 
+    /// <summary>
+    /// Stores a tier section's untinted background color for later lock-state restoration.
+    /// </summary>
     private static void CacheTierBackgroundDefault(TierSectionReferences tierSection)
     {
         if (tierSection == null || tierSection.backgroundGraphic == null)
@@ -204,6 +234,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         tierSection.hasCachedBackgroundColor = true;
     }
 
+    /// <summary>
+    /// Fills a tier title with a fallback string when no custom localized text has been authored yet.
+    /// </summary>
     private static void ConfigureTierTitle(TierSectionReferences tierSection, string fallbackTitle)
     {
         if (tierSection == null || tierSection.titleText == null)
@@ -213,15 +246,21 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
             tierSection.titleText.text = fallbackTitle;
     }
 
+    /// <summary>
+    /// Synchronizes the working equipped list from the runtime session, restoring from save when runtime data is still empty.
+    /// </summary>
     private void SyncWorkingSelectionFromConfirmed()
     {
         workingEquippedPerks.Clear();
-        PlayerPerkRuntimeLoadout confirmedLoadout = PlayerPerkRuntimeSession.PeekEquippedPerks();
+        PlayerPerkRuntimeLoadout confirmedLoadout = HideoutPerkLoadoutPersistence.GetOrRestoreRuntimeLoadout(configuredPerks);
         IReadOnlyList<HideoutPerkDefinition> confirmedPerks = confirmedLoadout.EquippedPerks;
         for (int i = 0; i < confirmedPerks.Count; i++)
             TryAddWorkingEquippedPerk(ResolveConfiguredPerk(confirmedPerks[i]), enforceCapacity: true);
     }
 
+    /// <summary>
+    /// Keeps the current selection pointing at a configured perk whenever possible.
+    /// </summary>
     private void EnsureValidSelection()
     {
         if (selectedPerk != null && configuredPerks.Contains(selectedPerk))
@@ -258,6 +297,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         SetOptionalTextState(emptyStateText, showEmptyState, emptyMessage);
     }
 
+    /// <summary>
+    /// Updates padlocks and tier background tinting based on the player's current unlock requirements.
+    /// </summary>
     private void RefreshTierLocks()
     {
         SetTierLockState(tierOneSection, false);
@@ -265,6 +307,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         SetTierLockState(tierThreeSection, !IsTierRequirementFulfilled(HideoutPerkTier.TierIII));
     }
 
+    /// <summary>
+    /// Refreshes the currently selected perk detail panel.
+    /// </summary>
     private void RefreshSelectedPerkDetails()
     {
         if (selectedPerk == null)
@@ -285,6 +330,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         SetText(selectedPerkCostText, $"{settings.PerkCostText}{selectedPerk.Cost}");
     }
 
+    /// <summary>
+    /// Rebuilds the available perk item views for every tier section.
+    /// </summary>
     private void RebuildTierLists()
     {
         ClearTierSection(tierOneSection);
@@ -330,6 +378,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Rebuilds the equipped perk strip using the current working selection.
+    /// </summary>
     private void RebuildSelectedPerksList()
     {
         HideoutPerkItemUI prefabToUse = selectedPerkItemPrefab != null ? selectedPerkItemPrefab : availablePerkItemPrefab;
@@ -365,6 +416,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Clears runtime clones from one tier content root while preserving the hidden template object.
+    /// </summary>
     private void ClearTierSection(TierSectionReferences tierSection)
     {
         if (tierSection == null)
@@ -376,6 +430,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         ClearGeneratedChildren(tierSection.contentRoot, preservedTemplate);
     }
 
+    /// <summary>
+    /// Resolves the content transform that corresponds to the supplied perk tier.
+    /// </summary>
     private RectTransform ResolveContentRoot(HideoutPerkTier perkTier)
     {
         return perkTier switch
@@ -387,12 +444,18 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         };
     }
 
+    /// <summary>
+    /// Sets the active selected perk for the detail panel.
+    /// </summary>
     private void SelectPerk(HideoutPerkDefinition perkDefinition)
     {
         selectedPerk = perkDefinition;
         RefreshView();
     }
 
+    /// <summary>
+    /// Unlocks a perk when the player can afford it and the tier requirement has been met.
+    /// </summary>
     private void BuyPerk(HideoutPerkDefinition perkDefinition)
     {
         if (perkDefinition == null || HideoutRuntimeSession.IsPerkUnlocked(perkDefinition))
@@ -414,6 +477,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         RefreshView();
     }
 
+    /// <summary>
+    /// Equips one unlocked perk, then commits the new selection to runtime and save data immediately.
+    /// </summary>
     private void EquipPerk(HideoutPerkDefinition perkDefinition)
     {
         if (perkDefinition == null || !HideoutRuntimeSession.IsPerkUnlocked(perkDefinition))
@@ -423,9 +489,12 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
             return;
 
         selectedPerk = perkDefinition;
-        RefreshView();
+        CommitWorkingSelection();
     }
 
+    /// <summary>
+    /// Unequips one perk from the working selection and persists the updated runtime loadout immediately.
+    /// </summary>
     private void UnequipPerk(HideoutPerkDefinition perkDefinition)
     {
         if (perkDefinition == null)
@@ -442,9 +511,12 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         }
 
         selectedPerk = perkDefinition;
-        RefreshView();
+        CommitWorkingSelection();
     }
 
+    /// <summary>
+    /// Tries to add a perk into the working equipped list while respecting duplicates and optional capacity limits.
+    /// </summary>
     private bool TryAddWorkingEquippedPerk(HideoutPerkDefinition perkDefinition, bool enforceCapacity)
     {
         perkDefinition = ResolveConfiguredPerk(perkDefinition);
@@ -461,6 +533,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// Resolves an arbitrary perk instance back to the configured scene/runtime instance by stable perk id.
+    /// </summary>
     private HideoutPerkDefinition ResolveConfiguredPerk(HideoutPerkDefinition perkDefinition)
     {
         if (perkDefinition == null || string.IsNullOrWhiteSpace(perkDefinition.PerkId))
@@ -479,6 +554,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         return null;
     }
 
+    /// <summary>
+    /// Returns whether the supplied perk is already present in the working equipped list.
+    /// </summary>
     private bool IsPerkEquipped(HideoutPerkDefinition perkDefinition)
     {
         if (perkDefinition == null)
@@ -495,37 +573,60 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         return false;
     }
 
+    /// <summary>
+    /// Commits the working selection and then notifies listeners that the player confirmed the panel.
+    /// </summary>
     private void ConfirmSelection()
     {
-        PlayerPerkRuntimeLoadout loadout = new();
-        loadout.SetPerks(workingEquippedPerks);
-        PlayerPerkRuntimeSession.SetEquippedPerks(loadout);
+        CommitWorkingSelection();
         Confirmed?.Invoke();
-        RefreshView();
     }
 
+    /// <summary>
+    /// Clears every equipped perk from both runtime and save data when the panel is forcibly closed or reset.
+    /// </summary>
     public void ClearWorkingSelectionAndRuntime()
     {
         if (!initialized)
             EnsureInitialized();
 
         workingEquippedPerks.Clear();
-        PlayerPerkRuntimeSession.ClearEquippedPerks();
         selectedPerk = configuredPerks.Count > 0 ? configuredPerks[0] : null;
-        RefreshView();
+        CommitWorkingSelection();
     }
 
+    /// <summary>
+    /// Raises the panel close request so the hideout controller can play the proper fade transition.
+    /// </summary>
     private void HandleCloseRequested()
     {
         CloseRequested?.Invoke();
     }
 
+    /// <summary>
+    /// Applies the current working perk selection to runtime state, persists it, and redraws the panel.
+    /// </summary>
+    private void CommitWorkingSelection()
+    {
+        PlayerPerkRuntimeLoadout loadout = new();
+        loadout.SetPerks(workingEquippedPerks);
+        PlayerPerkRuntimeSession.SetEquippedPerks(loadout);
+        HideoutPerkLoadoutPersistence.SaveEquippedPerks(workingEquippedPerks);
+        RefreshView();
+    }
+
+    /// <summary>
+    /// Keeps the confirm button usable because equip persistence now occurs immediately.
+    /// </summary>
     private void RefreshConfirmButton()
     {
         if (confirmButton != null)
             confirmButton.interactable = true;
     }
 
+    /// <summary>
+    /// Reports whether the player has met the unlock requirement for the supplied perk tier.
+    /// </summary>
     private bool IsTierRequirementFulfilled(HideoutPerkTier perkTier)
     {
         return perkTier switch
@@ -537,6 +638,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         };
     }
 
+    /// <summary>
+    /// Builds the combined description and effect text block shown in the perk details area.
+    /// </summary>
     private static string BuildPerkDescription(HideoutPerkDefinition perkDefinition)
     {
         if (perkDefinition == null)
@@ -553,6 +657,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         return hasEffect ? perkDefinition.Effect : string.Empty;
     }
 
+    /// <summary>
+    /// Converts the tier enum into the roman numeral text used by the UI.
+    /// </summary>
     private static string ResolveTierText(HideoutPerkTier perkTier)
     {
         return perkTier switch
@@ -564,6 +671,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         };
     }
 
+    /// <summary>
+    /// Sorts perks by tier first and then alphabetically by perk name.
+    /// </summary>
     private static int ComparePerks(HideoutPerkDefinition left, HideoutPerkDefinition right)
     {
         int tierComparison = (left != null ? (int)left.Tier : 0).CompareTo(right != null ? (int)right.Tier : 0);
@@ -576,6 +686,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
             StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Resolves the hidden template child that should survive list-clearing rebuilds.
+    /// </summary>
     private static Transform ResolvePreservedTemplate(RectTransform contentRoot, Transform templateTransform)
     {
         if (contentRoot == null || templateTransform == null)
@@ -584,6 +697,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         return templateTransform.parent == contentRoot ? templateTransform : null;
     }
 
+    /// <summary>
+    /// Destroys generated item views under a content root while preserving an optional template transform.
+    /// </summary>
     private static void ClearGeneratedChildren(RectTransform contentRoot, Transform preservedTemplate)
     {
         if (contentRoot == null)
@@ -599,6 +715,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Shows or hides an optional text field and updates its visible value.
+    /// </summary>
     private static void SetOptionalTextState(TMP_Text textField, bool visible, string value)
     {
         if (textField == null)
@@ -609,12 +728,18 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
             textField.text = value ?? string.Empty;
     }
 
+    /// <summary>
+    /// Assigns plain string content to a text field when it exists.
+    /// </summary>
     private static void SetText(TMP_Text textField, string value)
     {
         if (textField != null)
             textField.text = value ?? string.Empty;
     }
 
+    /// <summary>
+    /// Applies the locked or unlocked visual state for one tier section.
+    /// </summary>
     private void SetTierLockState(TierSectionReferences tierSection, bool isLocked)
     {
         if (tierSection == null)
@@ -632,6 +757,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
             : tierSection.defaultBackgroundColor;
     }
 
+    /// <summary>
+    /// Sets an image sprite and hides the image component when no sprite is available.
+    /// </summary>
     private static void SetImage(Image imageField, Sprite sprite)
     {
         if (imageField == null)
@@ -641,6 +769,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
         imageField.enabled = sprite != null;
     }
 
+    /// <summary>
+    /// Resolves the configured global UI text bundle used by perk detail strings.
+    /// </summary>
     private static EquipmentContextUiSettings ResolveUiSettings()
     {
         return GlobalSettings.Instance != null
@@ -648,6 +779,9 @@ public sealed class HideoutPerksPanelUI : MonoBehaviour
             : new EquipmentContextUiSettings();
     }
 
+    /// <summary>
+    /// Toggles a GameObject only when the reference exists.
+    /// </summary>
     private static void SetActive(GameObject target, bool visible)
     {
         if (target != null)

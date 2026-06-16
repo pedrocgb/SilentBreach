@@ -53,9 +53,6 @@ public class FirearmData : EquipmentItemData
     [FoldoutGroup("Firearm/Classification")]
     [SerializeField] private FirearmClass firearmClass;
 
-    [FoldoutGroup("Firearm/Loadout"), EnumToggleButtons]
-    [SerializeField] private EquipmentSlotMask allowedSlots = EquipmentSlotMask.Primary;
-
     [FoldoutGroup("Firearm/Handling"), EnumToggleButtons]
     [SerializeField] private FirearmGripType gripType = FirearmGripType.OneHanded;
 
@@ -196,7 +193,6 @@ public class FirearmData : EquipmentItemData
     [SerializeField] private bool reloadExtremeNoise;
 
     public override EquipmentItemKind ItemKind => EquipmentItemKind.Firearm;
-    public override EquipmentSlotMask AllowedSlots => allowedSlots & EquipmentSlotMask.HandSlots;
     public override Sprite HeldVisualSprite => heldVisualSprite != null ? heldVisualSprite : Icon;
     public FirearmClass Class => firearmClass;
     public FirearmGripType GripType => gripType;
@@ -244,11 +240,17 @@ public class FirearmData : EquipmentItemData
     public NoiseType ReloadNoiseType => reloadNoiseType;
     public bool ReloadExtremeNoise => reloadExtremeNoise;
 
+    /// <summary>
+    /// Returns whether this firearm supports the requested firing behavior.
+    /// </summary>
     public bool SupportsFireMode(FireMode mode)
     {
         return (fireMode & mode) != 0;
     }
 
+    /// <summary>
+    /// Returns whether this firearm can use the supplied projectile definition.
+    /// </summary>
     public bool SupportsProjectile(ProjectileData projectile)
     {
         return projectile != null && compatibleProjectiles.Contains(projectile);
@@ -261,13 +263,12 @@ public class FirearmData : EquipmentItemData
     private bool UsesTwoHandedGrip => gripType == FirearmGripType.TwoHanded;
     private bool ShowsMuzzleFlash => !hideMuzzleFlash;
 
+    /// <summary>
+    /// Normalizes firearm tuning values and restores optional data containers after inspector edits.
+    /// </summary>
     private void OnValidate()
     {
         ValidateCommonItemFields();
-        allowedSlots &= EquipmentSlotMask.HandSlots;
-        if (allowedSlots == EquipmentSlotMask.None)
-            allowedSlots = EquipmentSlotMask.Primary;
-
         fireRate = Mathf.Max(0f, fireRate);
         twoHandedFrontHandForwardOffset = Mathf.Max(0f, twoHandedFrontHandForwardOffset);
         spread = Mathf.Max(0f, spread);

@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: Taurus SMT
   m_EditorClassIdentifier: Assembly-CSharp::FirearmData
   itemDisplayName: Taurus SMT
-  itemIcon: {fileID: -3654258832551492893, guid: a546e2bb4f5f7cc1a99b7d9bc511c989, type: 3}
+  itemIcon: {fileID: -8792551127086613535, guid: f66f6aa33031fee42a54a5bbece4662b, type: 3}
   itemDescription: "Taurus SMT \xE9 uma submetralhadora semi autom\xE1tica de 9mm,
     sua cad\xEAncia de tiro \xE9 extremamente r\xE1pida por\xE9m bastante imprecisa."
+  shopPrice: 11000
   heldVisualSprite: {fileID: 2562568060712908168, guid: f12396bacd3bc6a479defb3a188bcc04, type: 3}
   firearmClass: 2
-  allowedSlots: 1
   gripType: 1
   twoHandedFrontHandForwardOffset: 0.18
   fireRate: 12

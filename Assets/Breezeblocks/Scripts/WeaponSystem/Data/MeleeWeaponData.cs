@@ -24,11 +24,17 @@ public sealed class MeleeHitSfxLayerEntry
     public LayerMask TargetLayers => targetLayers;
     public AudioClipSet HitSfx => hitSfx;
 
+    /// <summary>
+    /// Returns whether this layered SFX entry handles impacts from the supplied layer.
+    /// </summary>
     public bool MatchesLayer(int layer)
     {
         return (targetLayers.value & (1 << layer)) != 0;
     }
 
+    /// <summary>
+    /// Restores nested hit audio data after inspector edits.
+    /// </summary>
     public void Validate()
     {
         hitSfx ??= new AudioClipSet();
@@ -42,9 +48,6 @@ public class MeleeWeaponData : EquipmentItemData
     [FoldoutGroup("Melee")]
     [FoldoutGroup("Melee/Visuals"), PreviewField(72, ObjectFieldAlignment.Left)]
     [SerializeField] private Sprite heldVisualSprite;
-
-    [FoldoutGroup("Melee/Loadout"), EnumToggleButtons]
-    [SerializeField] private EquipmentSlotMask allowedSlots = EquipmentSlotMask.Primary;
 
     [FoldoutGroup("Melee/Handling"), EnumToggleButtons]
     [SerializeField] private MeleeGripType gripType = MeleeGripType.OneHanded;
@@ -151,7 +154,6 @@ public class MeleeWeaponData : EquipmentItemData
     [SerializeField] private bool holsterExtremeNoise;
 
     public override EquipmentItemKind ItemKind => EquipmentItemKind.Melee;
-    public override EquipmentSlotMask AllowedSlots => allowedSlots & EquipmentSlotMask.HandSlots;
     public override Sprite HeldVisualSprite => heldVisualSprite != null ? heldVisualSprite : Icon;
 
     public MeleeGripType GripType => gripType;
@@ -189,6 +191,9 @@ public class MeleeWeaponData : EquipmentItemData
     public NoiseType HolsterNoiseType => holsterNoiseType;
     public bool HolsterExtremeNoise => holsterExtremeNoise;
 
+    /// <summary>
+    /// Resolves the most specific hit SFX set configured for the impacted layer.
+    /// </summary>
     public AudioClipSet ResolveHitSfxForLayer(int layer)
     {
         if (hitSfxByLayer != null)
@@ -206,13 +211,12 @@ public class MeleeWeaponData : EquipmentItemData
         return defaultHitSfx != null && defaultHitSfx.HasAnyClip ? defaultHitSfx : null;
     }
 
+    /// <summary>
+    /// Normalizes melee tuning values and restores nested audio data after inspector edits.
+    /// </summary>
     private void OnValidate()
     {
         ValidateCommonItemFields();
-        allowedSlots &= EquipmentSlotMask.HandSlots;
-        if (allowedSlots == EquipmentSlotMask.None)
-            allowedSlots = EquipmentSlotMask.Primary;
-
         equipTime = Mathf.Max(0f, equipTime);
         holsterTime = Mathf.Max(0f, holsterTime);
         aimPanDistance = Mathf.Max(0f, aimPanDistance);

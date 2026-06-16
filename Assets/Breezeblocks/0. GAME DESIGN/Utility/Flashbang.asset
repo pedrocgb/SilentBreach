@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: Flashbang
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.WeaponSystem.ThrowableUtilityData
   itemDisplayName: Granada de Luz
-  itemIcon: {fileID: -7373046801929625373, guid: a546e2bb4f5f7cc1a99b7d9bc511c989, type: 3}
+  itemIcon: {fileID: 4806535643916881923, guid: f66f6aa33031fee42a54a5bbece4662b, type: 3}
   itemDescription: "Uma granada militar capaz de atordoar, deixar surdo e cego durante
     v\xE1rios segundos."
+  shopPrice: 850
   heldVisualSprite: {fileID: 8098479475301011399, guid: c64ffc7784d1b116a9498ef7a6770ad0, type: 3}
-  allowedSlots: 4
   equipTime: 0.2
   holsterTime: 0.2
   aimPanDistance: 22
@@ -60,6 +60,7 @@ MonoBehaviour:
   directHitDamage: 20
   directHitPenetration: 0
   directHitStaggerDuration: 0.1
+  directHitIsLethal: 1
   detonationMode: 1
   detonationDelay: 3
   detonationNoise: 0.5
@@ -80,6 +81,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   explosionDamage: 50
+  explosionIsLethal: 1
   applyExplosionKnockback: 1
   explosionKnockbackForce: 8
   flashbangDuration: 8

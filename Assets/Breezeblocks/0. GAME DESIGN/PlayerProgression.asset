@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.HideoutSystem.PlayerProgressionDefinition
   amateur:
     displayName: Amador
-    sprite: {fileID: -7953235382422703, guid: f25abb324d981da05bb552215f66cd79, type: 3}
+    sprite: {fileID: 2084542740, guid: be84dd1f4e258e385bdf3616e8558641, type: 3}
   operatorBadge:
     displayName: Operador
-    sprite: {fileID: 1437171756207805296, guid: f25abb324d981da05bb552215f66cd79, type: 3}
+    sprite: {fileID: -747627548, guid: be84dd1f4e258e385bdf3616e8558641, type: 3}
   specialist:
     displayName: Especialista
-    sprite: {fileID: -7939747423409022221, guid: f25abb324d981da05bb552215f66cd79, type: 3}
+    sprite: {fileID: 365724029, guid: be84dd1f4e258e385bdf3616e8558641, type: 3}
   boss:
     displayName: "Chef\xE3o"
-    sprite: {fileID: 3034495027582258221, guid: f25abb324d981da05bb552215f66cd79, type: 3}
+    sprite: {fileID: -468231446, guid: be84dd1f4e258e385bdf3616e8558641, type: 3}

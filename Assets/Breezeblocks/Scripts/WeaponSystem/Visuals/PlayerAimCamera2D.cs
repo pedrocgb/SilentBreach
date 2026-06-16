@@ -79,6 +79,12 @@ public class PlayerAimCamera2D : MonoBehaviour
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public float ConfiguredPointerFollowDeadZoneRatio => Mathf.Clamp01(pointerFollowDeadZoneRatio);
 
+    private bool baseAimState;
+    private float baseMaxAimPanDistance;
+    private Transform temporaryFollowTargetOverride;
+    private bool hasTemporaryCameraOverride;
+    private bool temporaryAimStateOverride;
+    private float temporaryMaxAimPanDistanceOverride;
     private Vector3 _fallbackVelocity;
     private Vector3 _composerVelocity;
     private Vector3 _baseComposerOffset;
@@ -92,7 +98,9 @@ public class PlayerAimCamera2D : MonoBehaviour
     private float shakeDuration;
     private IPointerInputReader pointerInputReader;
 
-    // Executes the Awake routine.
+    /// <summary>
+    /// Caches camera dependencies and base Cinemachine values before runtime updates begin.
+    /// </summary>
     private void Awake()
     {
         pointerInputReader ??= new RewiredPlayerInputReader();
@@ -100,7 +108,9 @@ public class PlayerAimCamera2D : MonoBehaviour
         CacheBaseComposerOffset();
     }
 
-    // Executes the OnEnable routine.
+    /// <summary>
+    /// Re-resolves camera dependencies whenever the component becomes active again.
+    /// </summary>
     private void OnEnable()
     {
         pointerInputReader ??= new RewiredPlayerInputReader();
@@ -108,7 +118,9 @@ public class PlayerAimCamera2D : MonoBehaviour
         CacheBaseComposerOffset();
     }
 
-    // Executes the LateUpdate routine.
+    /// <summary>
+    /// Applies the effective follow target, aim offset, and screenshake after gameplay state updates complete.
+    /// </summary>
     private void LateUpdate()
     {
         CacheReferences();
@@ -120,20 +132,47 @@ public class PlayerAimCamera2D : MonoBehaviour
         UpdateFallbackTransform();
     }
 
-    // Executes the SetFollowTarget routine.
+    /// <summary>
+    /// Updates the normal gameplay follow target used whenever no temporary camera override is active.
+    /// </summary>
     public void SetFollowTarget(Transform target)
     {
         followTarget = target;
-
-        if (cinemachineCamera != null)
-            cinemachineCamera.Follow = target;
+        ApplyEffectiveCameraState();
     }
 
-    // Executes the SetAimState routine.
+    /// <summary>
+    /// Updates the normal gameplay aim state used whenever no temporary camera override is active.
+    /// </summary>
     public void SetAimState(bool isAiming, float maxAimPanDistance)
     {
-        IsAiming = isAiming;
-        MaxAimPanDistance = Mathf.Max(0f, maxAimPanDistance);
+        baseAimState = isAiming;
+        baseMaxAimPanDistance = Mathf.Max(0f, maxAimPanDistance);
+        ApplyEffectiveCameraState();
+    }
+
+    /// <summary>
+    /// Temporarily locks the camera onto an external follow target and aim state until the override is cleared.
+    /// </summary>
+    public void SetTemporaryCameraOverride(Transform target, bool isAiming, float maxAimPanDistance)
+    {
+        hasTemporaryCameraOverride = true;
+        temporaryFollowTargetOverride = target;
+        temporaryAimStateOverride = isAiming;
+        temporaryMaxAimPanDistanceOverride = Mathf.Max(0f, maxAimPanDistance);
+        ApplyEffectiveCameraState();
+    }
+
+    /// <summary>
+    /// Restores the camera back to its normal gameplay-controlled follow and aim state.
+    /// </summary>
+    public void ClearTemporaryCameraOverride()
+    {
+        hasTemporaryCameraOverride = false;
+        temporaryFollowTargetOverride = null;
+        temporaryAimStateOverride = false;
+        temporaryMaxAimPanDistanceOverride = 0f;
+        ApplyEffectiveCameraState();
     }
 
     /// <summary>
@@ -197,7 +236,9 @@ public class PlayerAimCamera2D : MonoBehaviour
         shakeEndTime = shakeStartTime + shakeDuration;
     }
 
-    // Executes the CacheReferences routine.
+    /// <summary>
+    /// Resolves runtime camera references and reapplies the current effective follow target.
+    /// </summary>
     private void CacheReferences()
     {
         if (targetCamera == null)
@@ -227,13 +268,14 @@ public class PlayerAimCamera2D : MonoBehaviour
                 noiseComponent = cinemachineCamera.GetComponent<CinemachineBasicMultiChannelPerlin>();
         }
 
-        if (cinemachineCamera != null && followTarget != null)
-            cinemachineCamera.Follow = followTarget;
+        ApplyEffectiveCameraState();
 
         CacheBaseNoiseState();
     }
 
-    // Executes the CacheBaseComposerOffset routine.
+    /// <summary>
+    /// Caches the original Cinemachine composer offset so aim panning can be applied relative to it.
+    /// </summary>
     private void CacheBaseComposerOffset()
     {
         if (_hasBaseComposerOffset || positionComposer == null)
@@ -243,17 +285,20 @@ public class PlayerAimCamera2D : MonoBehaviour
         _hasBaseComposerOffset = true;
     }
 
-    // Executes the TryUpdateCinemachineAimOffset routine.
+    /// <summary>
+    /// Applies the effective aim-pan offset to the active Cinemachine composer when available.
+    /// </summary>
     private bool TryUpdateCinemachineAimOffset()
     {
         if (positionComposer == null)
             return false;
 
         CacheBaseComposerOffset();
+        Transform effectiveFollowTarget = ResolveEffectiveFollowTarget();
 
         Vector3 desiredWorldOffset = CalculateAimPanOffset() + CalculateScreenshakeOffset();
-        Vector3 desiredLocalOffset = followTarget != null
-            ? followTarget.InverseTransformDirection(desiredWorldOffset)
+        Vector3 desiredLocalOffset = effectiveFollowTarget != null
+            ? effectiveFollowTarget.InverseTransformDirection(desiredWorldOffset)
             : desiredWorldOffset;
 
         Vector3 desiredComposerOffset = _baseComposerOffset + desiredLocalOffset;
@@ -274,13 +319,16 @@ public class PlayerAimCamera2D : MonoBehaviour
         return true;
     }
 
-    // Executes the UpdateFallbackTransform routine.
+    /// <summary>
+    /// Moves the fallback transform-based camera using the current effective follow target and aim offset.
+    /// </summary>
     private void UpdateFallbackTransform()
     {
-        if (followTarget == null)
+        Transform effectiveFollowTarget = ResolveEffectiveFollowTarget();
+        if (effectiveFollowTarget == null)
             return;
 
-        Vector3 desiredPosition = followTarget.position + followOffset + CalculateAimPanOffset() + CalculateScreenshakeOffset();
+        Vector3 desiredPosition = effectiveFollowTarget.position + followOffset + CalculateAimPanOffset() + CalculateScreenshakeOffset();
         if (UsesExactPointerFollowAim())
         {
             _fallbackVelocity = Vector3.zero;
@@ -292,7 +340,9 @@ public class PlayerAimCamera2D : MonoBehaviour
         }
     }
 
-    // Executes the CalculateAimPanOffset routine.
+    /// <summary>
+    /// Calculates the current aim-pan offset using the active aim mode when aiming is enabled.
+    /// </summary>
     private Vector3 CalculateAimPanOffset()
     {
         if (!IsAiming || MaxAimPanDistance <= 0f || targetCamera == null)
@@ -304,17 +354,20 @@ public class PlayerAimCamera2D : MonoBehaviour
         return CalculateEdgePanOffset();
     }
 
-    // Executes the CalculatePointerFollowOffset routine.
+    /// <summary>
+    /// Calculates pointer-follow aim panning relative to the current effective follow target.
+    /// </summary>
     private Vector3 CalculatePointerFollowOffset()
     {
-        if (followTarget == null || targetCamera == null)
+        Transform effectiveFollowTarget = ResolveEffectiveFollowTarget();
+        if (effectiveFollowTarget == null || targetCamera == null)
             return Vector3.zero;
 
         float maxDistance = MaxAimPanDistance * panDistanceMultiplier;
         if (maxDistance <= 0f)
             return Vector3.zero;
 
-        Vector3 targetScreen = targetCamera.WorldToScreenPoint(followTarget.position);
+        Vector3 targetScreen = targetCamera.WorldToScreenPoint(effectiveFollowTarget.position);
         Vector2 pointerScreenPosition = pointerInputReader != null
             ? pointerInputReader.GetScreenPositionOrDefault()
             : new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
@@ -329,14 +382,16 @@ public class PlayerAimCamera2D : MonoBehaviour
             return new Vector3(worldOffset.x, worldOffset.y, 0f);
         }
 
-        float depth = Mathf.Abs(targetCamera.transform.position.z - followTarget.position.z);
+        float depth = Mathf.Abs(targetCamera.transform.position.z - effectiveFollowTarget.position.z);
         Vector3 targetWorldOnScreenPlane = targetCamera.ScreenToWorldPoint(new Vector3(targetScreen.x, targetScreen.y, depth));
         Vector3 mouseWorld = targetCamera.ScreenToWorldPoint(new Vector3(pointerScreenPosition.x, pointerScreenPosition.y, depth));
         Vector2 perspectiveOffset = Vector2.ClampMagnitude((Vector2)(mouseWorld - targetWorldOnScreenPlane), maxDistance);
         return new Vector3(perspectiveOffset.x, perspectiveOffset.y, 0f);
     }
 
-    // Executes the CalculateEdgePanOffset routine.
+    /// <summary>
+    /// Calculates edge-pan aim movement from the pointer's viewport position.
+    /// </summary>
     private Vector3 CalculateEdgePanOffset()
     {
         Vector2 pointerScreenPosition = pointerInputReader != null
@@ -354,7 +409,9 @@ public class PlayerAimCamera2D : MonoBehaviour
         return new Vector3(edgeInput.x, edgeInput.y, 0f) * (MaxAimPanDistance * panDistanceMultiplier);
     }
 
-    // Executes the ResolveActiveSmoothTime routine.
+    /// <summary>
+    /// Resolves the active smoothing duration based on whether the camera is currently aiming.
+    /// </summary>
     private float ResolveActiveSmoothTime()
     {
         return IsAiming
@@ -362,7 +419,9 @@ public class PlayerAimCamera2D : MonoBehaviour
             : Mathf.Max(0f, returnToPlayerSmoothTime);
     }
 
-    // Executes the EvaluateEdgePan routine.
+    /// <summary>
+    /// Converts one viewport axis position into signed edge-pan input.
+    /// </summary>
     private float EvaluateEdgePan(float viewportValue)
     {
         if (viewportValue <= edgePanThreshold)
@@ -375,7 +434,9 @@ public class PlayerAimCamera2D : MonoBehaviour
         return 0f;
     }
 
-    // Executes the CacheBaseNoiseState routine.
+    /// <summary>
+    /// Caches the original Cinemachine noise values so screenshake can restore them cleanly.
+    /// </summary>
     private void CacheBaseNoiseState()
     {
         if (_hasBaseNoiseState || noiseComponent == null)
@@ -386,7 +447,9 @@ public class PlayerAimCamera2D : MonoBehaviour
         _hasBaseNoiseState = true;
     }
 
-    // Executes the UpdateScreenshakeState routine.
+    /// <summary>
+    /// Updates Cinemachine or fallback screenshake values using unscaled time.
+    /// </summary>
     private void UpdateScreenshakeState()
     {
         if (!GameSettingsRuntime.ScreenshakeEnabled)
@@ -415,7 +478,9 @@ public class PlayerAimCamera2D : MonoBehaviour
         }
     }
 
-    // Executes the CalculateScreenshakeOffset routine.
+    /// <summary>
+    /// Produces fallback procedural shake when a Cinemachine noise component is unavailable.
+    /// </summary>
     private Vector3 CalculateScreenshakeOffset()
     {
         if (!GameSettingsRuntime.ScreenshakeEnabled)
@@ -436,7 +501,9 @@ public class PlayerAimCamera2D : MonoBehaviour
         return new Vector3(x, y, 0f) * (shakeAmplitude * shakeFactor);
     }
 
-    // Executes the EvaluateRemainingShakeFactor routine.
+    /// <summary>
+    /// Evaluates the normalized remaining screenshake strength from the remaining unscaled duration.
+    /// </summary>
     private float EvaluateRemainingShakeFactor(float remainingTime)
     {
         if (remainingTime <= 0f || shakeDuration <= 0f)
@@ -445,10 +512,36 @@ public class PlayerAimCamera2D : MonoBehaviour
         return Mathf.Clamp01(remainingTime / shakeDuration);
     }
 
-    // Executes the UsesExactPointerFollowAim routine.
+    /// <summary>
+    /// Returns whether the camera should snap directly to pointer-follow aim instead of smoothing.
+    /// </summary>
     private bool UsesExactPointerFollowAim()
     {
         return IsAiming && aimPanMode == AimCameraPanMode.PointerFollow;
+    }
+
+    /// <summary>
+    /// Applies the currently effective follow target and aim values after base or override state changes.
+    /// </summary>
+    private void ApplyEffectiveCameraState()
+    {
+        IsAiming = hasTemporaryCameraOverride ? temporaryAimStateOverride : baseAimState;
+        MaxAimPanDistance = hasTemporaryCameraOverride
+            ? temporaryMaxAimPanDistanceOverride
+            : baseMaxAimPanDistance;
+
+        if (cinemachineCamera != null)
+            cinemachineCamera.Follow = ResolveEffectiveFollowTarget();
+    }
+
+    /// <summary>
+    /// Resolves the follow target currently driving the camera, preferring a temporary override when present.
+    /// </summary>
+    private Transform ResolveEffectiveFollowTarget()
+    {
+        return hasTemporaryCameraOverride && temporaryFollowTargetOverride != null
+            ? temporaryFollowTargetOverride
+            : followTarget;
     }
 
     private bool UsesEdgePanMode => aimPanMode == AimCameraPanMode.EdgePan;

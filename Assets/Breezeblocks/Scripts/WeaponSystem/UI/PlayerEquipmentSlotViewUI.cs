@@ -9,12 +9,18 @@ using UnityEngine.UI;
 namespace Breezeblocks.WeaponSystem
 {
 
+public enum PlayerEquipmentSlotViewType
+{
+    Equipment,
+    Armor
+}
+
 [DisallowMultipleComponent]
 [AddComponentMenu("Breezeblocks/UI/Equipment Slot View")]
 public class PlayerEquipmentSlotViewUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
 {
-    [FoldoutGroup("Slot")]
-    [SerializeField] private EquipmentSlotType slotType;
+    [FoldoutGroup("Slot"), LabelText("Slot Type")]
+    [SerializeField] private PlayerEquipmentSlotViewType slotViewType = PlayerEquipmentSlotViewType.Equipment;
 
     [FoldoutGroup("References")]
     [SerializeField] private Image iconImage;
@@ -49,7 +55,8 @@ public class PlayerEquipmentSlotViewUI : MonoBehaviour, IPointerEnterHandler, IP
     [FoldoutGroup("Visuals")]
     [SerializeField] private Sprite fallbackFilledIcon;
 
-    public EquipmentSlotType SlotType => slotType;
+    public EquipmentSlotType SlotType => ResolveSlotType();
+    public PlayerEquipmentSlotViewType SlotViewType => slotViewType;
     public bool IsDragAndDropEnabled => dragAndDropEnabled;
     public bool HasItem => displayedItem != null;
     public event Action<PlayerEquipmentSlotViewUI> PointerEntered;
@@ -69,7 +76,11 @@ public class PlayerEquipmentSlotViewUI : MonoBehaviour, IPointerEnterHandler, IP
     private bool isDragging;
     private bool dragAndDropEnabled;
     private bool dropHandledThisDrag;
+    private EquipmentSlotType runtimeSlotType;
 
+    /// <summary>
+    /// Caches required runtime references before the slot view is used.
+    /// </summary>
     private void Awake()
     {
         if (iconImage != null)
@@ -81,20 +92,28 @@ public class PlayerEquipmentSlotViewUI : MonoBehaviour, IPointerEnterHandler, IP
             canvasGroup = gameObject.AddComponent<CanvasGroup>();
 
         CacheRootCanvas();
-        ResolveOptionalReferences();
     }
 
+    /// <summary>
+    /// Restores drag state when the slot view is disabled mid-drag.
+    /// </summary>
     private void OnDisable()
     {
         if (isDragging)
             RestoreAfterDrag();
     }
 
+    /// <summary>
+    /// Enables or disables drag and drop interactions for this slot view.
+    /// </summary>
     public void SetDragAndDropEnabled(bool enabled)
     {
         dragAndDropEnabled = enabled;
     }
 
+    /// <summary>
+    /// Binds this slot view to a specific runtime slot when it is created through code.
+    /// </summary>
     public void ConfigureRuntimeView(
         EquipmentSlotType configuredSlotType,
         Image configuredIconImage,
@@ -106,7 +125,10 @@ public class PlayerEquipmentSlotViewUI : MonoBehaviour, IPointerEnterHandler, IP
         GameObject configuredEmptyStateRoot,
         Sprite configuredFallbackFilledIcon = null)
     {
-        slotType = configuredSlotType;
+        runtimeSlotType = configuredSlotType;
+        slotViewType = configuredSlotType == EquipmentSlotType.Armor
+            ? PlayerEquipmentSlotViewType.Armor
+            : PlayerEquipmentSlotViewType.Equipment;
         iconImage = configuredIconImage;
         itemNameText = configuredItemNameText;
         slotLabelText = configuredSlotLabelText;
@@ -128,13 +150,14 @@ public class PlayerEquipmentSlotViewUI : MonoBehaviour, IPointerEnterHandler, IP
             canvasGroup = gameObject.AddComponent<CanvasGroup>();
 
         CacheRootCanvas();
-        ResolveOptionalReferences();
     }
 
+    /// <summary>
+    /// Refreshes the slot visual state from the supplied equipment data and selection flags.
+    /// </summary>
     public void Refresh(EquipmentItemData item, bool isSelected, string slotLabel, string hotkeyLabel)
     {
         displayedItem = item;
-        ResolveOptionalReferences();
 
         if (slotLabelText != null)
             slotLabelText.text = slotLabel;
@@ -166,6 +189,9 @@ public class PlayerEquipmentSlotViewUI : MonoBehaviour, IPointerEnterHandler, IP
             hoverHighlight.SetActive(false);
     }
 
+    /// <summary>
+    /// Shows hover state and notifies listeners when the pointer enters this slot.
+    /// </summary>
     public void OnPointerEnter(PointerEventData eventData)
     {
         if (hoverHighlight != null)
@@ -174,6 +200,9 @@ public class PlayerEquipmentSlotViewUI : MonoBehaviour, IPointerEnterHandler, IP
         PointerEntered?.Invoke(this);
     }
 
+    /// <summary>
+    /// Clears hover state and notifies listeners when the pointer exits this slot.
+    /// </summary>
     public void OnPointerExit(PointerEventData eventData)
     {
         if (hoverHighlight != null)
@@ -182,11 +211,17 @@ public class PlayerEquipmentSlotViewUI : MonoBehaviour, IPointerEnterHandler, IP
         PointerExited?.Invoke(this);
     }
 
+    /// <summary>
+    /// Notifies listeners that this slot was clicked.
+    /// </summary>
     public void OnPointerClick(PointerEventData eventData)
     {
         Clicked?.Invoke(this);
     }
 
+    /// <summary>
+    /// Starts drag feedback for the current item when this slot can be dragged.
+    /// </summary>
     public void OnBeginDrag(PointerEventData eventData)
     {
         if (!CanStartDrag())
@@ -213,6 +248,9 @@ public class PlayerEquipmentSlotViewUI : MonoBehaviour, IPointerEnterHandler, IP
         DragStarted?.Invoke(this);
     }
 
+    /// <summary>
+    /// Moves the drag preview to follow the current pointer position.
+    /// </summary>
     public void OnDrag(PointerEventData eventData)
     {
         if (!isDragging || dragPreviewRectTransform == null || rootCanvas == null)
@@ -226,6 +264,9 @@ public class PlayerEquipmentSlotViewUI : MonoBehaviour, IPointerEnterHandler, IP
             dragPreviewRectTransform.anchoredPosition = localPoint;
     }
 
+    /// <summary>
+    /// Finalizes a drag operation and attempts to drop the item onto another slot view.
+    /// </summary>
     public void OnEndDrag(PointerEventData eventData)
     {
         if (!isDragging)
@@ -236,6 +277,9 @@ public class PlayerEquipmentSlotViewUI : MonoBehaviour, IPointerEnterHandler, IP
         DragEnded?.Invoke(this);
     }
 
+    /// <summary>
+    /// Receives a dropped slot view and forwards the swap request to listeners.
+    /// </summary>
     public void OnDrop(PointerEventData eventData)
     {
         if (!dragAndDropEnabled || eventData.pointerDrag == null)
@@ -249,75 +293,80 @@ public class PlayerEquipmentSlotViewUI : MonoBehaviour, IPointerEnterHandler, IP
         DropReceived?.Invoke(this, sourceSlotView);
     }
 
+    /// <summary>
+    /// Returns whether this slot can currently begin a drag operation.
+    /// </summary>
     private bool CanStartDrag()
     {
         return dragAndDropEnabled && displayedItem != null;
     }
 
+    /// <summary>
+    /// Resolves the effective runtime slot used by external controllers.
+    /// </summary>
+    private EquipmentSlotType ResolveSlotType()
+    {
+        if (runtimeSlotType != EquipmentSlotType.None)
+            return runtimeSlotType;
+
+        if (slotViewType == PlayerEquipmentSlotViewType.Armor)
+            return EquipmentSlotType.Armor;
+
+        return ResolveIndexedHandSlot(ResolveHandSlotSiblingIndex());
+    }
+
+    /// <summary>
+    /// Counts how many equipment views appear before this one under the same parent.
+    /// </summary>
+    private int ResolveHandSlotSiblingIndex()
+    {
+        Transform parentTransform = transform.parent;
+        if (parentTransform == null)
+            return 0;
+
+        int handSlotIndex = 0;
+        for (int i = 0; i < parentTransform.childCount; i++)
+        {
+            Transform child = parentTransform.GetChild(i);
+            if (child == transform)
+                break;
+
+            PlayerEquipmentSlotViewUI siblingSlotView = child.GetComponent<PlayerEquipmentSlotViewUI>();
+            if (siblingSlotView == null || siblingSlotView.SlotViewType == PlayerEquipmentSlotViewType.Armor)
+                continue;
+
+            handSlotIndex++;
+        }
+
+        return handSlotIndex;
+    }
+
+    /// <summary>
+    /// Maps a hand-slot index to the matching gameplay slot identifier.
+    /// </summary>
+    private static EquipmentSlotType ResolveIndexedHandSlot(int handSlotIndex)
+    {
+        return handSlotIndex switch
+        {
+            0 => EquipmentSlotType.Primary,
+            1 => EquipmentSlotType.Secondary,
+            2 => EquipmentSlotType.Belt,
+            _ => EquipmentSlotType.None
+        };
+    }
+
+    /// <summary>
+    /// Caches the root canvas used to host the temporary drag preview.
+    /// </summary>
     private void CacheRootCanvas()
     {
         Canvas parentCanvas = GetComponentInParent<Canvas>();
         rootCanvas = parentCanvas != null ? parentCanvas.rootCanvas : null;
     }
 
-    private void ResolveOptionalReferences()
-    {
-        if (selectedHighlight == null)
-            selectedHighlight = FindIndicatorSibling("Selected");
-    }
-
-    private GameObject FindIndicatorSibling(string keyword)
-    {
-        if (TryFindIndicatorInRoot(transform.parent, keyword, out GameObject indicator))
-            return indicator;
-
-        return TryFindIndicatorInRoot(transform.parent != null ? transform.parent.parent : null, keyword, out indicator)
-            ? indicator
-            : null;
-    }
-
-    private bool TryFindIndicatorInRoot(Transform searchRoot, string keyword, out GameObject indicator)
-    {
-        indicator = null;
-        if (searchRoot == null)
-            return false;
-
-        string slotName = ResolveSlotSearchName();
-        for (int i = 0; i < searchRoot.childCount; i++)
-        {
-            Transform child = searchRoot.GetChild(i);
-            if (child == null || child == transform)
-                continue;
-
-            string childName = child.name;
-            if (childName.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) < 0)
-                continue;
-
-            bool slotMatches =
-                childName.IndexOf(slotName, StringComparison.OrdinalIgnoreCase) >= 0 ||
-                (slotType == EquipmentSlotType.Belt && childName.IndexOf("Utility", StringComparison.OrdinalIgnoreCase) >= 0);
-            if (!slotMatches)
-                continue;
-
-            indicator = child.gameObject;
-            return true;
-        }
-
-        return false;
-    }
-
-    private string ResolveSlotSearchName()
-    {
-        return slotType switch
-        {
-            EquipmentSlotType.Primary => "Primary",
-            EquipmentSlotType.Secondary => "Secondary",
-            EquipmentSlotType.Belt => "Belt",
-            EquipmentSlotType.Armor => "Armor",
-            _ => string.Empty
-        };
-    }
-
+    /// <summary>
+    /// Clears drag-only state and restores the slot view after a drag ends.
+    /// </summary>
     private void RestoreAfterDrag()
     {
         isDragging = false;
@@ -331,6 +380,9 @@ public class PlayerEquipmentSlotViewUI : MonoBehaviour, IPointerEnterHandler, IP
         }
     }
 
+    /// <summary>
+    /// Builds the temporary drag-preview image shown while an item is being dragged.
+    /// </summary>
     private void CreateDragPreview()
     {
         DestroyDragPreview();
@@ -365,6 +417,9 @@ public class PlayerEquipmentSlotViewUI : MonoBehaviour, IPointerEnterHandler, IP
         dragPreviewImage.raycastTarget = false;
     }
 
+    /// <summary>
+    /// Attempts to resolve a drop target from the current pointer state when drag ends.
+    /// </summary>
     private void TryHandleDropFromPointer(PointerEventData eventData)
     {
         if (dropHandledThisDrag || eventData == null)
@@ -378,6 +433,9 @@ public class PlayerEquipmentSlotViewUI : MonoBehaviour, IPointerEnterHandler, IP
         targetSlotView.DropReceived?.Invoke(targetSlotView, this);
     }
 
+    /// <summary>
+    /// Finds the slot view currently under the pointer that can accept a drag drop.
+    /// </summary>
     private PlayerEquipmentSlotViewUI FindDropTargetSlotView(PointerEventData eventData)
     {
         EventSystem eventSystem = EventSystem.current;
@@ -412,6 +470,9 @@ public class PlayerEquipmentSlotViewUI : MonoBehaviour, IPointerEnterHandler, IP
             : null;
     }
 
+    /// <summary>
+    /// Destroys the temporary drag-preview object if one exists.
+    /// </summary>
     private void DestroyDragPreview()
     {
         if (dragPreviewRectTransform != null)

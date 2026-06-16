@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: Knife
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.WeaponSystem.MeleeWeaponData
   itemDisplayName: Faca de Combate
-  itemIcon: {fileID: -96875036770906992, guid: a546e2bb4f5f7cc1a99b7d9bc511c989, type: 3}
+  itemIcon: {fileID: -920229505827873334, guid: f66f6aa33031fee42a54a5bbece4662b, type: 3}
   itemDescription: "Uma faca militar com mil e uma utilidades, por\xE9m seu principal
     objetivo pode ser letal."
+  shopPrice: 80
   heldVisualSprite: {fileID: -1754120301, guid: 1ba5138f30967444dbf5be57280e6ffc, type: 3}
-  allowedSlots: 7
   gripType: 0
   equipTime: 0.15
   holsterTime: 0.1

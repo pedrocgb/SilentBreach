@@ -121,7 +121,7 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
     [SerializeField] private bool hideOnStart = true;
 
     [FoldoutGroup("References")]
-    [SerializeField] private EquipmentContextSelectionMode contextSelectionMode = EquipmentContextSelectionMode.HoverOrClick;
+    [SerializeField] private EquipmentContextSelectionMode contextSelectionMode = EquipmentContextSelectionMode.ClickOnly;
 
     [FoldoutGroup("References"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
     [SerializeField] private List<PlayerEquipmentSlotViewUI> slotViews = new();
@@ -157,9 +157,13 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
     private readonly List<HideoutPerkDefinition> equippedPerks = new();
     private HideoutPerkDefinition selectedPerk;
 
+    /// <summary>
+    /// Resolves runtime references, subscribes to events, and draws the initial panel state.
+    /// </summary>
     private void Awake()
     {
         isShuttingDown = false;
+        contextSelectionMode = EquipmentContextSelectionMode.ClickOnly;
         ResolveReferences();
         PreparePerkTemplate();
         BindSlotEvents();
@@ -172,9 +176,13 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         Refresh();
     }
 
+    /// <summary>
+    /// Rebinds runtime references and refreshes the panel whenever it becomes active.
+    /// </summary>
     private void OnEnable()
     {
         isShuttingDown = false;
+        contextSelectionMode = EquipmentContextSelectionMode.ClickOnly;
         ResolveReferences();
         PreparePerkTemplate();
         BindSlotEvents();
@@ -182,6 +190,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         Refresh();
     }
 
+    /// <summary>
+    /// Detaches runtime listeners and clears transient selection state when the panel is disabled.
+    /// </summary>
     private void OnDisable()
     {
         isShuttingDown = true;
@@ -190,6 +201,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         activeContextSlot = EquipmentSlotType.None;
     }
 
+    /// <summary>
+    /// Shows or hides the equipment panel and refreshes its contents when it becomes visible.
+    /// </summary>
     public void SetVisible(bool visible)
     {
         if (panelRoot != null)
@@ -205,6 +219,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         Refresh();
     }
 
+    /// <summary>
+    /// Forces the context area to display the supplied item instead of following slot hover or click state.
+    /// </summary>
     public void ShowContextForItem(
         EquipmentItemData item,
         EquipmentSlotType slotType = EquipmentSlotType.None,
@@ -225,6 +242,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         RefreshManualContext();
     }
 
+    /// <summary>
+    /// Forces the context area to show the empty-selection state.
+    /// </summary>
     public void ShowNoSelectionContext()
     {
         if (isShuttingDown)
@@ -235,6 +255,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         RefreshManualContext();
     }
 
+    /// <summary>
+    /// Returns context display ownership to the currently selected or hovered slot.
+    /// </summary>
     public void ClearManualContext()
     {
         if (isShuttingDown)
@@ -244,6 +267,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         RefreshActiveContext();
     }
 
+    /// <summary>
+    /// Resolves optional scene references that this panel depends on at runtime.
+    /// </summary>
     private void ResolveReferences()
     {
         if (equipmentController == null)
@@ -253,6 +279,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
             panelRoot = gameObject;
     }
 
+    /// <summary>
+    /// Subscribes to equipment change notifications so the panel stays synchronized with gameplay state.
+    /// </summary>
     private void Subscribe()
     {
         if (equipmentController != null)
@@ -262,12 +291,18 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Removes runtime event subscriptions owned by this panel.
+    /// </summary>
     private void Unsubscribe()
     {
         if (equipmentController != null)
             equipmentController.EquipmentChanged -= Refresh;
     }
 
+    /// <summary>
+    /// Hooks slot pointer and drag events for every configured slot view.
+    /// </summary>
     private void BindSlotEvents()
     {
         for (int i = 0; i < slotViews.Count; i++)
@@ -288,6 +323,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Unhooks all slot view events and disables drag handling while the panel is inactive.
+    /// </summary>
     private void UnbindSlotEvents()
     {
         for (int i = 0; i < slotViews.Count; i++)
@@ -304,6 +342,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Rebuilds slot visuals, perk visuals, and the active context from current runtime state.
+    /// </summary>
     private void Refresh()
     {
         if (isShuttingDown)
@@ -326,7 +367,7 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
             EquipmentSlotType slotType = slotView.SlotType;
             slotView.Refresh(
                 ResolveItemForSlot(slotType),
-                equipmentController.IsSlotCurrentlyHeld(slotType),
+                activeContextSlot == slotType,
                 ResolveSlotLabel(slotType),
                 ResolveHotkeyLabel(slotType));
         }
@@ -334,6 +375,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         RefreshActiveContext();
     }
 
+    /// <summary>
+    /// Synchronizes the read-only equipped perk strip and the selected perk details.
+    /// </summary>
     private void RefreshEquippedPerks()
     {
         SyncEquippedPerksFromRuntime();
@@ -342,6 +386,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         RefreshSelectedPerkDetails();
     }
 
+    /// <summary>
+    /// Copies the currently equipped perk definitions from the shared runtime loadout.
+    /// </summary>
     private void SyncEquippedPerksFromRuntime()
     {
         equippedPerks.Clear();
@@ -358,6 +405,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Keeps the selected perk reference pointing at a currently equipped runtime instance when possible.
+    /// </summary>
     private void EnsureValidPerkSelection()
     {
         if (selectedPerk != null)
@@ -375,12 +425,18 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         selectedPerk = equippedPerks.Count > 0 ? equippedPerks[0] : null;
     }
 
+    /// <summary>
+    /// Hides the configured perk item template so only spawned runtime entries are shown.
+    /// </summary>
     private void PreparePerkTemplate()
     {
         if (equippedPerksView.itemPrefab != null)
             equippedPerksView.itemPrefab.gameObject.SetActive(false);
     }
 
+    /// <summary>
+    /// Recreates the equipped perk list from the current runtime perk collection.
+    /// </summary>
     private void RebuildEquippedPerkList()
     {
         Transform preservedTemplate = ResolvePreservedTemplate(
@@ -415,6 +471,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Marks one equipped perk as selected and refreshes the perk detail display.
+    /// </summary>
     private void SelectPerk(HideoutPerkDefinition perkDefinition)
     {
         selectedPerk = perkDefinition;
@@ -422,6 +481,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         RefreshSelectedPerkDetails();
     }
 
+    /// <summary>
+    /// Updates the equipped-perk detail panel from the currently selected perk.
+    /// </summary>
     private void RefreshSelectedPerkDetails()
     {
         if (selectedPerk == null)
@@ -448,6 +510,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
             true);
     }
 
+    /// <summary>
+    /// Resolves the current equipment item occupying the supplied slot.
+    /// </summary>
     private EquipmentItemData ResolveItemForSlot(EquipmentSlotType slotType)
     {
         if (equipmentController == null)
@@ -458,6 +523,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
             : equipmentController.GetItemInSlot(slotType);
     }
 
+    /// <summary>
+    /// Shows hovered slot context when the panel is configured to react to pointer hover.
+    /// </summary>
     private void HandleSlotPointerEntered(PlayerEquipmentSlotViewUI slotView)
     {
         if (contextSelectionMode == EquipmentContextSelectionMode.ClickOnly)
@@ -471,6 +539,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         RefreshActiveContext();
     }
 
+    /// <summary>
+    /// Clears hover-driven context when the pointer leaves the active slot.
+    /// </summary>
     private void HandleSlotPointerExited(PlayerEquipmentSlotViewUI slotView)
     {
         if (contextSelectionMode == EquipmentContextSelectionMode.ClickOnly)
@@ -483,6 +554,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         HideAllContexts();
     }
 
+    /// <summary>
+    /// Selects a slot, equips it when applicable, and refreshes the related context.
+    /// </summary>
     private void HandleSlotClicked(PlayerEquipmentSlotViewUI slotView)
     {
         if (slotView == null)
@@ -491,15 +565,14 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         ClearManualContextState();
         activeContextSlot = slotView.SlotType;
         if (equipmentController != null && slotView.SlotType.IsHandSlot())
-        {
             equipmentController.TryEquipSlot(slotView.SlotType);
-            Refresh();
-            return;
-        }
 
-        RefreshActiveContext();
+        Refresh();
     }
 
+    /// <summary>
+    /// Moves an item between slots after a successful drag-and-drop operation.
+    /// </summary>
     private void HandleSlotDropReceived(PlayerEquipmentSlotViewUI targetSlotView, PlayerEquipmentSlotViewUI sourceSlotView)
     {
         if (equipmentController == null || targetSlotView == null || sourceSlotView == null)
@@ -513,6 +586,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         Refresh();
     }
 
+    /// <summary>
+    /// Chooses which context state should currently be displayed for the panel.
+    /// </summary>
     private void RefreshActiveContext()
     {
         if (isShuttingDown)
@@ -536,12 +612,18 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         ShowContextForSlot(activeContextSlot);
     }
 
+    /// <summary>
+    /// Displays context for the equipment item currently occupying the supplied slot.
+    /// </summary>
     private void ShowContextForSlot(EquipmentSlotType slotType)
     {
         EquipmentItemData item = ResolveItemForSlot(slotType);
         ShowContextForItemInternal(item, slotType);
     }
 
+    /// <summary>
+    /// Populates the firearm detail context using the supplied item and runtime ammo state.
+    /// </summary>
     private void PopulateFirearmContext(
         FirearmData firearmData,
         EquipmentSlotType slotType,
@@ -574,7 +656,7 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         SetPrefixedText(firearmContext.firearmAmmoText, settings.AmmoPrefix, loadedAmmo.ToString(), true);
         SetPrefixedText(firearmContext.firearmReserveAmmoText, settings.ReserveAmmoPrefix, reserveAmmo.ToString(), true);
         SetPrefixedText(firearmContext.firearmReloadTimeText, settings.ReloadTimePrefix, $"{firearmData.ReloadTime:0.##}s", true);
-        SetPrefixedText(firearmContext.firearmSlotsText, settings.SlotsPrefix, FormatAllowedSlots(firearmData.AllowedSlots, settings), true);
+        SetPrefixedText(firearmContext.firearmSlotsText, settings.ItemKindPrefix, ResolveItemKindText(settings, firearmData.ItemKind), true);
         ProjectileData primaryUiProjectile = ResolvePrimaryCompatibleProjectile(firearmData);
         ProjectileData activeProjectile = projectileOverride ?? ResolveFirearmProjectile(slotType, firearmData);
         SetPrefixedText(
@@ -589,6 +671,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
             true);
     }
 
+    /// <summary>
+    /// Populates the utility detail context using the supplied item and runtime quantity state.
+    /// </summary>
     private void PopulateUtilityContext(UtilityItemData utilityItemData, EquipmentSlotType slotType, int quantityOverride = -1)
     {
         EquipmentContextUiSettings settings = ResolveUiSettings();
@@ -598,7 +683,7 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         SetImage(utilityContext.iconImage, utilityItemData.Icon);
         SetPlainText(utilityContext.nameText, utilityItemData.DisplayName, true);
         SetPlainText(utilityContext.descriptionText, utilityItemData.Description, true);
-        SetPrefixedText(utilityContext.slotsText, settings.SlotsPrefix, FormatAllowedSlots(utilityItemData.AllowedSlots, settings), true);
+        SetPrefixedText(utilityContext.slotsText, settings.ItemKindPrefix, ResolveItemKindText(settings, utilityItemData.ItemKind), true);
 
         bool isFlashlight = utilityItemData is FlashlightUtilityData;
         if (isFlashlight)
@@ -665,6 +750,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
             lethalThrowableData.UsesFlashbang);
     }
 
+    /// <summary>
+    /// Populates the melee detail context using the supplied weapon definition.
+    /// </summary>
     private void PopulateMeleeContext(MeleeWeaponData meleeWeaponData)
     {
         EquipmentContextUiSettings settings = ResolveUiSettings();
@@ -686,7 +774,7 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
             settings.ArmorPenetrationPrefix,
             meleeWeaponData.ArmorPenetration.ToString(),
             true);
-        SetPrefixedText(firearmContext.meleeSlotsText, settings.SlotsPrefix, FormatAllowedSlots(meleeWeaponData.AllowedSlots, settings), true);
+        SetPrefixedText(firearmContext.meleeSlotsText, settings.ItemKindPrefix, ResolveItemKindText(settings, meleeWeaponData.ItemKind), true);
     }
 
     /// <summary>
@@ -716,6 +804,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         SetActive(armorContext.root, true);
     }
 
+    /// <summary>
+    /// Hides every context root before a new context state is selected.
+    /// </summary>
     private void HideAllContexts()
     {
         SetActive(firearmContext.root, false);
@@ -724,6 +815,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         SetActive(noSelectionContextRoot, false);
     }
 
+    /// <summary>
+    /// Reapplies the current manual context override when one is active.
+    /// </summary>
     private void RefreshManualContext()
     {
         if (isShuttingDown)
@@ -750,6 +844,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Routes the supplied item to the correct specialized context renderer.
+    /// </summary>
     private void ShowContextForItemInternal(
         EquipmentItemData item,
         EquipmentSlotType slotType,
@@ -793,6 +890,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Clears the bookkeeping used by manual context overrides.
+    /// </summary>
     private void ClearManualContextState()
     {
         manualContextItem = null;
@@ -804,6 +904,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         showManualNoSelectionOverride = false;
     }
 
+    /// <summary>
+    /// Hides all firearm and melee context detail rows before they are repopulated.
+    /// </summary>
     private void HideWeaponContextDetailFields()
     {
         HideTextObject(firearmContext.nameText);
@@ -826,6 +929,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         HideTextObject(firearmContext.meleeSlotsText);
     }
 
+    /// <summary>
+    /// Hides all utility context detail rows before they are repopulated.
+    /// </summary>
     private void HideUtilityContextDetailFields()
     {
         HideTextObject(utilityContext.nameText);
@@ -840,6 +946,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         HideTextObject(utilityContext.lethalText);
     }
 
+    /// <summary>
+    /// Hides all armor context detail rows before they are repopulated.
+    /// </summary>
     private void HideArmorContextDetailFields()
     {
         HideTextObject(armorContext.nameText);
@@ -851,6 +960,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         HideTextObject(armorContext.movementSpeedPenaltyText);
     }
 
+    /// <summary>
+    /// Resolves the projectile definition currently relevant for firearm context display.
+    /// </summary>
     private ProjectileData ResolveFirearmProjectile(EquipmentSlotType slotType, FirearmData firearmData)
     {
         if (equipmentController != null &&
@@ -865,6 +977,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
             : null;
     }
 
+    /// <summary>
+    /// Returns the first compatible projectile as a fallback UI reference.
+    /// </summary>
     private static ProjectileData ResolvePrimaryCompatibleProjectile(FirearmData firearmData)
     {
         return firearmData != null && firearmData.CompatibleProjectiles.Count > 0
@@ -872,6 +987,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
             : null;
     }
 
+    /// <summary>
+    /// Compares two perks using their stable runtime identifier.
+    /// </summary>
     private static bool AreSamePerk(HideoutPerkDefinition left, HideoutPerkDefinition right)
     {
         if (left == null || right == null)
@@ -880,6 +998,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         return string.Equals(left.PerkId, right.PerkId, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Builds the detail string used for perk description panels.
+    /// </summary>
     private static string BuildPerkDescription(HideoutPerkDefinition perkDefinition)
     {
         if (perkDefinition == null)
@@ -896,6 +1017,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         return hasEffect ? perkDefinition.Effect : string.Empty;
     }
 
+    /// <summary>
+    /// Converts a perk tier enum into its Roman numeral label.
+    /// </summary>
     private static string ResolvePerkTierText(HideoutPerkTier perkTier)
     {
         return perkTier switch
@@ -907,21 +1031,33 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         };
     }
 
+    /// <summary>
+    /// Returns the global equipment UI settings or a local fallback instance when unavailable.
+    /// </summary>
     private static EquipmentContextUiSettings ResolveUiSettings()
     {
         return GlobalSettings.Instance != null ? GlobalSettings.Instance.EquipmentContextUi : DefaultUiSettings;
     }
 
+    /// <summary>
+    /// Returns the localized rounds-per-second suffix used by firearm rate labels.
+    /// </summary>
     private static string ResolveRoundsPerSecondText(EquipmentContextUiSettings settings)
     {
         return settings != null ? settings.RoundsPerSecondText : "rounds/s";
     }
 
+    /// <summary>
+    /// Returns the localized boolean label used by equipment context rows.
+    /// </summary>
     private static string ResolveBoolText(EquipmentContextUiSettings settings, bool value)
     {
         return settings != null ? settings.GetBoolText(value) : (value ? "Yes" : "No");
     }
 
+    /// <summary>
+    /// Returns the localized label for a throwable utility behavior.
+    /// </summary>
     private static string ResolveThrowableTypeText(EquipmentContextUiSettings settings, ThrowableUtilityBehavior behavior)
     {
         if (settings != null)
@@ -937,21 +1073,33 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         };
     }
 
+    /// <summary>
+    /// Returns the localized label for a firearm class.
+    /// </summary>
     private static string ResolveFirearmClassText(EquipmentContextUiSettings settings, FirearmClass firearmClass)
     {
         return settings != null ? settings.GetFirearmClassText(firearmClass) : NicifyText(firearmClass.ToString());
     }
 
+    /// <summary>
+    /// Returns the localized label for a firearm grip type.
+    /// </summary>
     private static string ResolveFirearmGripText(EquipmentContextUiSettings settings, FirearmGripType gripType)
     {
         return settings != null ? settings.GetFirearmGripText(gripType) : NicifyText(gripType.ToString());
     }
 
+    /// <summary>
+    /// Returns the localized label for a melee grip type.
+    /// </summary>
     private static string ResolveMeleeGripText(EquipmentContextUiSettings settings, MeleeGripType gripType)
     {
         return settings != null ? settings.GetMeleeGripText(gripType) : NicifyText(gripType.ToString());
     }
 
+    /// <summary>
+    /// Returns the localized label for a throwable detonation mode.
+    /// </summary>
     private static string ResolveDetonationModeText(EquipmentContextUiSettings settings, ThrowableDetonationMode detonationMode)
     {
         return settings != null ? settings.GetDetonationModeText(detonationMode) : detonationMode switch
@@ -963,6 +1111,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         };
     }
 
+    /// <summary>
+    /// Determines whether the supplied throwable item should be presented as lethal.
+    /// </summary>
     private static bool ResolveThrowableIsLethal(ThrowableUtilityData throwableData)
     {
         if (throwableData == null)
@@ -977,11 +1128,17 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         return false;
     }
 
+    /// <summary>
+    /// Returns the localized slot label shown on each equipment slot view.
+    /// </summary>
     private static string ResolveSlotLabel(EquipmentSlotType slotType)
     {
         return ResolveUiSettings().GetSlotDisplayName(slotType);
     }
 
+    /// <summary>
+    /// Returns the hotkey label shown on each equipment slot view.
+    /// </summary>
     private static string ResolveHotkeyLabel(EquipmentSlotType slotType)
     {
         return slotType switch
@@ -994,24 +1151,17 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         };
     }
 
-    private static string FormatAllowedSlots(EquipmentSlotMask slotMask, EquipmentContextUiSettings settings)
+    /// <summary>
+    /// Returns the localized display label for an equipment item kind.
+    /// </summary>
+    private static string ResolveItemKindText(EquipmentContextUiSettings settings, EquipmentItemKind itemKind)
     {
-        List<string> slotNames = new();
-        if ((slotMask & EquipmentSlotMask.Primary) != 0)
-            slotNames.Add(settings != null ? settings.GetSlotDisplayName(EquipmentSlotType.Primary) : "Primary");
-
-        if ((slotMask & EquipmentSlotMask.Secondary) != 0)
-            slotNames.Add(settings != null ? settings.GetSlotDisplayName(EquipmentSlotType.Secondary) : "Secondary");
-
-        if ((slotMask & EquipmentSlotMask.Belt) != 0)
-            slotNames.Add(settings != null ? settings.GetSlotDisplayName(EquipmentSlotType.Belt) : "Belt");
-
-        if ((slotMask & EquipmentSlotMask.Armor) != 0)
-            slotNames.Add(settings != null ? settings.GetSlotDisplayName(EquipmentSlotType.Armor) : "Armor");
-
-        return slotNames.Count > 0 ? string.Join(", ", slotNames) : "None";
+        return settings != null ? settings.GetItemKindText(itemKind) : NicifyText(itemKind.ToString());
     }
 
+    /// <summary>
+    /// Converts a firearm fire mode flag set into a readable display string.
+    /// </summary>
     private static string FormatFireModes(FireMode fireModes)
     {
         if (fireModes == FireMode.None)
@@ -1024,6 +1174,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         return string.Join(" / ", names);
     }
 
+    /// <summary>
+    /// Inserts spaces into compact enum-style labels so they read cleanly in UI.
+    /// </summary>
     private static string NicifyText(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -1048,6 +1201,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         return new string(buffer.ToArray());
     }
 
+    /// <summary>
+    /// Returns the template child that should be preserved while rebuilding a content list.
+    /// </summary>
     private static Transform ResolvePreservedTemplate(RectTransform contentRoot, Transform templateTransform)
     {
         if (contentRoot == null || templateTransform == null)
@@ -1056,6 +1212,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         return templateTransform.parent == contentRoot ? templateTransform : null;
     }
 
+    /// <summary>
+    /// Destroys generated content children while keeping an optional template child intact.
+    /// </summary>
     private static void ClearGeneratedChildren(RectTransform contentRoot, Transform preservedTemplate)
     {
         if (contentRoot == null)
@@ -1071,6 +1230,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Toggles an optional text field and assigns its content when it should be visible.
+    /// </summary>
     private static void SetOptionalTextState(TMP_Text textField, bool visible, string value)
     {
         if (textField == null)
@@ -1081,6 +1243,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
             textField.text = value ?? string.Empty;
     }
 
+    /// <summary>
+    /// Applies plain text to a field while toggling its visibility container.
+    /// </summary>
     private static void SetPlainText(TMP_Text textField, string value, bool visible)
     {
         if (textField == null)
@@ -1094,6 +1259,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
             textField.text = value ?? string.Empty;
     }
 
+    /// <summary>
+    /// Applies prefixed rich text to a field while toggling its visibility container.
+    /// </summary>
     private static void SetPrefixedText(TMP_Text textField, string prefix, string value, bool visible)
     {
         if (textField == null)
@@ -1119,6 +1287,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         textField.text = $"{formattedPrefix}{value ?? string.Empty}";
     }
 
+    /// <summary>
+    /// Hides the visibility container associated with a text field.
+    /// </summary>
     private static void HideTextObject(TMP_Text textField)
     {
         if (textField == null)
@@ -1129,6 +1300,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
             visibilityTarget.SetActive(false);
     }
 
+    /// <summary>
+    /// Resolves which GameObject should be toggled when showing or hiding a text field.
+    /// </summary>
     private static GameObject ResolveVisibilityTarget(TMP_Text textField)
     {
         if (textField == null)
@@ -1138,6 +1312,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         return parent != null ? parent.gameObject : textField.gameObject;
     }
 
+    /// <summary>
+    /// Updates an image sprite and enables the image only when a sprite is available.
+    /// </summary>
     private static void SetImage(Image imageField, Sprite sprite)
     {
         if (imageField == null)
@@ -1147,6 +1324,9 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
         imageField.enabled = sprite != null;
     }
 
+    /// <summary>
+    /// Safely toggles a GameObject active state when the reference exists.
+    /// </summary>
     private static void SetActive(GameObject target, bool value)
     {
         if (target != null)

@@ -1,19 +1,19 @@
 fileFormatVersion: 2
-guid: f25abb324d981da05bb552215f66cd79
+guid: be84dd1f4e258e385bdf3616e8558641
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -7953235382422703
-    second: badge_progression_alpha_transparent_0
+      213: 3452917311745661294
+    second: ChatGPT Image Jun 16, 2026, 03_34_30 PM_0
   - first:
-      213: 1437171756207805296
-    second: badge_progression_alpha_transparent_1
+      213: 6571676050440210919
+    second: ChatGPT Image Jun 16, 2026, 03_34_30 PM_1
   - first:
-      213: -7939747423409022221
-    second: badge_progression_alpha_transparent_2
+      213: -4109042674358464544
+    second: ChatGPT Image Jun 16, 2026, 03_34_30 PM_2
   - first:
-      213: 3034495027582258221
-    second: badge_progression_alpha_transparent_3
+      213: 1728930607626161003
+    second: ChatGPT Image Jun 16, 2026, 03_34_30 PM_3
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -109,89 +109,89 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: badge_progression_alpha_transparent_0
+      name: Levels Badges_0
       rect:
         serializedVersion: 2
-        x: 22
-        y: 361
-        width: 290
-        height: 416
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 1533736139eb3eff0800000000000000
-      internalID: -7953235382422703
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: badge_progression_alpha_transparent_1
-      rect:
-        serializedVersion: 2
-        x: 336
-        y: 352
-        width: 335
-        height: 450
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 0739df9091cd1f310800000000000000
-      internalID: 1437171756207805296
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: badge_progression_alpha_transparent_2
-      rect:
-        serializedVersion: 2
-        x: 713
-        y: 347
+        x: 60
+        y: 266
         width: 322
-        height: 497
+        height: 440
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 3fad165f8c950d190800000000000000
-      internalID: -7939747423409022221
+      spriteID: 99b7fd22b17c08720961dcdea4abd1ba
+      internalID: 2084542740
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: badge_progression_alpha_transparent_3
+      name: Levels Badges_1
       rect:
         serializedVersion: 2
-        x: 1052
-        y: 339
-        width: 377
-        height: 556
+        x: 450
+        y: 258
+        width: 330
+        height: 456
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: d2ccabf6621bc1a20800000000000000
-      internalID: 3034495027582258221
+      spriteID: 30f17c27f56be5352b756a6d6c86f209
+      internalID: -747627548
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Levels Badges_2
+      rect:
+        serializedVersion: 2
+        x: 842
+        y: 238
+        width: 347
+        height: 490
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7c24a5add9bf01c7aa82fe899ea0d637
+      internalID: 365724029
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Levels Badges_3
+      rect:
+        serializedVersion: 2
+        x: 1243
+        y: 227
+        width: 373
+        height: 535
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 932392b72d2ee10838623516242527a7
+      internalID: -468231446
       vertices: []
       indices: 
       edges: []
@@ -200,7 +200,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 41898fab0257c48dfa263699eb7cb714
     internalID: 0
     vertices: []
     indices: 
@@ -208,12 +208,14 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries: []
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
-      badge_progression_alpha_transparent_0: -7953235382422703
-      badge_progression_alpha_transparent_1: 1437171756207805296
-      badge_progression_alpha_transparent_2: -7939747423409022221
-      badge_progression_alpha_transparent_3: 3034495027582258221
+      Levels Badges_0: 2084542740
+      Levels Badges_1: -747627548
+      Levels Badges_2: 365724029
+      Levels Badges_3: -468231446
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

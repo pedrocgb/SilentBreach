@@ -14,19 +14,29 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   jobTitle: Noite do Poker
   jobId: PokerNightStakeout
-  jobDescription: "Entre sorrateiramente na sala de p\xF4quer, recupere o livro de
-    contabilidade e saia antes que a mesa perceba que foi roubada. "
-  jobLevel: 3
-  jobType: 6
+  jobDescription: "\tEntre sorrateiramente na sala de p\xF4quer, roube a mala de
+    dinheiro, n\xE3o seja detectado, fuja antes que o jogo de poker comece."
+  briefingTitle: Noite do Poker
+  jobBriefing: "\tHoje a noite seremos os bonzinhos. Eu descobri onde um dos meus
+    rivais est\xE1 lavando seu dinheiro sujo, ele lava atrav\xE9s de jogos de poker
+    clandestino e sabemos que lavagem de dinheiro \xE9 um crime.\n\tVamos resolver
+    isso da melhor maneira poss\xEDvel, os meus olheiros j\xE1 est\xE3o no local
+    e v\xE3o me avisar quando o jogo acabar, assim que acabar teremos uma janela
+    muito breve para entrar l\xE1 e roubar o dinheiro.\n\tL\xE1 \xE9 um bar que estar\xE1
+    fechado durante todo a jogatina, ent\xE3o provavelmente os jogadores ir\xE3o
+    para o bar beber, essa \xE9 a melhor hora para entrar.\n\tLembre-se, n\xE3o mate
+    ningu\xE9m, se algu\xE9m morrer e descobrirem quem foi o mandante uma guerra
+    de fac\xE7\xF5es vai come\xE7ar e isso \xE9 a ultima coisa que eu quero."
+  jobLevel: 1
+  jobType: 0
   rewardCash: 750
   rewardInfluencePoints: 1
   rewardText: "R$ 750,00 e 1 ponto de influ\xEAncia."
-  objectivesText: '- Encontre e pegue o livro de contabilidade;
+  objectivesText: '- Encontre e roube a mala com dinheiro.
 
-    - Fuja sem ser
-    percebido.'
-  termsOfFailureText: "- N\xE3o mate ningu\xE9m\n- N\xE3o machuque ningu\xE9m\n-
-    N\xE3o seja detactado\n- Complete antes que a jogatina acabe (5 minutos)"
+    - Fuja sem ser percebido.'
+  termsOfFailureText: "- N\xE3o mate ningu\xE9m\n- N\xE3o seja detactado\n- Complete
+    antes que o jogo comece (3 minutos)"
   gameplayObjectives:
   - objectiveType: 1
     referenceId: poker_ledger
@@ -37,37 +47,17 @@ MonoBehaviour:
     displayText: "N\xE3o mate ningu\xE9m."
     failureScreenMessage: "Assassinato n\xE3o era permitido. Voc\xEA falhou..."
     timeLimitSeconds: 300
-  - failureType: 5
-    displayText: "N\xE3o seja detectado!"
-    failureScreenMessage: "Voc\xEA foi detectado..."
-    timeLimitSeconds: 300
   - failureType: 6
     displayText: Finalize o trabalho antes do tempo.
     failureScreenMessage: "O jogo de poker chegou ao fim, voc\xEA perdeu a chance
       de roubar o livro de contabilidade."
     timeLimitSeconds: 300
-  fixerName: Mara Velvet Quinn
-  jobImage: {fileID: -4161253881164705485, guid: 8b859e5929d41a1ad8694dab75504fc5, type: 3}
+  fixerName: Alana Poatan
+  jobImage: {fileID: 6103484237164383274, guid: 4d2f4671147f73a33bc8aae5d2946330, type: 3}
   missionSceneBuildIndex: 1
   missionSceneName: '[2] Poker Scene'
   unlockJobs: []
-  shopTitle: Receptador
+  shopTitle: The Fence
   shopDescription: 
   shopImage: {fileID: 0}
-  fenceOffers:
-  - item: {fileID: 11400000, guid: 233f0296b0e4182c581aadd6dacd6b17, type: 2}
-    firearmProjectile: {fileID: 0}
-    availabilityProbability: 1
-    maxQuantity: 1
-  - item: {fileID: 11400000, guid: 0737f1ad190f7437dbbde44e2a77107f, type: 2}
-    firearmProjectile: {fileID: 0}
-    availabilityProbability: 1
-    maxQuantity: 1
-  - item: {fileID: 11400000, guid: ea95feac09de47846a21232d81534981, type: 2}
-    firearmProjectile: {fileID: 0}
-    availabilityProbability: 1
-    maxQuantity: 1
-  - item: {fileID: 11400000, guid: ae90121673569524f9f2365dd21a1725, type: 2}
-    firearmProjectile: {fileID: 0}
-    availabilityProbability: 1
-    maxQuantity: 1
+  fenceOffers: []

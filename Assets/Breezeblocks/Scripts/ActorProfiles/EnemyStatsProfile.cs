@@ -19,6 +19,9 @@ public class EnemyStatsProfile : ScriptableObject
     [FoldoutGroup("Hearing"), InlineProperty, HideLabel]
     public EnemyHearingSettings Hearing = new();
 
+    [FoldoutGroup("Sleep"), InlineProperty, HideLabel]
+    public EnemySleepSettings Sleep = new();
+
     [FoldoutGroup("Combat"), InlineProperty, HideLabel]
     public EnemyCombatSettings Combat = new();
 

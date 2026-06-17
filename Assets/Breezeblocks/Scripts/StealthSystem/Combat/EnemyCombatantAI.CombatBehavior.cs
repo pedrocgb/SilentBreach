@@ -749,16 +749,27 @@ public partial class EnemyCombatantAI
             return;
 
         Vector3 origin = firePoint != null ? firePoint.position : transform.position;
-        float angle = Mathf.Atan2(currentAimDirection.y, currentAimDirection.x) * Mathf.Rad2Deg + muzzleFlashRotationOffset;
         MuzzleFlashEffect flashEffect = globalObjectPooler.Spawn(
             muzzleFlashPrefab,
             origin,
-            Quaternion.Euler(0f, 0f, angle),
+            ResolveMuzzleFlashRotation(),
             firePoint,
             muzzleFlashPoolPrewarm);
 
         if (flashEffect != null)
             flashEffect.Play(equippedFirearm.MuzzleFlashSize, equippedFirearm.MuzzleFlashDuration);
+    }
+
+    /// <summary>
+    /// Resolves muzzle flash visual rotation from the authored fire point, falling back to aim direction when no fire point exists.
+    /// </summary>
+    private Quaternion ResolveMuzzleFlashRotation()
+    {
+        Quaternion baseRotation = firePoint != null
+            ? firePoint.rotation
+            : Quaternion.Euler(0f, 0f, Mathf.Atan2(currentAimDirection.y, currentAimDirection.x) * Mathf.Rad2Deg);
+
+        return baseRotation * Quaternion.Euler(0f, 0f, muzzleFlashRotationOffset);
     }
 
     /// <summary>

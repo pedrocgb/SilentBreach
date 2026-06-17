@@ -81,7 +81,23 @@ public sealed class HideoutSceneController : MonoBehaviour
         public TMP_Text jobFailureText;
         public TMP_Text jobFixerText;
         public Image jobImage;
+        public Button briefingButton;
         public Button proceedButton;
+    }
+
+    [Serializable]
+    private sealed class JobBriefingPanelReferences
+    {
+        public GameObject root;
+        public CanvasGroup canvasGroup;
+        public TMP_Text titleText;
+        public TMP_Text briefingFixer;
+        public TMP_Text briefingText;
+        public Image jobImage;
+        public Button closeButton;
+
+        [MinValue(1f), SuffixLabel("chars/s", true)]
+        public float typewriterCharactersPerSecond = 42f;
     }
 
     [Serializable]
@@ -200,6 +216,9 @@ public sealed class HideoutSceneController : MonoBehaviour
     [SerializeField] private JobsPanelReferences jobsPanel = new();
 
     [FoldoutGroup("References")]
+    [SerializeField] private JobBriefingPanelReferences jobBriefingPanel = new();
+
+    [FoldoutGroup("References")]
     [SerializeField] private FencePanelReferences fencePanel = new();
 
     [FoldoutGroup("References")]
@@ -233,6 +252,8 @@ public sealed class HideoutSceneController : MonoBehaviour
     private bool isTearingDown;
     private Coroutine panelTransitionRoutine;
     private Tween sceneFadeTween;
+    private Tween jobBriefingFadeTween;
+    private Tween jobBriefingTypewriterTween;
     private Player rewiredPlayer;
 
     private void Awake()
@@ -250,6 +271,7 @@ public sealed class HideoutSceneController : MonoBehaviour
         ResolveRewiredPlayer();
         BindSlotEvents();
         BindButtons();
+        PrepareJobBriefingPanel();
         LoadAvailableJobs();
 
         selectedJob = ResolveInitialSelectedJob();
@@ -312,6 +334,8 @@ public sealed class HideoutSceneController : MonoBehaviour
         if (sceneFadeCanvasGroup != null)
             DOTween.Kill(sceneFadeCanvasGroup);
 
+        KillJobBriefingTweens();
+
         foreach (CanvasGroup canvasGroup in resolvedCanvasGroups.Values)
         {
             if (canvasGroup != null)
@@ -364,6 +388,12 @@ public sealed class HideoutSceneController : MonoBehaviour
 
     public void CloseCurrentView()
     {
+        if (IsJobBriefingPanelOpen())
+        {
+            CloseJobBriefingPanel();
+            return;
+        }
+
         switch (currentView)
         {
             case HideoutView.Jobs:
@@ -422,6 +452,8 @@ public sealed class HideoutSceneController : MonoBehaviour
 
     public void OpenSelectedJobFence()
     {
+        CloseJobBriefingPanelImmediate();
+
         if (selectedJob == null)
         {
             SetMessage("Select a job before heading to the fence.");
@@ -449,6 +481,80 @@ public sealed class HideoutSceneController : MonoBehaviour
     public void BackOutOfFence()
     {
         RequestView(HideoutView.Jobs);
+    }
+
+    /// <summary>
+    /// Opens the selected job briefing panel and starts its typewriter presentation.
+    /// </summary>
+    public void OpenSelectedJobBriefingPanel()
+    {
+        if (selectedJob == null)
+        {
+            SetMessage("Select a job before opening the briefing.");
+            return;
+        }
+
+        if (jobBriefingPanel.root == null)
+        {
+            SetMessage("Job briefing panel is not assigned.");
+            return;
+        }
+
+        CanvasGroup briefingCanvasGroup = ResolveJobBriefingCanvasGroup();
+        KillJobBriefingTweens();
+        SetText(jobBriefingPanel.titleText, selectedJob.BriefingTitle);
+        SetText(jobBriefingPanel.briefingFixer, selectedJob.FixerName);
+        SetText(jobBriefingPanel.briefingText, selectedJob.JobBriefing);
+        SetImage(jobBriefingPanel.jobImage, selectedJob.JobImage);
+        ResetJobBriefingTypewriter();
+
+        jobBriefingPanel.root.SetActive(true);
+        if (briefingCanvasGroup != null)
+        {
+            briefingCanvasGroup.alpha = 0f;
+            briefingCanvasGroup.interactable = true;
+            briefingCanvasGroup.blocksRaycasts = true;
+
+            if (panelFadeDuration > 0f)
+            {
+                jobBriefingFadeTween = briefingCanvasGroup
+                    .DOFade(1f, panelFadeDuration)
+                    .SetEase(panelFadeEase)
+                    .SetUpdate(true)
+                    .OnComplete(() => jobBriefingFadeTween = null);
+            }
+            else
+            {
+                briefingCanvasGroup.alpha = 1f;
+            }
+        }
+
+        StartJobBriefingTypewriter();
+    }
+
+    /// <summary>
+    /// Closes the selected job briefing panel using the configured fade transition.
+    /// </summary>
+    public void CloseJobBriefingPanel()
+    {
+        if (jobBriefingPanel.root == null || !jobBriefingPanel.root.activeInHierarchy)
+            return;
+
+        CanvasGroup briefingCanvasGroup = ResolveJobBriefingCanvasGroup();
+        KillJobBriefingTweens();
+        if (briefingCanvasGroup == null || panelFadeDuration <= 0f)
+        {
+            CloseJobBriefingPanelImmediate();
+            return;
+        }
+
+        briefingCanvasGroup.interactable = false;
+        briefingCanvasGroup.blocksRaycasts = false;
+        jobBriefingFadeTween = briefingCanvasGroup
+            .DOFade(0f, panelFadeDuration)
+            .SetEase(panelFadeEase)
+            .SetUpdate(true)
+            .OnComplete(CloseJobBriefingPanelImmediate);
     }
 
     public void SellSelectedEquipment()
@@ -639,7 +745,9 @@ public sealed class HideoutSceneController : MonoBehaviour
     private void BindButtons()
     {
         BindButton(jobsPanel.proceedButton, OpenSelectedJobFence);
+        BindButton(jobsPanel.briefingButton, OpenSelectedJobBriefingPanel);
         BindButton(jobsPanel.closeButton, CloseJobsView);
+        BindButton(jobBriefingPanel.closeButton, CloseJobBriefingPanel);
         BindButton(fencePanel.sellButton, SellSelectedEquipment);
         BindButton(fencePanel.startQuestButton, StartQuest);
         BindButton(fencePanel.closeButton, CloseFenceView);
@@ -672,6 +780,23 @@ public sealed class HideoutSceneController : MonoBehaviour
 
         if (fencePanel.contextPanel != null)
             fencePanel.contextPanel.SetVisible(true);
+    }
+
+    /// <summary>
+    /// Ensures the optional job briefing overlay starts hidden and ready for fade transitions.
+    /// </summary>
+    private void PrepareJobBriefingPanel()
+    {
+        CanvasGroup briefingCanvasGroup = ResolveJobBriefingCanvasGroup();
+        if (briefingCanvasGroup != null)
+        {
+            briefingCanvasGroup.alpha = 0f;
+            briefingCanvasGroup.interactable = false;
+            briefingCanvasGroup.blocksRaycasts = false;
+        }
+
+        if (jobBriefingPanel.root != null)
+            jobBriefingPanel.root.SetActive(false);
     }
 
     private void PrepareSceneFade()
@@ -905,6 +1030,9 @@ public sealed class HideoutSceneController : MonoBehaviour
             if (jobsPanel.proceedButton != null)
                 jobsPanel.proceedButton.interactable = false;
 
+            if (jobsPanel.briefingButton != null)
+                jobsPanel.briefingButton.interactable = false;
+
             return;
         }
 
@@ -924,6 +1052,9 @@ public sealed class HideoutSceneController : MonoBehaviour
 
         if (jobsPanel.proceedButton != null)
             jobsPanel.proceedButton.interactable = true;
+
+        if (jobsPanel.briefingButton != null)
+            jobsPanel.briefingButton.interactable = true;
     }
 
     /// <summary>
@@ -1533,6 +1664,9 @@ public sealed class HideoutSceneController : MonoBehaviour
         if (isTearingDown)
             return;
 
+        if (targetView != HideoutView.Jobs)
+            CloseJobBriefingPanelImmediate();
+
         if (GetViewRoot(targetView) == null)
         {
             SetMessage($"{ResolveViewDisplayName(targetView)} panel is not assigned.");
@@ -1725,6 +1859,103 @@ public sealed class HideoutSceneController : MonoBehaviour
             canvasGroup.interactable = interactable && canvasGroup.alpha > 0.001f;
             canvasGroup.blocksRaycasts = interactable && canvasGroup.alpha > 0.001f;
         }
+    }
+
+    /// <summary>
+    /// Resolves the briefing panel canvas group, adding one at runtime when the assigned panel needs fade support.
+    /// </summary>
+    private CanvasGroup ResolveJobBriefingCanvasGroup()
+    {
+        if (jobBriefingPanel.canvasGroup != null)
+            return jobBriefingPanel.canvasGroup;
+
+        if (jobBriefingPanel.root == null)
+            return null;
+
+        jobBriefingPanel.canvasGroup = jobBriefingPanel.root.GetComponent<CanvasGroup>();
+        if (jobBriefingPanel.canvasGroup == null)
+            jobBriefingPanel.canvasGroup = jobBriefingPanel.root.AddComponent<CanvasGroup>();
+
+        return jobBriefingPanel.canvasGroup;
+    }
+
+    /// <summary>
+    /// Returns whether the optional job briefing overlay is currently visible.
+    /// </summary>
+    private bool IsJobBriefingPanelOpen()
+    {
+        return jobBriefingPanel.root != null && jobBriefingPanel.root.activeInHierarchy;
+    }
+
+    /// <summary>
+    /// Hides the job briefing overlay immediately and resets its interactable state.
+    /// </summary>
+    private void CloseJobBriefingPanelImmediate()
+    {
+        KillJobBriefingTweens();
+        CanvasGroup briefingCanvasGroup = ResolveJobBriefingCanvasGroup();
+        if (briefingCanvasGroup != null)
+        {
+            briefingCanvasGroup.alpha = 0f;
+            briefingCanvasGroup.interactable = false;
+            briefingCanvasGroup.blocksRaycasts = false;
+        }
+
+        if (jobBriefingPanel.root != null)
+            jobBriefingPanel.root.SetActive(false);
+    }
+
+    /// <summary>
+    /// Stops active briefing tweens before the panel changes state or the controller tears down.
+    /// </summary>
+    private void KillJobBriefingTweens()
+    {
+        jobBriefingFadeTween?.Kill();
+        jobBriefingFadeTween = null;
+        jobBriefingTypewriterTween?.Kill();
+        jobBriefingTypewriterTween = null;
+    }
+
+    /// <summary>
+    /// Resets the briefing text so the typewriter can reveal it from the beginning.
+    /// </summary>
+    private void ResetJobBriefingTypewriter()
+    {
+        if (jobBriefingPanel.briefingText == null)
+            return;
+
+        jobBriefingPanel.briefingText.maxVisibleCharacters = 0;
+        jobBriefingPanel.briefingText.ForceMeshUpdate();
+    }
+
+    /// <summary>
+    /// Starts the selected job briefing typewriter animation using unscaled UI time.
+    /// </summary>
+    private void StartJobBriefingTypewriter()
+    {
+        TMP_Text briefingText = jobBriefingPanel.briefingText;
+        if (briefingText == null)
+            return;
+
+        briefingText.ForceMeshUpdate();
+        int characterCount = Mathf.Max(0, briefingText.textInfo.characterCount);
+        if (characterCount == 0)
+        {
+            briefingText.maxVisibleCharacters = int.MaxValue;
+            return;
+        }
+
+        float charactersPerSecond = Mathf.Max(1f, jobBriefingPanel.typewriterCharactersPerSecond);
+        float duration = characterCount / charactersPerSecond;
+        jobBriefingTypewriterTween = DOVirtual
+            .Int(0, characterCount, duration, visibleCharacters => briefingText.maxVisibleCharacters = visibleCharacters)
+            .SetEase(Ease.Linear)
+            .SetUpdate(true)
+            .OnComplete(() =>
+            {
+                briefingText.maxVisibleCharacters = int.MaxValue;
+                jobBriefingTypewriterTween = null;
+            });
     }
 
     private static GameObject ResolveConfiguredPanelRoot(GameObject configuredRoot, params string[] fallbackNames)

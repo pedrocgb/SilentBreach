@@ -15,7 +15,8 @@ public enum EnemyState
     Detected,
     Fleeing,
     Disabled,
-    Alert
+    Alert,
+    Sleeping
 }
 
 public enum EnemyPatrolMode

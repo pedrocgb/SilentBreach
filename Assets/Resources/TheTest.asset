@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa0e64ca3c7f48a6981e5c81b0f25812, type: 3}
+  m_Name: TheTest
+  m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.HideoutSystem.HideoutJobDefinition
+  jobTitle: O Teste
+  jobId: TheTest
+  jobDescription: "\tEntre sorrateiramente na casa alvo, l\xE1 vive apenas uma senhora,
+    aproveite que ela est\xE1 dormindo e roube o Rel\xF3gio Antigo dela."
+  briefingTitle: "Rel\xF3gio Antiquado"
+  jobBriefing: "\tEm um pacato bairro na zona norte existe uma senhora nos seus 80
+    anos morando sozinha em um pequeno barrac\xE3o.\n\tMeus olheiros descobriram
+    que o marido, j\xE1 falecido, dela possuia um rel\xF3gio de bolso datado l\xE1
+    atr\xE1s, no ano de 1735. Ele \xE9 um dos primeiros rel\xF3gios, se n\xE3o o
+    primeiro, da marca Blancpain, a primeira empresa a produzir rel\xF3gios de bolso
+    em grande escala.\n\tO que o marido dela n\xE3o sabe mas que eu entendo muito
+    bem, \xE9 que esse rel\xF3gio pode valer uma fortunar para colecionadores, mas
+    antes eu preciso ter ele em m\xE3os e descobrir o estado atual da pe\xE7a. \n\tSeu
+    objetivo \xE9 simples, entrar l\xE1 e pegar o rel\xF3gio sem ser percebido, quero
+    que a velha perceba o sumi\xE7o do rel\xF3gio apenas no outro dia. Esse \xE9
+    o seu primeiro teste, ser\xE1 que voc\xEA realmente est\xE1 apto a ser tornar
+    um criminoso?"
+  jobLevel: 0
+  jobType: 0
+  rewardCash: 200
+  rewardInfluencePoints: 1
+  rewardText: "R$ 200,00 | 1 ponto de influ\xEAncia"
+  objectivesText: "- Encontre e furte o rel\xF3gio antiquado.\n- Fuja sem ser percebido."
+  termsOfFailureText: "- N\xE3o seja detectado.\n- N\xE3o machuque ningu\xE9m.\n-
+    N\xE3o mate ningu\xE9m."
+  gameplayObjectives:
+  - objectiveType: 1
+    referenceId: pocket_watch
+    displayText: "Rel\xF3gio de Bolso"
+    requiredCount: 1
+  gameplayFailures:
+  - failureType: 2
+    displayText: "N\xE3o machuque ningu\xE9m."
+    failureScreenMessage: "N\xE3o era permitido machucar qualquer indiv\xEDduo..."
+    timeLimitSeconds: 300
+  - failureType: 3
+    displayText: "N\xE3o mate ningu\xE9m."
+    failureScreenMessage: "Assissnato n\xE3o era permiido..."
+    timeLimitSeconds: 300
+  - failureType: 5
+    displayText: "N\xE3o seja Detectado."
+    failureScreenMessage: "Voc\xEA foi detectado..."
+    timeLimitSeconds: 300
+  fixerName: Alana Poatan
+  jobImage: {fileID: -1712694175764109333, guid: 4d2f4671147f73a33bc8aae5d2946330, type: 3}
+  missionSceneBuildIndex: 1
+  missionSceneName: Antique Pocket Watch
+  unlockJobs:
+  - {fileID: 11400000, guid: a5bb16c553eb44a78a2d3d5e4a1df530, type: 2}
+  shopTitle: The Fence
+  shopDescription: 
+  shopImage: {fileID: 0}
+  fenceOffers:
+  - item: {fileID: 11400000, guid: ae90121673569524f9f2365dd21a1725, type: 2}
+    firearmProjectile: {fileID: 0}
+    availabilityProbability: 1
+    maxQuantity: 1
+  - item: {fileID: 11400000, guid: 233f0296b0e4182c581aadd6dacd6b17, type: 2}
+    firearmProjectile: {fileID: 0}
+    availabilityProbability: 1
+    maxQuantity: 2

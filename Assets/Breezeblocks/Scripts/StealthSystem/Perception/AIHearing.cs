@@ -18,6 +18,7 @@ public class AIHearing : MonoBehaviour
 
     private EnemyMovementController enemyMovementController;
     private EnemyCombatantAI enemyCombatantAI;
+    private EnemySleepController enemySleepController;
 
     private bool enableHearing = true;
     private float loudHearingRange = 15f;
@@ -156,18 +157,25 @@ public class AIHearing : MonoBehaviour
         if (noiseEvent.Source != null && noiseEvent.Source.transform.root == transform.root)
             return;
 
-        hearingIgnoredBecauseOfVisualDetection = enemyCombatantAI != null
+        bool isSleeping = enemySleepController != null && enemySleepController.IsSleeping;
+        hearingIgnoredBecauseOfVisualDetection = !isSleeping && enemyCombatantAI != null
             ? enemyCombatantAI.ShouldIgnoreNoiseEvents
-            : enemyMovementController != null && !enemyMovementController.CanReactToNoise();
+            : !isSleeping && enemyMovementController != null && !enemyMovementController.CanReactToNoise();
 
         if (!enableHearing || enemyMovementController == null)
             return;
 
-        if (GameplayConsoleCheatState.Lightfooted || hearingIgnoredBecauseOfVisualDetection)
+        if (!isSleeping && enemySleepController != null && enemySleepController.IsWakeDelayActive)
+            return;
+
+        if (GameplayConsoleCheatState.Lightfooted || (!isSleeping && hearingIgnoredBecauseOfVisualDetection))
         {
             currentAccumulatedDetection = 0f;
             return;
         }
+
+        if (isSleeping && !enemySleepController.CanProcessSleepingNoise(noiseEvent))
+            return;
 
         if (ignoreSilentSounds && noiseEvent.NoiseType == NoiseType.Silent)
             return;
@@ -190,6 +198,13 @@ public class AIHearing : MonoBehaviour
         lastHeardNoiseValue = heardValue;
         lastHeardNoisePosition = noiseEvent.Position;
         lastAccumulationTime = Time.time;
+
+        if (isSleeping)
+        {
+            enemySleepController.TryWakeFromNoise(noiseEvent, heardValue, noiseEvent.IsExtremeNoise);
+            return;
+        }
+
         currentAccumulatedDetection = Mathf.Clamp(
             currentAccumulatedDetection + heardValue,
             0f,
@@ -273,6 +288,22 @@ public class AIHearing : MonoBehaviour
         EnemyState currentState = enemyMovementController.CurrentState;
         if (currentState == EnemyState.Suspicious || currentState == EnemyState.Searching)
             enemyMovementController.ReturnToStart();
+    }
+
+    /// <summary>
+    /// Routes a confirmed noise reaction after a sleeping enemy finishes its wake-up delay.
+    /// </summary>
+    public void CompleteDelayedWakeNoiseReaction(NoiseEvent noiseEvent, float heardValue, bool extremeNoise)
+    {
+        if (!enableHearing || enemyMovementController == null)
+            return;
+
+        currentAccumulatedDetection = Mathf.Max(currentAccumulatedDetection, hearingThreshold);
+        lastHeardNoiseType = noiseEvent.NoiseType;
+        lastHeardNoiseValue = heardValue;
+        lastHeardNoisePosition = noiseEvent.Position;
+        lastAccumulationTime = Time.time;
+        RouteNoiseReaction(noiseEvent, heardValue, extremeNoise);
     }
 
     /// <summary>
@@ -386,6 +417,7 @@ public class AIHearing : MonoBehaviour
     {
         enemyMovementController ??= GetComponent<EnemyMovementController>();
         enemyCombatantAI ??= GetComponent<EnemyCombatantAI>();
+        enemySleepController ??= GetComponent<EnemySleepController>();
     }
 
     /// <summary>

@@ -32,6 +32,7 @@ public class EnemyVisionAI : MonoBehaviour
 
     private EnemyMovementController enemyMovementController;
     private EnemyCombatantAI enemyCombatantAI;
+    private EnemySleepController enemySleepController;
 
     private float visionRange = 8f;
     private float visionAngle = 90f;
@@ -166,6 +167,7 @@ public class EnemyVisionAI : MonoBehaviour
     private Vector2 lastIssuedFlashlightInvestigationPosition;
     private EnemyState lastIssuedFlashlightInvestigationState = EnemyState.Suspicious;
     private float externalPerceptionMultiplier = 1f;
+    private bool sleepSuppressed;
 
     /// <summary>
     /// Caches same-object references when the component is reset in the editor.
@@ -273,10 +275,26 @@ public class EnemyVisionAI : MonoBehaviour
     }
 
     /// <summary>
+    /// Enables or clears sleep suppression so vision contributes no detection while enemies sleep.
+    /// </summary>
+    public void SetSleepSuppressed(bool suppressed)
+    {
+        if (sleepSuppressed == suppressed)
+            return;
+
+        sleepSuppressed = suppressed;
+        if (sleepSuppressed)
+            ClearVisualDetectionForConsoleCheat(resumeDefaultState: false);
+    }
+
+    /// <summary>
     /// Returns whether this vision setup can perceive the provided world point right now.
     /// </summary>
     public bool CanPerceiveWorldPoint(Vector2 targetPosition, float targetVisibility = 1f)
     {
+        if (sleepSuppressed)
+            return false;
+
         float effectiveVisionRange = ResolveEffectiveVisionRange();
         if (effectiveVisionRange <= 0f)
             return false;
@@ -441,6 +459,9 @@ public class EnemyVisionAI : MonoBehaviour
     private void ForwardVisionStateToMovementController()
     {
         if (enemyMovementController == null)
+            return;
+
+        if (enemySleepController != null && enemySleepController.IsWakeDelayActive)
             return;
 
         bool combatOwnsTemporaryStates = enemyCombatantAI != null && enemyCombatantAI.IsDrafted;
@@ -811,7 +832,7 @@ public class EnemyVisionAI : MonoBehaviour
     /// </summary>
     private bool CanRunVisionUpdate()
     {
-        return !GameplayMissionController.EnemyRuntimeBlockedAtMissionStart;
+        return !sleepSuppressed && !GameplayMissionController.EnemyRuntimeBlockedAtMissionStart;
     }
 
     /// <summary>
@@ -938,6 +959,7 @@ public class EnemyVisionAI : MonoBehaviour
     {
         enemyMovementController ??= GetComponent<EnemyMovementController>();
         enemyCombatantAI ??= GetComponent<EnemyCombatantAI>();
+        enemySleepController ??= GetComponent<EnemySleepController>();
     }
 
     /// <summary>

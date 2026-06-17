@@ -13,11 +13,17 @@ public class ActorStatsInitializer : MonoBehaviour
     public PlayerStatsProfile PlayerProfile => playerProfile;
     public EnemyStatsProfile EnemyProfile => enemyProfile;
 
+    /// <summary>
+    /// Applies any configured actor profile before the actor's normal startup logic runs.
+    /// </summary>
     private void Awake()
     {
         ApplyProfiles();
     }
 
+    /// <summary>
+    /// Applies the assigned player or enemy profile to the matching components on this actor.
+    /// </summary>
     [ContextMenu("Apply Profiles")]
     public void ApplyProfiles()
     {
@@ -28,6 +34,9 @@ public class ActorStatsInitializer : MonoBehaviour
             ApplyEnemyProfile();
     }
 
+    /// <summary>
+    /// Refreshes editor-time profile values without changing runtime instances during play mode.
+    /// </summary>
     private void OnValidate()
     {
         if (Application.isPlaying)
@@ -36,6 +45,9 @@ public class ActorStatsInitializer : MonoBehaviour
         ApplyProfiles();
     }
 
+    /// <summary>
+    /// Pushes the player profile settings into every supported player component on this actor.
+    /// </summary>
     private void ApplyPlayerProfile()
     {
         if (TryGetComponent(out ActorHealth health))
@@ -66,6 +78,9 @@ public class ActorStatsInitializer : MonoBehaviour
             equipmentController.ApplyUnarmedAimSettings(playerProfile.VisionLight.UnarmedAimRotationSpeed, playerProfile.VisionLight.UnarmedAimPanDistance);
     }
 
+    /// <summary>
+    /// Ensures enemy helper components exist and pushes profile settings into supported enemy systems.
+    /// </summary>
     private void ApplyEnemyProfile()
     {
         MissionActorIdentity.EnsureOn(gameObject);
@@ -88,6 +103,9 @@ public class ActorStatsInitializer : MonoBehaviour
         if (TryGetComponent(out AIHearing hearing))
             hearing.ApplySettings(enemyProfile.Hearing);
 
+        if (TryGetComponent(out EnemySleepController sleepController))
+            sleepController.ApplySettings(enemyProfile.Sleep);
+
         if (TryGetComponent(out EnemyCombatantAI combatantAI))
             combatantAI.ApplySettings(enemyProfile.Combat);
 
@@ -95,6 +113,9 @@ public class ActorStatsInitializer : MonoBehaviour
         meleeCombatantAI?.ApplySettings(enemyProfile.Melee);
     }
 
+    /// <summary>
+    /// Gets or creates the melee combat component only when the enemy profile requires a starting melee weapon.
+    /// </summary>
     private EnemyMeleeCombatantAI GetEnemyMeleeCombatant()
     {
         if (enemyProfile == null || enemyProfile.Melee == null)

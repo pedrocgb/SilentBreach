@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 8b859e5929d41a1ad8694dab75504fc5
+guid: 5db536d9107083799a2da772c9c19d8a
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -4161253881164705485
-    second: Poker Night Icon_0
+      213: 602003712022686451
+    second: ChatGPT Image Jun 17, 2026, 02_37_58 PM_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -51,7 +51,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 100
+  spritePixelsToUnits: 2000
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -100,23 +100,23 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Poker Night Icon_0
+      name: Antique Watch_0
       rect:
         serializedVersion: 2
-        x: 22
-        y: 33
-        width: 1209
-        height: 1186
+        x: 73
+        y: 247
+        width: 472
+        height: 633
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 33156f074a14046c0800000000000000
-      internalID: -4161253881164705485
+      spriteID: 0d0ee3ceb91e570e6a4ae1de30b8dfa0
+      internalID: 334903574
       vertices: []
       indices: 
       edges: []
@@ -125,7 +125,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: afae0f0817ff0bcbda5345d95a24b8fe
     internalID: 0
     vertices: []
     indices: 
@@ -133,9 +133,11 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries: []
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
-      Poker Night Icon_0: -4161253881164705485
+      Antique Watch_0: 334903574
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

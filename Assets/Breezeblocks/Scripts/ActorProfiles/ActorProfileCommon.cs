@@ -28,6 +28,16 @@ public class ActorStaggerSettings
 }
 
 [Serializable]
+public class EnemySleepSettings
+{
+    [FoldoutGroup("Startup")]
+    public bool StartSleeping;
+
+    [FoldoutGroup("Startup"), ShowIf(nameof(StartSleeping)), EnumToggleButtons]
+    public EnemySleepType StartSleepType = EnemySleepType.NormalSleep;
+}
+
+[Serializable]
 public class PlayerMovementSettings
 {
     private const int SpeedLevelsCount = 10;

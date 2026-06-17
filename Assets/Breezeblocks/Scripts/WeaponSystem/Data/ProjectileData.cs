@@ -22,18 +22,27 @@ public class ProjectileData : ScriptableObject
     [FoldoutGroup("Projectile"), MinValue(0f), SuffixLabel("s", true)]
     [SerializeField] private float staggerDuration = 0.12f;
 
+    [FoldoutGroup("Projectile"), MinValue(0f)]
+    [Tooltip("Impulse applied along bullet direction only when this projectile kills an actor.")]
+    [SerializeField] private float deathKnockbackForce = 6f;
+
     public int Penetration => penetration;
     public int Damage => damage;
     public bool IsLethal => isLethal;
     public float Range => range;
     public float StaggerDuration => staggerDuration;
+    public float DeathKnockbackForce => Mathf.Max(0f, deathKnockbackForce);
 
+    /// <summary>
+    /// Clamps projectile authoring values into safe runtime ranges.
+    /// </summary>
     private void OnValidate()
     {
         penetration = Mathf.Max(0, penetration);
         damage = Mathf.Max(0, damage);
         range = Mathf.Max(0f, range);
         staggerDuration = Mathf.Max(0f, staggerDuration);
+        deathKnockbackForce = Mathf.Max(0f, deathKnockbackForce);
     }
 }
 }

@@ -52,6 +52,10 @@ public partial class EnemyMovementController
             case EnemyState.Disabled:
                 EnterDisabledState();
                 break;
+
+            case EnemyState.Sleeping:
+                EnterSleepingState();
+                break;
         }
     }
 
@@ -339,8 +343,12 @@ public partial class EnemyMovementController
     /// </summary>
     public void Flee()
     {
-        if (currentState == EnemyState.Disabled || currentState == EnemyState.Fleeing && fleeCompleted)
+        if (currentState == EnemyState.Disabled ||
+            currentState == EnemyState.Sleeping ||
+            currentState == EnemyState.Fleeing && fleeCompleted)
+        {
             return;
+        }
 
         ResetExternalInvestigationState();
         if (fleePoint == null)
@@ -387,7 +395,7 @@ public partial class EnemyMovementController
     /// </summary>
     public void ReturnToStart()
     {
-        if (currentState == EnemyState.Disabled)
+        if (currentState == EnemyState.Disabled || currentState == EnemyState.Sleeping)
             return;
 
         ResetExternalInvestigationState();
@@ -412,7 +420,7 @@ public partial class EnemyMovementController
     /// </summary>
     public void EnterAlertState(bool force = false)
     {
-        if (currentState == EnemyState.Disabled)
+        if (currentState == EnemyState.Disabled || currentState == EnemyState.Sleeping)
             return;
 
         if (ResolveDetectionBehavior() == EnemyDetectionBehavior.FleeToPoint)
@@ -521,7 +529,7 @@ public partial class EnemyMovementController
     /// </summary>
     public void ReactToExtremeNoise(Vector2 worldPoint)
     {
-        if (currentState == EnemyState.Disabled)
+        if (currentState == EnemyState.Disabled || currentState == EnemyState.Sleeping)
             return;
 
         if (ResolveDetectionBehavior() == EnemyDetectionBehavior.FleeToPoint)
@@ -567,6 +575,28 @@ public partial class EnemyMovementController
     /// </summary>
     public void ResumeStartingState()
     {
+        if (currentState == EnemyState.Sleeping)
+            return;
+
+        fleeCompleted = false;
+
+        if (ShouldUseItinerary)
+        {
+            ResumeCurrentItineraryStep();
+            return;
+        }
+
+        ResumeStartingStateWithoutItinerary();
+    }
+
+    /// <summary>
+    /// Resumes default behavior after the dedicated sleep controller has completed wake-up timing.
+    /// </summary>
+    public void ResumeAfterSleeping()
+    {
+        if (currentState != EnemyState.Sleeping)
+            return;
+
         fleeCompleted = false;
 
         if (ShouldUseItinerary)
@@ -1033,6 +1063,27 @@ public partial class EnemyMovementController
     }
 
     /// <summary>
+    /// Enters sleeping state and halts movement while allowing dedicated sleep logic to keep hearing alive.
+    /// </summary>
+    public void EnterSleepingState()
+    {
+        if (currentState == EnemyState.Disabled)
+            return;
+
+        ResetExternalInvestigationState();
+        detectedTarget = null;
+        patrolWaiting = false;
+        itineraryPatrolCompletionPending = false;
+        currentLookAroundContext = EnemyLookAroundContext.None;
+        currentReturnContext = EnemyReturnContext.None;
+        hasDetectedMovementOverride = false;
+        ClearAlertFocus();
+        ClearManualFacingOverride();
+        ChangeState(EnemyState.Sleeping);
+        StopMovementImmediately();
+    }
+
+    /// <summary>
     /// Sets the active patrol point as the current destination.
     /// </summary>
     private void MoveToCurrentPatrolPoint()
@@ -1318,7 +1369,8 @@ public partial class EnemyMovementController
                currentState == EnemyState.Detected ||
                currentState == EnemyState.Alert ||
                currentState == EnemyState.Fleeing ||
-               currentState == EnemyState.Disabled;
+               currentState == EnemyState.Disabled ||
+               currentState == EnemyState.Sleeping;
     }
 
     /// <summary>

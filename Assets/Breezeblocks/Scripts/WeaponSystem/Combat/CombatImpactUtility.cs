@@ -80,6 +80,14 @@ public static class CombatImpactUtility
     /// </summary>
     public static bool TryApplyProjectileImpact(Collider2D hitCollider, ProjectileData projectileData, GameObject instigatorRoot)
     {
+        return TryApplyProjectileImpact(hitCollider, projectileData, instigatorRoot, Vector2.zero);
+    }
+
+    /// <summary>
+    /// Applies projectile impact using projectile data, explicit instigator root, and bullet direction for death knockback.
+    /// </summary>
+    public static bool TryApplyProjectileImpact(Collider2D hitCollider, ProjectileData projectileData, GameObject instigatorRoot, Vector2 projectileDirection)
+    {
         if (hitCollider == null || projectileData == null)
             return false;
 
@@ -88,7 +96,9 @@ public static class CombatImpactUtility
             projectileData.Damage,
             projectileData.Penetration,
             projectileData.StaggerDuration,
-            new ActorDamageContext(instigatorRoot, projectileData.IsLethal));
+            new ActorDamageContext(instigatorRoot, projectileData.IsLethal),
+            projectileDirection,
+            projectileData.DeathKnockbackForce);
     }
 
     /// <summary>
@@ -102,7 +112,14 @@ public static class CombatImpactUtility
     /// <summary>
     /// Applies direct impact to resolved armor or health components on impacted hierarchy.
     /// </summary>
-    public static bool TryApplyDirectImpact(Collider2D hitCollider, float damage, int penetration, float staggerDuration, ActorDamageContext damageContext)
+    public static bool TryApplyDirectImpact(
+        Collider2D hitCollider,
+        float damage,
+        int penetration,
+        float staggerDuration,
+        ActorDamageContext damageContext,
+        Vector2 deathKnockbackDirection = default,
+        float deathKnockbackForce = 0f)
     {
         if (hitCollider == null || damage <= 0f)
             return false;
@@ -111,12 +128,13 @@ public static class CombatImpactUtility
             return false;
 
         if (targetContext.HasArmor)
-            return TryApplyArmoredImpact(targetContext, damage, penetration, staggerDuration, damageContext);
+            return TryApplyArmoredImpact(targetContext, damage, penetration, staggerDuration, damageContext, deathKnockbackDirection, deathKnockbackForce);
 
         if (!targetContext.HasHealth)
             return false;
 
-        targetContext.ActorHealth.ApplyDamage(damage, damageContext);
+        ActorDamageOutcome outcome = targetContext.ActorHealth.ApplyDamage(damage, damageContext);
+        ApplyDeathKnockbackIfKilled(targetContext, outcome, deathKnockbackDirection, deathKnockbackForce);
         if (staggerDuration > 0f)
             targetContext.ActorStaggerController?.ApplyStagger(staggerDuration);
 
@@ -203,7 +221,14 @@ public static class CombatImpactUtility
     /// <summary>
     /// Applies direct impact against armor-bearing targets and forwards penetrated health damage when needed.
     /// </summary>
-    private static bool TryApplyArmoredImpact(ImpactTargetContext targetContext, float damage, int penetration, float staggerDuration, ActorDamageContext damageContext)
+    private static bool TryApplyArmoredImpact(
+        ImpactTargetContext targetContext,
+        float damage,
+        int penetration,
+        float staggerDuration,
+        ActorDamageContext damageContext,
+        Vector2 deathKnockbackDirection,
+        float deathKnockbackForce)
     {
         ArmorImpactResult impact = targetContext.ArmorLoadout.ResolveDirectImpact(damage, penetration);
         if (!impact.Penetrated && impact.DamageToArmor > 0f && staggerDuration > 0f)
@@ -212,7 +237,8 @@ public static class CombatImpactUtility
         bool registeredImpact = false;
         if (impact.DamageToHealth > 0f && targetContext.HasHealth)
         {
-            targetContext.ActorHealth.ApplyDamage(impact.DamageToHealth, damageContext);
+            ActorDamageOutcome outcome = targetContext.ActorHealth.ApplyDamage(impact.DamageToHealth, damageContext);
+            ApplyDeathKnockbackIfKilled(targetContext, outcome, deathKnockbackDirection, deathKnockbackForce);
             registeredImpact = true;
         }
 
@@ -220,6 +246,25 @@ public static class CombatImpactUtility
             registeredImpact = true;
 
         return registeredImpact;
+    }
+
+    /// <summary>
+    /// Applies bullet-direction knockback only when projectile damage killed the impacted actor.
+    /// </summary>
+    private static void ApplyDeathKnockbackIfKilled(
+        ImpactTargetContext targetContext,
+        ActorDamageOutcome outcome,
+        Vector2 direction,
+        float force)
+    {
+        if (outcome != ActorDamageOutcome.Killed || force <= 0f || direction.sqrMagnitude <= Mathf.Epsilon)
+            return;
+
+        Rigidbody2D body = targetContext.Rigidbody2D;
+        if (body == null || !body.simulated)
+            return;
+
+        body.AddForce(direction.normalized * force, ForceMode2D.Impulse);
     }
 }
 

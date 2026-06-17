@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa0e64ca3c7f48a6981e5c81b0f25812, type: 3}
+  m_Name: DEBUG_MISSION
+  m_EditorClassIdentifier: 
+  jobTitle: Debug Mission
+  jobId: DebugMission
+  jobDescription: 
+  briefingTitle: Debug Mission
+  jobBriefing: 
+  jobLevel: 1
+  jobType: 0
+  rewardCash: 750
+  rewardInfluencePoints: 1
+  rewardText: "R$ 750,00 e 1 ponto de influ\xEAncia."
+  objectivesText: 
+  termsOfFailureText: 
+  gameplayObjectives:
+  - objectiveType: 1
+    referenceId: poker_ledger
+    displayText: Livro de Contabilidade.
+    requiredCount: 1
+  gameplayFailures:
+  - failureType: 3
+    displayText: "N\xE3o mate ningu\xE9m."
+    failureScreenMessage: "Assassinato n\xE3o era permitido. Voc\xEA falhou..."
+    timeLimitSeconds: 300
+  - failureType: 6
+    displayText: Finalize o trabalho antes do tempo.
+    failureScreenMessage: "O jogo de poker chegou ao fim, voc\xEA perdeu a chance
+      de roubar o livro de contabilidade."
+    timeLimitSeconds: 300
+  fixerName: Alana Poatan
+  jobImage: {fileID: 6103484237164383274, guid: 4d2f4671147f73a33bc8aae5d2946330, type: 3}
+  missionSceneBuildIndex: 1
+  missionSceneName: '[2] Poker Scene'
+  unlockJobs: []
+  shopTitle: The Fence
+  shopDescription: 
+  shopImage: {fileID: 0}
+  fenceOffers: []

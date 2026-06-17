@@ -147,6 +147,12 @@ public sealed class HideoutJobDefinition : ScriptableObject
     [FoldoutGroup("Job"), TextArea(3, 8)]
     [SerializeField] private string jobDescription;
 
+    [FoldoutGroup("Job Briefing")]
+    [SerializeField] private string briefingTitle;
+
+    [FoldoutGroup("Job Briefing"), TextArea(6, 14)]
+    [SerializeField] private string jobBriefing;
+
     [FoldoutGroup("Job")]
     [SerializeField] private HideoutJobLevel jobLevel = HideoutJobLevel.Easy;
 
@@ -206,6 +212,8 @@ public sealed class HideoutJobDefinition : ScriptableObject
     public string JobTitle => string.IsNullOrWhiteSpace(jobTitle) ? name : jobTitle;
     public string JobId => string.IsNullOrWhiteSpace(jobId) ? name : jobId;
     public string JobDescription => jobDescription ?? string.Empty;
+    public string BriefingTitle => string.IsNullOrWhiteSpace(briefingTitle) ? JobTitle : briefingTitle;
+    public string JobBriefing => jobBriefing ?? string.Empty;
     public HideoutJobLevel JobLevel => jobLevel;
     public HideoutJobType JobType => jobType;
     public string JobTypeDisplayName => HideoutJobTypeUtility.GetDisplayName(jobType);
@@ -246,6 +254,8 @@ public sealed class HideoutJobDefinition : ScriptableObject
         jobTitle = jobTitle != null ? jobTitle.Trim() : string.Empty;
         jobId = string.IsNullOrWhiteSpace(jobId) ? name : jobId.Trim();
         jobDescription ??= string.Empty;
+        briefingTitle = briefingTitle != null ? briefingTitle.Trim() : string.Empty;
+        jobBriefing ??= string.Empty;
         rewardCash = Mathf.Max(0, rewardCash);
         rewardInfluencePoints = Mathf.Max(0, rewardInfluencePoints);
         rewardText ??= string.Empty;

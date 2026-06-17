@@ -486,6 +486,10 @@ public class GlobalSettings : MonoBehaviour
     [Tooltip("How long incapacitated actors stay down before waking up again.")]
     [SerializeField] private float incapacitatedWakeUpDelay = 60f;
 
+    [FoldoutGroup("Combat"), MinValue(0f), SuffixLabel("s", true)]
+    [Tooltip("How long sleeping enemies wait after waking up before resuming their requested behavior.")]
+    [SerializeField] private float sleepWakeActionDelay = 1f;
+
     [FoldoutGroup("Player"), Range(0f, 100f), SuffixLabel("%", true)]
     [Tooltip("How much slower the player moves while dragging a body.")]
     [SerializeField] private float dragSlowPercentage = 35f;
@@ -506,6 +510,7 @@ public class GlobalSettings : MonoBehaviour
     public float EquipNoiseDuration => equipNoiseDuration;
     public float HolsterNoiseDuration => holsterNoiseDuration;
     public float IncapacitatedWakeUpDelay => incapacitatedWakeUpDelay;
+    public float SleepWakeActionDelay => sleepWakeActionDelay;
     public float DragSlowPercentage => dragSlowPercentage;
     public EquipmentContextUiSettings EquipmentContextUi => equipmentContextUi ??= new EquipmentContextUiSettings();
     public string PerksText => EquipmentContextUi.PerksText;
@@ -550,6 +555,7 @@ public class GlobalSettings : MonoBehaviour
         equipNoiseDuration = Mathf.Max(0f, equipNoiseDuration);
         holsterNoiseDuration = Mathf.Max(0f, holsterNoiseDuration);
         incapacitatedWakeUpDelay = Mathf.Max(0f, incapacitatedWakeUpDelay);
+        sleepWakeActionDelay = Mathf.Max(0f, sleepWakeActionDelay);
         dragSlowPercentage = Mathf.Clamp(dragSlowPercentage, 0f, 100f);
         equipmentContextUi ??= new EquipmentContextUiSettings();
         hudUi ??= new HudUiSettings();

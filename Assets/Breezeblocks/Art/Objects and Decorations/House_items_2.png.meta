@@ -1,0 +1,507 @@
+fileFormatVersion: 2
+guid: e4d5623a3416d55228a5f6d74a71cd21
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 8017416597701241794
+    second: House_items_2_0
+  - first:
+      213: 9081749443425415182
+    second: House_items_2_1
+  - first:
+      213: 1778434271271307743
+    second: House_items_2_2
+  - first:
+      213: 9062794424962274402
+    second: House_items_2_3
+  - first:
+      213: 5185521520251711985
+    second: House_items_2_4
+  - first:
+      213: 2176720597973069695
+    second: House_items_2_5
+  - first:
+      213: -9148616647430427769
+    second: House_items_2_6
+  - first:
+      213: 7983111527605700721
+    second: House_items_2_7
+  - first:
+      213: 827452448251748521
+    second: House_items_2_8
+  - first:
+      213: -4974416649021085491
+    second: House_items_2_9
+  - first:
+      213: -7279836913001854872
+    second: House_items_2_10
+  - first:
+      213: 6838110541646271968
+    second: House_items_2_11
+  - first:
+      213: 6310225440794031763
+    second: House_items_2_12
+  - first:
+      213: 6339228391496292550
+    second: House_items_2_13
+  - first:
+      213: 4703992251634662364
+    second: House_items_2_14
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: House_items_2_0
+      rect:
+        serializedVersion: 2
+        x: 65
+        y: 684
+        width: 170
+        height: 171
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2cbad42eae5934f60800000000000000
+      internalID: 8017416597701241794
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: House_items_2_1
+      rect:
+        serializedVersion: 2
+        x: 303
+        y: 676
+        width: 328
+        height: 217
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e00397a600bd80e70800000000000000
+      internalID: 9081749443425415182
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: House_items_2_2
+      rect:
+        serializedVersion: 2
+        x: 687
+        y: 695
+        width: 226
+        height: 153
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fd9c1831c844ea810800000000000000
+      internalID: 1778434271271307743
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: House_items_2_3
+      rect:
+        serializedVersion: 2
+        x: 956
+        y: 690
+        width: 408
+        height: 171
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2645444438385cd70800000000000000
+      internalID: 9062794424962274402
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: House_items_2_4
+      rect:
+        serializedVersion: 2
+        x: 1425
+        y: 602
+        width: 183
+        height: 290
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1f13fbd395ca6f740800000000000000
+      internalID: 5185521520251711985
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: House_items_2_5
+      rect:
+        serializedVersion: 2
+        x: 69
+        y: 439
+        width: 148
+        height: 191
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f7fe571e9d3453e10800000000000000
+      internalID: 2176720597973069695
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: House_items_2_6
+      rect:
+        serializedVersion: 2
+        x: 271
+        y: 421
+        width: 293
+        height: 225
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 78b2faf61a5990180800000000000000
+      internalID: -9148616647430427769
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: House_items_2_7
+      rect:
+        serializedVersion: 2
+        x: 604
+        y: 409
+        width: 141
+        height: 218
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 178834553a5b9ce60800000000000000
+      internalID: 7983111527605700721
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: House_items_2_8
+      rect:
+        serializedVersion: 2
+        x: 772
+        y: 409
+        width: 228
+        height: 219
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9a0a29e1e93bb7b00800000000000000
+      internalID: 827452448251748521
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: House_items_2_9
+      rect:
+        serializedVersion: 2
+        x: 1023
+        y: 409
+        width: 154
+        height: 219
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dc82f4ec96257fab0800000000000000
+      internalID: -4974416649021085491
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: House_items_2_10
+      rect:
+        serializedVersion: 2
+        x: 1199
+        y: 409
+        width: 185
+        height: 219
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8688fb9d5e2d8fa90800000000000000
+      internalID: -7279836913001854872
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: House_items_2_11
+      rect:
+        serializedVersion: 2
+        x: 108
+        y: 50
+        width: 187
+        height: 327
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0e51ea9ce49d5ee50800000000000000
+      internalID: 6838110541646271968
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: House_items_2_12
+      rect:
+        serializedVersion: 2
+        x: 357
+        y: 50
+        width: 245
+        height: 327
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 396392bfa9c629750800000000000000
+      internalID: 6310225440794031763
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: House_items_2_13
+      rect:
+        serializedVersion: 2
+        x: 660
+        y: 50
+        width: 369
+        height: 327
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6c81539a2a679f750800000000000000
+      internalID: 6339228391496292550
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: House_items_2_14
+      rect:
+        serializedVersion: 2
+        x: 1092
+        y: 50
+        width: 360
+        height: 330
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cdbbfd0b700f74140800000000000000
+      internalID: 4703992251634662364
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      House_items_2_0: 8017416597701241794
+      House_items_2_1: 9081749443425415182
+      House_items_2_10: -7279836913001854872
+      House_items_2_11: 6838110541646271968
+      House_items_2_12: 6310225440794031763
+      House_items_2_13: 6339228391496292550
+      House_items_2_14: 4703992251634662364
+      House_items_2_2: 1778434271271307743
+      House_items_2_3: 9062794424962274402
+      House_items_2_4: 5185521520251711985
+      House_items_2_5: 2176720597973069695
+      House_items_2_6: -9148616647430427769
+      House_items_2_7: 7983111527605700721
+      House_items_2_8: 827452448251748521
+      House_items_2_9: -4974416649021085491
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -255,6 +255,7 @@ public partial class EnemyMovementController
             EnemyState.Suspicious => candidate,
             EnemyState.Alert => candidate,
             EnemyState.Disabled => candidate,
+            EnemyState.Sleeping => candidate,
             _ => EnemyState.Idle
         };
     }
@@ -266,6 +267,7 @@ public partial class EnemyMovementController
     {
         return currentState != EnemyState.Fleeing &&
                currentState != EnemyState.Disabled &&
+               currentState != EnemyState.Sleeping &&
                currentState != EnemyState.Alert;
     }
 

@@ -17,3 +17,4 @@ MonoBehaviour:
   isLethal: 1
   range: 20
   staggerDuration: 0.35
+  deathKnockbackForce: 120

@@ -159,7 +159,7 @@ public class HitscanProjectile : MonoBehaviour
         if (foundHit)
         {
             endPoint = chosenHit.point;
-            debugColor = ResolveImpact(chosenHit.collider, projectileData, shooter);
+            debugColor = ResolveImpact(chosenHit.collider, projectileData, shooter, direction);
 
             if (ShouldSpawnBulletHit(chosenHitWasDamageable))
                 SpawnBulletHitEffect(endPoint, direction);
@@ -282,13 +282,13 @@ public class HitscanProjectile : MonoBehaviour
     /// <summary>
     /// Applies projectile combat impact and returns debug color for result.
     /// </summary>
-    private static Color ResolveImpact(Collider2D hitCollider, ProjectileData projectileData, GameObject shooter)
+    private static Color ResolveImpact(Collider2D hitCollider, ProjectileData projectileData, GameObject shooter, Vector2 projectileDirection)
     {
         if (projectileData == null || hitCollider == null)
             return Color.yellow;
 
         ArmorLoadout armor = hitCollider.GetComponentInParent<ArmorLoadout>();
-        bool impactApplied = CombatImpactUtility.TryApplyProjectileImpact(hitCollider, projectileData, shooter);
+        bool impactApplied = CombatImpactUtility.TryApplyProjectileImpact(hitCollider, projectileData, shooter, projectileDirection);
         if (!impactApplied)
             return Color.yellow;
 

@@ -387,6 +387,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8272f048b3e9fc54a9ac107eb26f95c3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ActorHealth
+  stateSpriteRenderer: {fileID: 4260413919863464900}
+  incapacitatedSprite: {fileID: 0}
+  deadSprite: {fileID: 0}
+  sleepingSprite: {fileID: 0}
+  additionalBehavioursToDisable: []
+  gameObjectsToHideOnDeath: []
 --- !u!114 &1378301211530684146
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -399,13 +405,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e56b206966707f8398a358e1cecc93fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.Missions.ActorIncapacitationController
-  actorHealth: {fileID: 332678378023001690}
-  movementBody: {fileID: 1958748666808689097}
-  additionalBehavioursToDisable: []
-  gameObjectsToHideOnDeath: []
-  stateSpriteRenderer: {fileID: 4260413919863464900}
-  incapacitatedSprite: {fileID: 663003037023818306, guid: dcd3bac57aea40f44aff4bace6ef18e0, type: 3}
-  deadSprite: {fileID: -6979561388616357253, guid: c7493064e8fa40389881165fd46f88e3, type: 3}
   restoredHealthFractionOnWake: 1
 --- !u!114 &5906783976553855376
 MonoBehaviour:

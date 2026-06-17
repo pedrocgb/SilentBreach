@@ -245,7 +245,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9dca94baf46f2a11daf24ea252e49a6e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FocusRevealTarget
-  revealRenderers: []
   revealObjects:
   - {fileID: 435821620533300970}
 --- !u!114 &667350030521968152
@@ -260,7 +259,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2eed31e7898b1d070ad652bcd2d4a079, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.Missions.LightSwitchInteractable
-  interactionDisplayName: E
+  interactionDisplayName: Interruptor
   interactionEnabled: 1
   worldSfxManager: {fileID: 0}
   controlledLights: []

@@ -16,9 +16,7 @@ public class ActorIncapacitationController : MonoBehaviour
     private static readonly List<ActorIncapacitationController> ActiveControllersInternal = new();
 
     private ActorHealth actorHealth;
-
-    [FoldoutGroup("Wake Up"), MinValue(0f), Range(0.01f, 1f)]
-    [SerializeField] private float restoredHealthFractionOnWake = 1f;
+    private float restoredHealthFractionOnWake = 1f;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsIncapacitated => actorHealth != null && actorHealth.IsIncapacitated;
@@ -105,6 +103,17 @@ public class ActorIncapacitationController : MonoBehaviour
     {
         restoredHealthFractionOnWake = Mathf.Clamp01(restoredHealthFractionOnWake);
         CacheReferences();
+    }
+
+    /// <summary>
+    /// Applies profile-authored incapacitation recovery settings.
+    /// </summary>
+    public void ApplySettings(ActorHealthSettings settings)
+    {
+        if (settings == null)
+            return;
+
+        restoredHealthFractionOnWake = Mathf.Clamp01(settings.RestoredHealthFractionOnWake);
     }
 
     /// <summary>

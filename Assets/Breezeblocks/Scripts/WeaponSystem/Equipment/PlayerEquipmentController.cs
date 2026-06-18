@@ -21,24 +21,6 @@ public class PlayerEquipmentController : MonoBehaviour
         EquipmentSlotType.Belt
     };
 
-    [Serializable]
-    private sealed class HandEquipmentSlotDefinition
-    {
-        [AssetsOnly]
-        public EquipmentItemData item;
-
-        [ShowIf(nameof(IsFirearmItem)), AssetsOnly]
-        public ProjectileData firearmProjectile;
-
-        [ShowIf(nameof(IsFirearmItem)), MinValue(-1)]
-        public int startingLoadedAmmo = -1;
-
-        [ShowIf(nameof(IsFirearmItem)), MinValue(-1)]
-        public int startingReserveAmmo = -1;
-
-        private bool IsFirearmItem => item is FirearmData;
-    }
-
     private sealed class RuntimeHandSlotState
     {
         public EquipmentSlotType SlotType;
@@ -48,23 +30,12 @@ public class PlayerEquipmentController : MonoBehaviour
         public int ReserveAmmo;
     }
 
-    [FoldoutGroup("Rewired"), MinValue(0)]
-    [SerializeField] private int rewiredPlayerId;
-
-    [FoldoutGroup("Rewired")]
-    [SerializeField] private string equipPrimaryAction = "Equip Primary";
-
-    [FoldoutGroup("Rewired")]
-    [SerializeField] private string equipSecondaryAction = "Equip Secondary";
-
-    [FoldoutGroup("Rewired")]
-    [SerializeField] private string equipBeltAction = "Equip Belt";
-
-    [FoldoutGroup("Rewired")]
-    [SerializeField] private string toggleEquipmentPanelAction = "Toggle Equipment Panel";
-
-    [FoldoutGroup("Rewired")]
-    [SerializeField] private string aimAction = "Aim";
+    private int rewiredPlayerId = 1;
+    private string equipPrimaryAction = "Equip Primary";
+    private string equipSecondaryAction = "Equip Secondary";
+    private string equipBeltAction = "Equip Belt";
+    private string toggleEquipmentPanelAction = "Toggle Equipment Panel";
+    private string aimAction = "Aim";
 
     [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
     private PlayerWeaponController playerWeaponController;
@@ -99,26 +70,13 @@ public class PlayerEquipmentController : MonoBehaviour
     [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
     private ActorStaggerController actorStaggerController;
 
-    [FoldoutGroup("Starting Equipment/Hand Slots"), LabelText("Primary")]
-    [SerializeField] private HandEquipmentSlotDefinition primaryEquipment = new();
-
-    [FoldoutGroup("Starting Equipment/Hand Slots"), LabelText("Secondary")]
-    [SerializeField] private HandEquipmentSlotDefinition secondaryEquipment = new();
-
-    [FoldoutGroup("Starting Equipment/Hand Slots"), LabelText("Belt")]
-    [SerializeField] private HandEquipmentSlotDefinition beltEquipment = new();
-
-    [FoldoutGroup("Starting Equipment"), AssetsOnly]
-    [SerializeField] private ArmorData startingArmor;
-
-    [FoldoutGroup("Starting Equipment")]
-    [SerializeField] private EquipmentSlotType startingHeldSlot = EquipmentSlotType.Primary;
-
-    [FoldoutGroup("Panel")]
-    [SerializeField] private bool hideCrosshairWhilePanelVisible = true;
-
-    [FoldoutGroup("Panel")]
-    [SerializeField] private bool pauseGameWhilePanelVisible = true;
+    private PlayerEquipmentSlotSettings primaryEquipment = new();
+    private PlayerEquipmentSlotSettings secondaryEquipment = new();
+    private PlayerEquipmentSlotSettings beltEquipment = new();
+    private ArmorData startingArmor;
+    private EquipmentSlotType startingHeldSlot = EquipmentSlotType.Primary;
+    private bool hideCrosshairWhilePanelVisible = true;
+    private bool pauseGameWhilePanelVisible = true;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public EquipmentSlotType CurrentHeldSlot { get; private set; } = EquipmentSlotType.None;
@@ -349,6 +307,20 @@ public class PlayerEquipmentController : MonoBehaviour
         if (!CanStartEquipmentSwitch())
             return false;
 
+        if (targetSlot.Item is LockpickUtilityData)
+        {
+            if (CurrentHeldSlot != EquipmentSlotType.None)
+            {
+                switchRoutine = StartCoroutine(HolsterCurrentHeldItemRoutine());
+                return true;
+            }
+
+            CurrentHeldSlot = EquipmentSlotType.None;
+            CurrentHeldItem = null;
+            NotifyEquipmentChanged();
+            return true;
+        }
+
         if (CurrentHeldSlot == slotType && CurrentHeldItem == targetSlot.Item)
         {
             switchRoutine = StartCoroutine(HolsterCurrentHeldItemRoutine());
@@ -459,6 +431,48 @@ public class PlayerEquipmentController : MonoBehaviour
         UpdateUnarmedAimCameraState();
     }
 
+    /// <summary>
+    /// Applies profile-authored Rewired player id and equipment action names.
+    /// </summary>
+    public void ApplyControls(PlayerControlsSettings settings)
+    {
+        if (settings == null)
+            return;
+
+        rewiredPlayerId = Mathf.Max(0, settings.RewiredPlayerId);
+        equipPrimaryAction = settings.EquipPrimaryAction;
+        equipSecondaryAction = settings.EquipSecondaryAction;
+        equipBeltAction = settings.EquipBeltAction;
+        toggleEquipmentPanelAction = settings.ToggleEquipmentPanelAction;
+        aimAction = settings.AimAction;
+        inputReader = new RewiredPlayerInputReader(rewiredPlayerId);
+    }
+
+    /// <summary>
+    /// Applies profile-authored starting equipment and equipment panel behavior.
+    /// </summary>
+    public void ApplySettings(PlayerEquipmentSettings settings)
+    {
+        if (settings == null)
+            return;
+
+        primaryEquipment = CloneSlotSettings(settings.PrimaryEquipment);
+        secondaryEquipment = CloneSlotSettings(settings.SecondaryEquipment);
+        beltEquipment = CloneSlotSettings(settings.BeltEquipment);
+        startingArmor = settings.StartingArmor;
+        startingHeldSlot = settings.StartingHeldSlot.IsHandSlot() ? settings.StartingHeldSlot : EquipmentSlotType.Primary;
+        hideCrosshairWhilePanelVisible = settings.HideCrosshairWhilePanelVisible;
+        pauseGameWhilePanelVisible = settings.PauseGameWhilePanelVisible;
+
+        ValidateSlotAssignment(primaryEquipment, EquipmentSlotType.Primary);
+        ValidateSlotAssignment(secondaryEquipment, EquipmentSlotType.Secondary);
+        ValidateSlotAssignment(beltEquipment, EquipmentSlotType.Belt);
+
+        InitializeRuntimeSlots();
+        armorLoadout?.EquipArmor(startingArmor);
+        NotifyEquipmentChanged();
+    }
+
     // Executes the TryGetRuntimeFirearmProjectile routine.
     public bool TryGetRuntimeFirearmProjectile(EquipmentSlotType slotType, out ProjectileData projectile)
     {
@@ -487,6 +501,52 @@ public class PlayerEquipmentController : MonoBehaviour
         maxUses = ResolveInitialThrowableUses(throwableData, -1);
         remainingUses = Mathf.Clamp(slotState.ReserveAmmo, 0, maxUses);
         return true;
+    }
+
+    /// <summary>
+    /// Reads the runtime lockpick uses stored in a specific hand equipment slot.
+    /// </summary>
+    public bool TryGetRuntimeLockpickState(EquipmentSlotType slotType, out int remainingUses, out int maxUses)
+    {
+        RuntimeHandSlotState slotState = GetRuntimeSlot(slotType);
+        if (slotState == null || slotState.Item is not LockpickUtilityData lockpickData)
+        {
+            remainingUses = 0;
+            maxUses = 0;
+            return false;
+        }
+
+        maxUses = ResolveInitialLockpickUses(lockpickData, -1);
+        remainingUses = ResolveRuntimeLockpickUses(slotState);
+        return true;
+    }
+
+    /// <summary>
+    /// Sums every remaining lockpick use across all player equipment hand slots.
+    /// </summary>
+    public bool TryGetTotalLockpickUses(out int totalUses)
+    {
+        totalUses = 0;
+        totalUses += ResolveRuntimeLockpickUses(primaryRuntime);
+        totalUses += ResolveRuntimeLockpickUses(secondaryRuntime);
+        totalUses += ResolveRuntimeLockpickUses(beltRuntime);
+        return totalUses > 0;
+    }
+
+    /// <summary>
+    /// Consumes one lockpick use from the first lockpick stack that still has uses.
+    /// </summary>
+    public bool TryConsumeLockpickUse()
+    {
+        bool consumed =
+            TryConsumeLockpickUse(primaryRuntime) ||
+            TryConsumeLockpickUse(secondaryRuntime) ||
+            TryConsumeLockpickUse(beltRuntime);
+
+        if (consumed)
+            NotifyEquipmentChanged();
+
+        return consumed;
     }
 
     // Executes the TryMoveItemBetweenSlots routine.
@@ -644,7 +704,7 @@ public class PlayerEquipmentController : MonoBehaviour
         }
         else if (slotState.Item is UtilityItemData utilityItemData)
         {
-            if (playerUtilityController != null)
+            if (utilityItemData is not LockpickUtilityData && playerUtilityController != null)
             {
                 playerUtilityController.EquipUtility(utilityItemData);
                 equipped = true;
@@ -691,7 +751,7 @@ public class PlayerEquipmentController : MonoBehaviour
         }
         else if (targetSlot.Item is UtilityItemData utilityItemData)
         {
-            if (playerUtilityController != null)
+            if (utilityItemData is not LockpickUtilityData && playerUtilityController != null)
             {
                 playerUtilityController.EquipUtility(utilityItemData);
                 while (playerUtilityController != null && (playerUtilityController.IsBusy || playerUtilityController.EquippedUtility != utilityItemData))
@@ -794,12 +854,12 @@ public class PlayerEquipmentController : MonoBehaviour
     }
 
     // Executes the CreateRuntimeSlot routine.
-    private RuntimeHandSlotState CreateRuntimeSlot(EquipmentSlotType slotType, HandEquipmentSlotDefinition definition)
+    private RuntimeHandSlotState CreateRuntimeSlot(EquipmentSlotType slotType, PlayerEquipmentSlotSettings definition)
     {
         if (definition == null)
             return null;
 
-        EquipmentItemData item = definition.item;
+        EquipmentItemData item = definition.Item;
         if (item != null && !item.SupportsSlot(slotType))
         {
             Debug.LogWarning($"{name} has {item.name} assigned to {slotType}, but that item does not support that slot.", this);
@@ -812,16 +872,20 @@ public class PlayerEquipmentController : MonoBehaviour
 
         if (item is FirearmData firearmData)
         {
-            projectile = firearmData.SupportsProjectile(definition.firearmProjectile)
-                ? definition.firearmProjectile
+            projectile = firearmData.SupportsProjectile(definition.FirearmProjectile)
+                ? definition.FirearmProjectile
                 : firearmData.CompatibleProjectiles.Count > 0 ? firearmData.CompatibleProjectiles[0] : null;
 
-            loadedAmmo = ResolveInitialLoadedAmmo(firearmData, definition.startingLoadedAmmo);
-            reserveAmmo = ResolveInitialReserveAmmo(firearmData, definition.startingReserveAmmo);
+            loadedAmmo = ResolveInitialLoadedAmmo(firearmData, definition.StartingLoadedAmmo);
+            reserveAmmo = ResolveInitialReserveAmmo(firearmData, definition.StartingReserveAmmo);
         }
         else if (item is ThrowableUtilityData throwableData)
         {
             reserveAmmo = ResolveInitialThrowableUses(throwableData, -1);
+        }
+        else if (item is LockpickUtilityData lockpickData)
+        {
+            reserveAmmo = ResolveInitialLockpickUses(lockpickData, -1);
         }
 
         return new RuntimeHandSlotState
@@ -1014,6 +1078,10 @@ public class PlayerEquipmentController : MonoBehaviour
         {
             reserveAmmo = ResolveInitialThrowableUses(throwableData, slotLoadout.ReserveAmmo);
         }
+        else if (item is LockpickUtilityData lockpickData)
+        {
+            reserveAmmo = ResolveInitialLockpickUses(lockpickData, slotLoadout.ReserveAmmo);
+        }
 
         AssignSlotState(slotState, item, projectile, loadedAmmo, reserveAmmo);
     }
@@ -1045,14 +1113,85 @@ public class PlayerEquipmentController : MonoBehaviour
         return Mathf.Clamp(resolvedUses, 0, maxUses);
     }
 
-    // Executes the ValidateSlotAssignment routine.
-    private void ValidateSlotAssignment(HandEquipmentSlotDefinition definition, EquipmentSlotType slotType)
+    /// <summary>
+    /// Resolves a lockpick item's starting use count while respecting its authored max uses.
+    /// </summary>
+    private static int ResolveInitialLockpickUses(LockpickUtilityData lockpickData, int requestedUses)
     {
-        if (definition == null || definition.item == null)
+        int maxUses = lockpickData != null ? lockpickData.MaxUses : 0;
+        int resolvedUses = requestedUses < 0 ? maxUses : requestedUses;
+        return Mathf.Clamp(resolvedUses, 0, maxUses);
+    }
+
+    /// <summary>
+    /// Reads clamped remaining uses from a runtime slot only when it contains lockpicks.
+    /// </summary>
+    private static int ResolveRuntimeLockpickUses(RuntimeHandSlotState slotState)
+    {
+        if (slotState == null || slotState.Item is not LockpickUtilityData lockpickData)
+            return 0;
+
+        return Mathf.Clamp(slotState.ReserveAmmo, 0, lockpickData.MaxUses);
+    }
+
+    /// <summary>
+    /// Consumes one use from a runtime lockpick slot and clears it once depleted.
+    /// </summary>
+    private bool TryConsumeLockpickUse(RuntimeHandSlotState slotState)
+    {
+        if (slotState == null || slotState.Item is not LockpickUtilityData lockpickData)
+            return false;
+
+        int remainingUses = Mathf.Clamp(slotState.ReserveAmmo - 1, 0, lockpickData.MaxUses);
+        slotState.ReserveAmmo = remainingUses;
+        if (remainingUses <= 0)
+            ClearLockpickSlot(slotState);
+
+        return true;
+    }
+
+    /// <summary>
+    /// Clears a depleted lockpick slot and makes sure it is not treated as a held item.
+    /// </summary>
+    private void ClearLockpickSlot(RuntimeHandSlotState slotState)
+    {
+        if (slotState == null)
             return;
 
-        if (!definition.item.SupportsSlot(slotType))
-            definition.item = null;
+        bool wasCurrentSlot = CurrentHeldSlot == slotState.SlotType;
+        ClearSlotState(slotState);
+        if (!wasCurrentSlot)
+            return;
+
+        CurrentHeldSlot = EquipmentSlotType.None;
+        CurrentHeldItem = null;
+    }
+
+    // Executes the ValidateSlotAssignment routine.
+    private void ValidateSlotAssignment(PlayerEquipmentSlotSettings definition, EquipmentSlotType slotType)
+    {
+        if (definition == null || definition.Item == null)
+            return;
+
+        if (!definition.Item.SupportsSlot(slotType))
+            definition.Item = null;
+    }
+
+    /// <summary>
+    /// Copies profile slot data into a runtime-owned instance to avoid mutating the ScriptableObject.
+    /// </summary>
+    private static PlayerEquipmentSlotSettings CloneSlotSettings(PlayerEquipmentSlotSettings source)
+    {
+        if (source == null)
+            return new PlayerEquipmentSlotSettings();
+
+        return new PlayerEquipmentSlotSettings
+        {
+            Item = source.Item,
+            FirearmProjectile = source.FirearmProjectile,
+            StartingLoadedAmmo = source.StartingLoadedAmmo,
+            StartingReserveAmmo = source.StartingReserveAmmo
+        };
     }
 
     // Executes the NotifyEquipmentChanged routine.
@@ -1126,7 +1265,7 @@ public class PlayerEquipmentController : MonoBehaviour
     // Executes the ResolveDefinitionItem routine.
     private EquipmentItemData ResolveDefinitionItem(EquipmentSlotType slotType)
     {
-        HandEquipmentSlotDefinition definition = slotType switch
+        PlayerEquipmentSlotSettings definition = slotType switch
         {
             EquipmentSlotType.Primary => primaryEquipment,
             EquipmentSlotType.Secondary => secondaryEquipment,
@@ -1134,8 +1273,8 @@ public class PlayerEquipmentController : MonoBehaviour
             _ => null
         };
 
-        return definition != null && definition.item != null && definition.item.SupportsSlot(slotType)
-            ? definition.item
+        return definition != null && definition.Item != null && definition.Item.SupportsSlot(slotType)
+            ? definition.Item
             : null;
     }
 
@@ -1303,6 +1442,12 @@ public class PlayerEquipmentController : MonoBehaviour
         if (item is ThrowableUtilityData throwableData)
         {
             reserveAmmo = ResolveInitialThrowableUses(throwableData, -1);
+            return true;
+        }
+
+        if (item is LockpickUtilityData lockpickData)
+        {
+            reserveAmmo = ResolveInitialLockpickUses(lockpickData, -1);
             return true;
         }
 

@@ -204,50 +204,21 @@ public partial class EnemyMovementController : MonoBehaviour
     [FoldoutGroup("A* Pathfinding"), ShowInInspector, ReadOnly]
     private Seeker seeker;
 
-    [FoldoutGroup("Doors")]
-    [SerializeField] private bool allowClosedDoorTraversalWhilePatrol = true;
-
-    [FoldoutGroup("Doors")]
-    [SerializeField] private bool allowClosedDoorTraversalWhileAlert = true;
-
-    [FoldoutGroup("Doors")]
-    [SerializeField] private bool allowClosedDoorTraversalWhileSuspicious = true;
-
-    [FoldoutGroup("Doors")]
-    [SerializeField] private bool allowClosedDoorTraversalWhileSearching = true;
-
-    [FoldoutGroup("Doors")]
-    [SerializeField] private bool allowClosedDoorTraversalWhileFleeing = true;
-
-    [FoldoutGroup("Doors")]
-    [SerializeField] private bool allowClosedDoorTraversalWhileDetected;
-
-    [FoldoutGroup("Doors"), Range(0, 31)]
-    [SerializeField] private int closedDoorPathTag = 1;
-
-    [FoldoutGroup("Doors"), MinValue(0)]
-    [SerializeField] private int closedDoorTagPenalty;
-
-    [FoldoutGroup("Doors"), MinValue(0)]
-    [SerializeField] private int closedDoorPatrolTagPenalty;
-
-    [FoldoutGroup("Doors")]
-    [SerializeField] private LayerMask doorDetectionMask = Physics2D.AllLayers;
-
-    [FoldoutGroup("Doors"), MinValue(MinimumDoorAutoOpenRange), SuffixLabel("u", true)]
-    [SerializeField] private float doorAutoOpenRange = 0.9f;
-
-    [FoldoutGroup("Doors"), MinValue(MinimumDoorAutoOpenRadius), SuffixLabel("u", true)]
-    [SerializeField] private float doorAutoOpenRadius = 0.18f;
-
-    [FoldoutGroup("Doors"), MinValue(0f), SuffixLabel("s", true)]
-    [SerializeField] private float doorAutoOpenCooldown = 0.2f;
-
-    [FoldoutGroup("Doors"), MinValue(MinimumDoorAutoOpenRange), SuffixLabel("u", true)]
-    [SerializeField] private float doorPreferredRouteProbeDistance = 3f;
-
-    [FoldoutGroup("Doors"), MinValue(MinimumDoorRouteProbeWidth), SuffixLabel("u", true)]
-    [SerializeField] private float doorPreferredRouteProbeWidth = 0.75f;
+    private bool allowClosedDoorTraversalWhilePatrol = true;
+    private bool allowClosedDoorTraversalWhileAlert = true;
+    private bool allowClosedDoorTraversalWhileSuspicious = true;
+    private bool allowClosedDoorTraversalWhileSearching = true;
+    private bool allowClosedDoorTraversalWhileFleeing = true;
+    private bool allowClosedDoorTraversalWhileDetected;
+    private int closedDoorPathTag = 1;
+    private int closedDoorTagPenalty;
+    private int closedDoorPatrolTagPenalty;
+    private LayerMask doorDetectionMask = Physics2D.AllLayers;
+    private float doorAutoOpenRange = 0.9f;
+    private float doorAutoOpenRadius = 0.18f;
+    private float doorAutoOpenCooldown = 0.2f;
+    private float doorPreferredRouteProbeDistance = 3f;
+    private float doorPreferredRouteProbeWidth = 0.75f;
 
     private EnemyState startingState = EnemyState.Idle;
     private EnemyFacingSettings startingPointFacing = new();
@@ -279,7 +250,6 @@ public partial class EnemyMovementController : MonoBehaviour
     private bool alertChaseTarget = true;
     private float alertNoiseFocusDuration = 2f;
     private float alertTargetLostDuration = 3f;
-    private bool confusedByLightsOff;
     private float defaultLookAroundDuration = 2.5f;
     private float lookAroundTurnInterval = 0.5f;
     private float lookAroundRotationSpeed = 360f;
@@ -393,9 +363,6 @@ public partial class EnemyMovementController : MonoBehaviour
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool HasExternalInvestigation => hasExternalInvestigation;
-
-    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
-    public bool ConfusedByLightsOff => confusedByLightsOff;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsAlertState => currentState == EnemyState.Alert;

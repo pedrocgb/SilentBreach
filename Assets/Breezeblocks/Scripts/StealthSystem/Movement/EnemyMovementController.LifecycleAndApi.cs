@@ -297,7 +297,6 @@ public partial class EnemyMovementController
         alertChaseTarget = settings.ChaseTarget;
         alertNoiseFocusDuration = settings.AlertNoiseFocusDuration;
         alertTargetLostDuration = settings.AlertTargetLostDuration;
-        confusedByLightsOff = settings.ConfusedByLightsOff;
         defaultLookAroundDuration = settings.DefaultLookAroundDuration;
         lookAroundTurnInterval = settings.LookAroundTurnInterval;
         lookAroundRotationSpeed = settings.LookAroundRotationSpeed;
@@ -332,6 +331,8 @@ public partial class EnemyMovementController
         doorAutoOpenRange = settings.DoorAutoOpenRange;
         doorAutoOpenRadius = settings.DoorAutoOpenRadius;
         doorAutoOpenCooldown = settings.DoorAutoOpenCooldown;
+        doorPreferredRouteProbeDistance = settings.DoorPreferredRouteProbeDistance;
+        doorPreferredRouteProbeWidth = settings.DoorPreferredRouteProbeWidth;
 
         ClampSettings();
         ApplyRigidbodyRecommendations();

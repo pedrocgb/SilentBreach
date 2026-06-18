@@ -964,10 +964,12 @@ public class GameplayConsoleController : MonoBehaviour
         for (int i = 0; i < perkPanels.Length; i++)
         {
             PlayerEquipmentPanelUI perkPanel = perkPanels[i];
-            if (perkPanel == null || !perkPanel.IsVisible)
+            if (perkPanel == null)
                 continue;
 
-            perkPanel.SetVisible(true);
+            perkPanel.RefreshEquippedPerksFromRuntime();
+            if (perkPanel.IsVisible)
+                perkPanel.SetVisible(true);
         }
     }
 

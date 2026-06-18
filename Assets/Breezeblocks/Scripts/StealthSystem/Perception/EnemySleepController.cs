@@ -16,21 +16,6 @@ public enum EnemySleepType
 [AddComponentMenu("Breezeblocks/Stealth/Enemy Sleep Controller")]
 public sealed class EnemySleepController : MonoBehaviour
 {
-    [FoldoutGroup("Thresholds"), Range(0f, 1f)]
-    [SerializeField] private float normalSleepWakeThreshold = 0.4f;
-
-    [FoldoutGroup("Thresholds"), Range(0f, 1f)]
-    [SerializeField] private float deepSleepWakeThreshold = 0.8f;
-
-    [FoldoutGroup("Duration"), MinValue(0f), SuffixLabel("s", true)]
-    [SerializeField] private float normalSleepAutoWakeDelay = 120f;
-
-    [FoldoutGroup("Duration"), MinValue(0f), SuffixLabel("s", true)]
-    [SerializeField] private float deepSleepAutoWakeDelay = 240f;
-
-    [FoldoutGroup("Duration"), MinValue(0f), SuffixLabel("s", true)]
-    [SerializeField] private float forcedSleepAutoWakeDelay = 60f;
-
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsSleeping => isSleeping;
 
@@ -58,6 +43,11 @@ public sealed class EnemySleepController : MonoBehaviour
     private bool forcedSleepSuppressedHearing;
     private bool hearingWasEnabledBeforeForcedSleep;
     private EnemySleepType configuredStartSleepType = EnemySleepType.NormalSleep;
+    private float normalSleepWakeThreshold = 0.4f;
+    private float deepSleepWakeThreshold = 0.8f;
+    private float normalSleepAutoWakeDelay = 120f;
+    private float deepSleepAutoWakeDelay = 240f;
+    private float forcedSleepAutoWakeDelay = 60f;
 
     /// <summary>
     /// Caches same-object dependencies before sleep state can be applied.
@@ -99,11 +89,7 @@ public sealed class EnemySleepController : MonoBehaviour
     /// </summary>
     private void OnValidate()
     {
-        normalSleepWakeThreshold = Mathf.Clamp01(normalSleepWakeThreshold);
-        deepSleepWakeThreshold = Mathf.Clamp01(deepSleepWakeThreshold);
-        normalSleepAutoWakeDelay = Mathf.Max(0f, normalSleepAutoWakeDelay);
-        deepSleepAutoWakeDelay = Mathf.Max(0f, deepSleepAutoWakeDelay);
-        forcedSleepAutoWakeDelay = Mathf.Max(0f, forcedSleepAutoWakeDelay);
+        ClampSettings();
         CacheReferences();
     }
 
@@ -126,6 +112,12 @@ public sealed class EnemySleepController : MonoBehaviour
 
         configuredStartSleeping = settings.StartSleeping;
         configuredStartSleepType = settings.StartSleepType;
+        normalSleepWakeThreshold = settings.NormalSleepWakeThreshold;
+        deepSleepWakeThreshold = settings.DeepSleepWakeThreshold;
+        normalSleepAutoWakeDelay = settings.NormalSleepAutoWakeDelay;
+        deepSleepAutoWakeDelay = settings.DeepSleepAutoWakeDelay;
+        forcedSleepAutoWakeDelay = settings.ForcedSleepAutoWakeDelay;
+        ClampSettings();
     }
 
     /// <summary>
@@ -337,5 +329,17 @@ public sealed class EnemySleepController : MonoBehaviour
         visionAI ??= GetComponent<EnemyVisionAI>();
         hearing ??= GetComponent<AIHearing>();
         actorHealth ??= GetComponent<ActorHealth>();
+    }
+
+    /// <summary>
+    /// Clamps profile-applied sleep settings to safe runtime ranges.
+    /// </summary>
+    private void ClampSettings()
+    {
+        normalSleepWakeThreshold = Mathf.Clamp01(normalSleepWakeThreshold);
+        deepSleepWakeThreshold = Mathf.Clamp01(deepSleepWakeThreshold);
+        normalSleepAutoWakeDelay = Mathf.Max(0f, normalSleepAutoWakeDelay);
+        deepSleepAutoWakeDelay = Mathf.Max(0f, deepSleepAutoWakeDelay);
+        forcedSleepAutoWakeDelay = Mathf.Max(0f, forcedSleepAutoWakeDelay);
     }
 }

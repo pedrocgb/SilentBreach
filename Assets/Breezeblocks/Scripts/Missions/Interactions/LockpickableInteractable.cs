@@ -1,4 +1,5 @@
 using System;
+using Breezeblocks.WeaponSystem;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Events;
@@ -54,6 +55,7 @@ public sealed class LockpickableInteractable : PlayerWorldInteractable, ILockpic
         return !isUnlocked &&
                definition != null &&
                LockpickMinigameController.HasRegisteredInstance &&
+               PlayerLockpickInventoryUtility.HasAnyLockpickUses(interactorRoot) &&
                base.CanInteract(interactorRoot);
     }
 

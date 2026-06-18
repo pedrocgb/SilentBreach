@@ -15,11 +15,8 @@ public class PlayerPickupInteractor : MonoBehaviour
     private const string LegacyPickUpActionName = "Pick Up";
     private const string DefaultInteractActionName = "Interact";
 
-    [FoldoutGroup("Rewired"), MinValue(0)]
-    [SerializeField] private int rewiredPlayerId;
-
-    [FoldoutGroup("Rewired"), LabelText("Interact Action")]
-    [SerializeField] private string pickUpAction = DefaultInteractActionName;
+    private int rewiredPlayerId = 1;
+    private string pickUpAction = DefaultInteractActionName;
 
     [FoldoutGroup("References")]
     [SerializeField] private Transform interactionOrigin;
@@ -27,8 +24,7 @@ public class PlayerPickupInteractor : MonoBehaviour
     [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
     private PlayerPickupInventory pickupInventory;
 
-    [FoldoutGroup("Detection"), MinValue(MinimumRange), LabelText("Interaction Range")]
-    [SerializeField] private float pickupRange = 1.25f;
+    private float pickupRange = 1.25f;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public PlayerWorldInteractable CurrentInteractable => currentInteractable;
@@ -145,6 +141,31 @@ public class PlayerPickupInteractor : MonoBehaviour
     {
         pickupRange = Mathf.Max(MinimumRange, pickupRange);
         MigrateLegacyActionName();
+    }
+
+    /// <summary>
+    /// Applies profile-authored Rewired player id and interact action name.
+    /// </summary>
+    public void ApplyControls(PlayerControlsSettings settings)
+    {
+        if (settings == null)
+            return;
+
+        rewiredPlayerId = Mathf.Max(0, settings.RewiredPlayerId);
+        pickUpAction = settings.InteractAction;
+        MigrateLegacyActionName();
+        inputReader = new RewiredPlayerInputReader(rewiredPlayerId);
+    }
+
+    /// <summary>
+    /// Applies profile-authored interaction detection settings.
+    /// </summary>
+    public void ApplySettings(PlayerInteractionSettings settings)
+    {
+        if (settings == null)
+            return;
+
+        pickupRange = Mathf.Max(MinimumRange, settings.InteractionRange);
     }
 
     /// <summary>

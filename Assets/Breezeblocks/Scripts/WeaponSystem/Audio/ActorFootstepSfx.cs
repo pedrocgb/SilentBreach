@@ -13,41 +13,14 @@ public class ActorFootstepSfx : MonoBehaviour
     [FoldoutGroup("References")]
     [SerializeField] private Transform emitOrigin;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private Rigidbody2D movementBody;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private Rigidbody2D movementBody;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerTopDownMotor2D playerMotor;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerTopDownMotor2D playerMotor;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private EnemyMovementController enemyMovementController;
-
-    [FoldoutGroup("References")]
-    [SerializeField] private WorldSfxManager worldSfxManager;
-
-    [FoldoutGroup("SFX"), InlineProperty, HideLabel]
-    [SerializeField] private AudioClipSet footstepSfx = new();
-
-    [FoldoutGroup("SFX"), EnumToggleButtons]
-    [SerializeField] private NoiseType footstepSoundType = NoiseType.Common;
-
-    [FoldoutGroup("Timing"), MinValue(0f)]
-    [SerializeField] private float minSpeedThreshold = 0.2f;
-
-    [FoldoutGroup("Timing"), MinValue(MinimumSpeed)]
-    [SerializeField] private float speedForFastestStep = 5f;
-
-    [FoldoutGroup("Timing"), MinValue(0.01f), SuffixLabel("s", true)]
-    [SerializeField] private float slowStepInterval = 0.5f;
-
-    [FoldoutGroup("Timing"), MinValue(0.01f), SuffixLabel("s", true)]
-    [SerializeField] private float fastStepInterval = 0.22f;
-
-    [FoldoutGroup("Mix"), Range(0f, 1f)]
-    [SerializeField] private float minimumVolumeMultiplier = 0.7f;
-
-    [FoldoutGroup("Mix"), Range(0f, 2f)]
-    [SerializeField] private float maximumVolumeMultiplier = 1f;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private EnemyMovementController enemyMovementController;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public float CurrentObservedSpeed => ResolveCurrentSpeed();
@@ -56,49 +29,51 @@ public class ActorFootstepSfx : MonoBehaviour
     public float StepTimerRemaining => Mathf.Max(0f, nextStepTime - Time.time);
 
     private float nextStepTime;
+    private WorldSfxManager worldSfxManager;
+    private AudioClipSet footstepSfx = new();
+    private NoiseType footstepSoundType = NoiseType.Common;
+    private float minSpeedThreshold = 0.2f;
+    private float speedForFastestStep = 5f;
+    private float slowStepInterval = 0.5f;
+    private float fastStepInterval = 0.22f;
+    private float minimumVolumeMultiplier = 0.7f;
+    private float maximumVolumeMultiplier = 1f;
 
+    /// <summary>
+    /// Caches local references when the component is reset in the editor.
+    /// </summary>
     private void Reset()
     {
-        movementBody = GetComponent<Rigidbody2D>();
-        playerMotor = GetComponent<PlayerTopDownMotor2D>();
-        enemyMovementController = GetComponent<EnemyMovementController>();
+        CacheReferences();
         emitOrigin = transform;
     }
 
+    /// <summary>
+    /// Caches runtime references before footstep playback begins.
+    /// </summary>
     private void Awake()
     {
-        if (movementBody == null)
-            movementBody = GetComponent<Rigidbody2D>();
-
-        if (playerMotor == null)
-            playerMotor = GetComponent<PlayerTopDownMotor2D>();
-
-        if (enemyMovementController == null)
-            enemyMovementController = GetComponent<EnemyMovementController>();
+        CacheReferences();
 
         if (emitOrigin == null)
             emitOrigin = transform;
 
-        if (worldSfxManager == null)
-            worldSfxManager = WorldSfxManager.Instance;
-
         footstepSfx ??= new AudioClipSet();
-        footstepSfx.Validate();
+        ClampSettings();
     }
 
+    /// <summary>
+    /// Keeps profile-applied values safe while editing component references.
+    /// </summary>
     private void OnValidate()
     {
-        minSpeedThreshold = Mathf.Max(0f, minSpeedThreshold);
-        speedForFastestStep = Mathf.Max(MinimumSpeed, speedForFastestStep);
-        slowStepInterval = Mathf.Max(0.01f, slowStepInterval);
-        fastStepInterval = Mathf.Max(0.01f, fastStepInterval);
-        maximumVolumeMultiplier = Mathf.Max(0f, maximumVolumeMultiplier);
-        minimumVolumeMultiplier = Mathf.Clamp(minimumVolumeMultiplier, 0f, maximumVolumeMultiplier);
-
-        footstepSfx ??= new AudioClipSet();
-        footstepSfx.Validate();
+        CacheReferences();
+        ClampSettings();
     }
 
+    /// <summary>
+    /// Emits footstep SFX at an interval based on the actor's current movement speed.
+    /// </summary>
     private void Update()
     {
         if (worldSfxManager == null)
@@ -123,6 +98,53 @@ public class ActorFootstepSfx : MonoBehaviour
         nextStepTime = Time.time + interval;
     }
 
+    /// <summary>
+    /// Applies profile-authored footstep SFX settings shared by player and enemy actors.
+    /// </summary>
+    public void ApplySettings(ActorFootstepSfxSettings settings)
+    {
+        if (settings == null)
+            return;
+
+        footstepSfx = settings.FootstepSfx ?? new AudioClipSet();
+        footstepSoundType = settings.FootstepSoundType;
+        minSpeedThreshold = settings.MinSpeedThreshold;
+        speedForFastestStep = settings.SpeedForFastestStep;
+        slowStepInterval = settings.SlowStepInterval;
+        fastStepInterval = settings.FastStepInterval;
+        minimumVolumeMultiplier = settings.MinimumVolumeMultiplier;
+        maximumVolumeMultiplier = settings.MaximumVolumeMultiplier;
+        ClampSettings();
+    }
+
+    /// <summary>
+    /// Caches same-object movement components used to resolve current actor speed.
+    /// </summary>
+    private void CacheReferences()
+    {
+        movementBody = GetComponent<Rigidbody2D>();
+        playerMotor = GetComponent<PlayerTopDownMotor2D>();
+        enemyMovementController = GetComponent<EnemyMovementController>();
+    }
+
+    /// <summary>
+    /// Clamps profile-applied footstep values to safe runtime ranges.
+    /// </summary>
+    private void ClampSettings()
+    {
+        footstepSfx ??= new AudioClipSet();
+        footstepSfx.Validate();
+        minSpeedThreshold = Mathf.Max(0f, minSpeedThreshold);
+        speedForFastestStep = Mathf.Max(MinimumSpeed, speedForFastestStep);
+        slowStepInterval = Mathf.Max(0.01f, slowStepInterval);
+        fastStepInterval = Mathf.Max(0.01f, fastStepInterval);
+        maximumVolumeMultiplier = Mathf.Max(0f, maximumVolumeMultiplier);
+        minimumVolumeMultiplier = Mathf.Clamp(minimumVolumeMultiplier, 0f, maximumVolumeMultiplier);
+    }
+
+    /// <summary>
+    /// Resolves speed from the active player, enemy, or Rigidbody2D movement source.
+    /// </summary>
     private float ResolveCurrentSpeed()
     {
         if (playerMotor != null)

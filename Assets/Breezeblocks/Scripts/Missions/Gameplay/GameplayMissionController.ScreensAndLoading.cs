@@ -82,9 +82,10 @@ public partial class GameplayMissionController
             gameWinMessageText.text = ResolveMissionCompletedMessage();
 
         if (gameWinScreen != null)
-            gameWinScreen.SetActive(true);
+            yield return ShowEndScreenWithFade(gameWinScreen, restoreFailureTimeScaleWhenShown: false);
+        else
+            fadeImageFader?.SetAlphaImmediate(0f);
 
-        fadeImageFader?.SetAlphaImmediate(0f);
         PlayJobSuccessRewardsPresentation();
     }
 
@@ -94,6 +95,16 @@ public partial class GameplayMissionController
     private IEnumerator FadeAndShowScreen(GameObject screen, bool restoreFailureTimeScaleWhenShown = false)
     {
         yield return FadeOverlayToBlackForScreen();
+        yield return ShowEndScreenWithFade(screen, restoreFailureTimeScaleWhenShown);
+    }
+
+    /// <summary>
+    /// Shows an end screen and fades its CanvasGroup after the shared black overlay has cleared.
+    /// </summary>
+    private IEnumerator ShowEndScreenWithFade(GameObject screen, bool restoreFailureTimeScaleWhenShown)
+    {
+        CanvasGroup screenCanvasGroup = ResolveEndScreenCanvasGroup(screen);
+        PrepareEndScreenCanvasGroup(screenCanvasGroup);
 
         if (screen != null)
             screen.SetActive(true);
@@ -102,6 +113,77 @@ public partial class GameplayMissionController
             RestoreFailureTimeScale();
 
         fadeImageFader?.SetAlphaImmediate(0f);
+
+        yield return FadeEndScreenCanvasGroup(screenCanvasGroup);
+    }
+
+    /// <summary>
+    /// Resolves the CanvasGroup used to fade a configured end screen.
+    /// </summary>
+    private CanvasGroup ResolveEndScreenCanvasGroup(GameObject screen)
+    {
+        if (screen == questFailScreen)
+            return questFailScreenCanvasGroup != null ? questFailScreenCanvasGroup : screen != null ? screen.GetComponent<CanvasGroup>() : null;
+
+        if (screen == playerKilledScreen)
+            return playerKilledScreenCanvasGroup != null ? playerKilledScreenCanvasGroup : screen != null ? screen.GetComponent<CanvasGroup>() : null;
+
+        if (screen == gameWinScreen)
+            return gameWinScreenCanvasGroup != null ? gameWinScreenCanvasGroup : screen != null ? screen.GetComponent<CanvasGroup>() : null;
+
+        return screen != null ? screen.GetComponent<CanvasGroup>() : null;
+    }
+
+    /// <summary>
+    /// Places an end-screen CanvasGroup in a hidden non-interactive state before activation.
+    /// </summary>
+    private static void PrepareEndScreenCanvasGroup(CanvasGroup screenCanvasGroup)
+    {
+        if (screenCanvasGroup == null)
+            return;
+
+        screenCanvasGroup.alpha = 0f;
+        screenCanvasGroup.interactable = false;
+        screenCanvasGroup.blocksRaycasts = false;
+    }
+
+    /// <summary>
+    /// Fades an end-screen CanvasGroup in using unscaled time and then enables interaction.
+    /// </summary>
+    private IEnumerator FadeEndScreenCanvasGroup(CanvasGroup screenCanvasGroup)
+    {
+        if (screenCanvasGroup == null)
+            yield break;
+
+        endScreenFadeTween?.Kill();
+        if (endScreenFadeDuration <= 0f)
+        {
+            CompleteEndScreenFade(screenCanvasGroup);
+            yield break;
+        }
+
+        endScreenFadeTween = screenCanvasGroup
+            .DOFade(1f, endScreenFadeDuration)
+            .SetEase(endScreenFadeEase)
+            .SetUpdate(true);
+
+        yield return endScreenFadeTween.WaitForCompletion();
+        endScreenFadeTween = null;
+        CompleteEndScreenFade(screenCanvasGroup);
+    }
+
+    /// <summary>
+    /// Restores the fully visible and interactive state of an end screen.
+    /// </summary>
+    private void CompleteEndScreenFade(CanvasGroup screenCanvasGroup)
+    {
+        endScreenFadeTween = null;
+        if (screenCanvasGroup == null)
+            return;
+
+        screenCanvasGroup.alpha = 1f;
+        screenCanvasGroup.interactable = true;
+        screenCanvasGroup.blocksRaycasts = true;
     }
 
     /// <summary>

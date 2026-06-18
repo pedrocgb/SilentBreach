@@ -202,6 +202,9 @@ public partial class GameplayMissionController : MonoBehaviour
     [SerializeField] private GameObject questFailScreen;
 
     [FoldoutGroup("Fade and Screens/Failure")]
+    [SerializeField] private CanvasGroup questFailScreenCanvasGroup;
+
+    [FoldoutGroup("Fade and Screens/Failure")]
     [SerializeField] private TMP_Text questFailMessageText;
 
     [FoldoutGroup("Fade and Screens/Failure")]
@@ -212,6 +215,9 @@ public partial class GameplayMissionController : MonoBehaviour
 
     [FoldoutGroup("Fade and Screens")]
     [SerializeField] private GameObject playerKilledScreen;
+
+    [FoldoutGroup("Fade and Screens/Death")]
+    [SerializeField] private CanvasGroup playerKilledScreenCanvasGroup;
 
     [FoldoutGroup("Fade and Screens/Death")]
     [SerializeField] private TMP_Text playerKilledMessageText;
@@ -229,6 +235,9 @@ public partial class GameplayMissionController : MonoBehaviour
     [SerializeField] private GameObject gameWinScreen;
 
     [FoldoutGroup("Fade and Screens/Win")]
+    [SerializeField] private CanvasGroup gameWinScreenCanvasGroup;
+
+    [FoldoutGroup("Fade and Screens/Win")]
     [SerializeField] private TMP_Text gameWinMessageText;
 
     [FoldoutGroup("Fade and Screens/Win"), TextArea(2, 4)]
@@ -239,6 +248,12 @@ public partial class GameplayMissionController : MonoBehaviour
 
     [FoldoutGroup("Fade and Screens/Win")]
     [SerializeField] private GameplayJobSuccessRewardsUI jobSuccessRewardsUi;
+
+    [FoldoutGroup("Fade and Screens/End Screen Fade"), MinValue(0f), SuffixLabel("s", true)]
+    [SerializeField] private float endScreenFadeDuration = 0.25f;
+
+    [FoldoutGroup("Fade and Screens/End Screen Fade")]
+    [SerializeField] private Ease endScreenFadeEase = Ease.OutQuad;
 
     [FoldoutGroup("Scene Loading"), LabelText("Hideout Scene Build Index"), MinValue(-1)]
     [SerializeField] private int hideoutSceneBuildIndex;
@@ -365,6 +380,7 @@ public partial class GameplayMissionController : MonoBehaviour
     private Sequence timeLimitWarningSequence;
     private Tween carEngineLoopTween;
     private Tween activeCinematicPlayerMoveTween;
+    private Tween endScreenFadeTween;
     private Coroutine missionStatusEntryBuildRoutine;
     private HideoutJobDefinition currentJob;
     private JobCompletionRewardResult jobCompletionRewardResult;

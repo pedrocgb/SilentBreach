@@ -15,24 +15,12 @@ public class PlayerTopDownMotor2D : MonoBehaviour
     private const float MinScrollDelta = 0.01f;
     private const bool DefaultSprintToggleMode = false;
 
-    [FoldoutGroup("Rewired"), MinValue(0)]
-    [Tooltip("Rewired Player id to read inputs from.")]
-    [SerializeField] private int rewiredPlayerId;
-
-    [FoldoutGroup("Rewired"), Tooltip("Movement axis action name.")]
-    [SerializeField] private string moveHorizontalAction = "Move Horizontal";
-
-    [FoldoutGroup("Rewired"), Tooltip("Movement axis action name.")]
-    [SerializeField] private string moveVerticalAction = "Move Vertical";
-
-    [FoldoutGroup("Rewired"), Tooltip("Button action used while held to sprint (walk max speed).")]
-    [SerializeField] private string sprintAction = "Sprint";
-
-    [FoldoutGroup("Rewired"), Tooltip("Button action used to toggle speed level between 1 and 10.")]
-    [SerializeField] private string toggleMinMaxSpeedAction = "Toggle Speed MinMax";
-
-    [FoldoutGroup("Rewired"), Tooltip("Axis action used for mouse wheel speed stepping.")]
-    [SerializeField] private string mouseWheelAxisAction = "Mouse Wheel";
+    private int rewiredPlayerId = 1;
+    private string moveHorizontalAction = "Move Horizontal";
+    private string moveVerticalAction = "Move Vertical";
+    private string sprintAction = "Sprint";
+    private string toggleMinMaxSpeedAction = "Toggle Speed MinMax";
+    private string mouseWheelAxisAction = "Mouse Wheel";
 
     private float[] walkSpeedLevels = new float[SpeedLevelsCount]
     {
@@ -62,8 +50,7 @@ public class PlayerTopDownMotor2D : MonoBehaviour
     [FoldoutGroup("UI"), Tooltip("Image fillAmount will represent current effective speed in runtime.")]
     [SerializeField] private Image velocityFillImage;
 
-    [FoldoutGroup("UI"), Tooltip("If true, fill is based on level (1-10). If false, based on absolute speed.")]
-    [SerializeField] private bool fillByLevel = true;
+    private bool fillByLevel = true;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public Vector2 MoveInput { get; private set; }
@@ -307,10 +294,28 @@ public class PlayerTopDownMotor2D : MonoBehaviour
         normalizeInput = settings.NormalizeInput;
         forceZeroGravity = settings.ForceZeroGravity;
         freezeRotationZ = settings.FreezeRotationZ;
+        fillByLevel = settings.FillVelocityByLevel;
 
         ClampNonNegative(walkSpeedLevels);
         ApplyPhysicsDefaults();
         RefreshUi();
+    }
+
+    /// <summary>
+    /// Applies profile-authored Rewired player id and movement action names.
+    /// </summary>
+    public void ApplyControls(PlayerControlsSettings settings)
+    {
+        if (settings == null)
+            return;
+
+        rewiredPlayerId = Mathf.Max(0, settings.RewiredPlayerId);
+        moveHorizontalAction = settings.MoveHorizontalAction;
+        moveVerticalAction = settings.MoveVerticalAction;
+        sprintAction = settings.SprintAction;
+        toggleMinMaxSpeedAction = settings.ToggleMinMaxSpeedAction;
+        mouseWheelAxisAction = settings.MouseWheelAxisAction;
+        inputReader = new RewiredPlayerInputReader(rewiredPlayerId);
     }
 
     // Executes the SetSprintBlocked routine.

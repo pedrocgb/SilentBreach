@@ -92,7 +92,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0.496, y: 0, z: 0}
-  m_LocalScale: {x: 1.5, y: 2, z: 1}
+  m_LocalScale: {x: 1.6, y: 2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5725202294505543102}
@@ -230,15 +230,15 @@ MonoBehaviour:
   - {x: 0.5, y: -0.5, z: 0}
   m_ShapePathHash: 0
   m_InstanceId: 0
-  m_ShadowShape2DComponent: {fileID: 21262070655902232}
+  m_ShadowShape2DComponent: {fileID: 9015562268224163533}
   m_ShadowShape2DProvider:
-    rid: 2971033315245817942
+    rid: 2971033670892650618
   m_ShadowCastingSource: 2
   m_ShadowMesh:
     m_Mesh: {fileID: 0}
     m_LocalBounds:
       m_Center: {x: 0, y: 0, z: 0}
-      m_Extent: {x: 0.30999756, y: 0.02999878, z: 0}
+      m_Extent: {x: 0.31500244, y: 0.039993286, z: 0}
     m_EdgeProcessing: 1
     m_TrimEdge: 0.01
     m_FlipX: 0
@@ -248,12 +248,12 @@ MonoBehaviour:
   m_PreviousTrimEdge: 0.01
   m_PreviousEdgeProcessing: 1
   m_PreviousShadowCastingSource: 2
-  m_PreviousShadowShape2DSource: {fileID: 21262070655902232}
+  m_PreviousShadowShape2DSource: {fileID: 9015562268224163533}
   references:
     version: 2
     RefIds:
-    - rid: 2971033315245817942
-      type: {class: ShadowShape2DProvider_SpriteRenderer, ns: UnityEngine.Rendering.Universal, asm: Unity.RenderPipelines.Universal.2D.Runtime}
+    - rid: 2971033670892650618
+      type: {class: ShadowShape2DProvider_Collider2D, ns: UnityEngine.Rendering.Universal, asm: Unity.RenderPipelines.Universal.2D.Runtime}
       data: 
 --- !u!1 &5530062044644182306
 GameObject:
@@ -338,7 +338,7 @@ MonoBehaviour:
       minDistance: 1.5
       maxDistance: 24
     NoiseType: 1
-    NoiseAmount: 0.35
+    NoiseAmount: 0.1
     ExtremeNoise: 0
   closeAudio:
     Sfx:
@@ -351,7 +351,7 @@ MonoBehaviour:
       minDistance: 1.5
       maxDistance: 24
     NoiseType: 1
-    NoiseAmount: 0.35
+    NoiseAmount: 0.25
     ExtremeNoise: 0
 --- !u!114 &5305604770880282774
 MonoBehaviour:
@@ -367,7 +367,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.Missions.DoorLockState
   startsLocked: 0
   lockedInteractionLabel: Destrancar
-  definition: {fileID: 0}
+  definition: {fileID: 11400000, guid: 11f8597497161509e9bcc80680a8b4a2, type: 2}
   enemiesThatIgnoreLockedState: []
 --- !u!1 &8705626985472323162
 GameObject:

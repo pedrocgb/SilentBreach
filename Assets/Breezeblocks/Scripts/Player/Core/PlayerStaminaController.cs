@@ -33,19 +33,7 @@ public class PlayerStaminaController : MonoBehaviour
     [SerializeField] private TMP_Text staminaText;
 
     [FoldoutGroup("UI")]
-    [SerializeField] private string staminaTextFormat = "{0:0}/{1:0}";
-
-    [FoldoutGroup("UI")]
     [SerializeField] private RectTransform staminaFeedbackRoot;
-
-    [FoldoutGroup("UI"), MinValue(0f), SuffixLabel("s", true)]
-    [SerializeField] private float insufficientStaminaShakeDuration = 0.2f;
-
-    [FoldoutGroup("UI"), MinValue(0f)]
-    [SerializeField] private float insufficientStaminaShakeStrength = 18f;
-
-    [FoldoutGroup("UI"), MinValue(1)]
-    [SerializeField] private int insufficientStaminaShakeVibrato = 18;
 
     private float maxStamina = 100f;
 
@@ -58,6 +46,10 @@ public class PlayerStaminaController : MonoBehaviour
     private float staggerStaminaLossPercent = 12f;
 
     private float movementThreshold = 0.05f;
+    private string staminaTextFormat = "{0:0}/{1:0}";
+    private float insufficientStaminaShakeDuration = 0.2f;
+    private float insufficientStaminaShakeStrength = 18f;
+    private int insufficientStaminaShakeVibrato = 18;
     private float perkMaxStaminaFlatBonus;
     private float perkSprintDrainMultiplier = 1f;
 
@@ -282,6 +274,10 @@ public class PlayerStaminaController : MonoBehaviour
         regenerationDelayAfterSpend = Mathf.Max(0f, settings.RegenerationDelayAfterSpend);
         staggerStaminaLossPercent = Mathf.Clamp(settings.StaggerStaminaLossPercent, 0f, 100f);
         movementThreshold = Mathf.Max(0f, settings.MovementThreshold);
+        staminaTextFormat = string.IsNullOrWhiteSpace(settings.StaminaTextFormat) ? "{0:0}/{1:0}" : settings.StaminaTextFormat;
+        insufficientStaminaShakeDuration = Mathf.Max(0f, settings.InsufficientStaminaShakeDuration);
+        insufficientStaminaShakeStrength = Mathf.Max(0f, settings.InsufficientStaminaShakeStrength);
+        insufficientStaminaShakeVibrato = Mathf.Max(1, settings.InsufficientStaminaShakeVibrato);
 
         if (!Application.isPlaying || restoreToFull)
         {

@@ -30,7 +30,26 @@ tools/ai-harness/rules/
 - Add XML summary comments to all methods in touched files.
 - Check for obsolete APIs.
 - Remove all new warnings before finishing.
-- Always use RTK shell commands, so before any editing, read RTK rules under: `tools/ai-harness/rules/RTK.md`
+
+---
+
+## RTK command usage
+
+When running shell commands that may produce long output, prefer RTK.
+
+Use the full path to avoid PATH issues in Codex:
+
+- Use `/home/pedrohcg/.local/bin/rtk git status` instead of `git status`
+- Use `/home/pedrohcg/.local/bin/rtk git diff` instead of `git diff`
+- Use `/home/pedrohcg/.local/bin/rtk grep` or `/home/pedrohcg/.local/bin/rtk rg` instead of raw `grep` or `rg`
+- Use `/home/pedrohcg/.local/bin/rtk read <file>` instead of dumping large files with `cat`
+- Use `/home/pedrohcg/.local/bin/rtk npm test`, `/home/pedrohcg/.local/bin/rtk pytest`, `/home/pedrohcg/.local/bin/rtk dotnet test`, or similar test wrappers when applicable
+
+Use raw commands only when:
+- The output is expected to be very small
+- RTK changes command behavior
+- The command is interactive
+- The command needs exact unfiltered output
 
 ---
 
@@ -122,3 +141,5 @@ A task is done only when:
 - Validation was run when possible.
 - Changed files are listed.
 - Manual Unity setup is explained.
+
+@RTK.md

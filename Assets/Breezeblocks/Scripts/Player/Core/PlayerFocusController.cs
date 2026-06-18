@@ -15,11 +15,8 @@ public class PlayerFocusController : MonoBehaviour
     private const bool DefaultFocusToggleMode = false;
     private const float MinimumFocusAmount = 0.0001f;
 
-    [FoldoutGroup("Rewired"), MinValue(0)]
-    [SerializeField] private int rewiredPlayerId;
-
-    [FoldoutGroup("Rewired")]
-    [SerializeField] private string focusAction = "Focus";
+    private int rewiredPlayerId = 1;
+    private string focusAction = "Focus";
 
     [FoldoutGroup("References")]
     [SerializeField] private Volume targetVolume;
@@ -27,23 +24,12 @@ public class PlayerFocusController : MonoBehaviour
     [FoldoutGroup("UI")]
     [SerializeField] private Image focusFillImage;
 
-    [FoldoutGroup("Focus"), MinValue(0f), SuffixLabel("s", true)]
-    [SerializeField] private float maxFocusSeconds = 6f;
-
-    [FoldoutGroup("Focus")]
-    [SerializeField] private bool regenerate = true;
-
-    [FoldoutGroup("Focus"), ShowIf(nameof(regenerate)), MinValue(0f)]
-    [SerializeField] private float regenerationPerSecond = 1.25f;
-
-    [FoldoutGroup("Focus"), ShowIf(nameof(regenerate)), MinValue(0f), SuffixLabel("s", true)]
-    [SerializeField] private float regenerationDelayAfterUse = 1.25f;
-
-    [FoldoutGroup("Focus Effect"), Range(-100f, 100f)]
-    [SerializeField] private float focusSaturation = -100f;
-
-    [FoldoutGroup("Focus Effect"), MinValue(0f), SuffixLabel("s", true)]
-    [SerializeField] private float focusTransitionDuration = 0.22f;
+    private float maxFocusSeconds = 6f;
+    private bool regenerate = true;
+    private float regenerationPerSecond = 1.25f;
+    private float regenerationDelayAfterUse = 1.25f;
+    private float focusSaturation = -100f;
+    private float focusTransitionDuration = 0.22f;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsFocusActive => isFocusActive;
@@ -191,6 +177,44 @@ public class PlayerFocusController : MonoBehaviour
         hasPerkRegenerationOverride = modifiers != null && modifiers.HasFocusRegenerationOverride;
         perkRegenerationEnabled = modifiers != null && modifiers.FocusRegenerationEnabled;
         perkRegenerationPerSecond = modifiers != null ? Mathf.Max(0f, modifiers.FocusRegenerationPerSecond) : 0f;
+
+        if (!Application.isPlaying || restoreToFull)
+        {
+            RestoreFullFocus();
+            return;
+        }
+
+        CurrentFocusSeconds = Mathf.Clamp(CurrentFocusSeconds, 0f, ResolveMaxFocusSeconds());
+        ApplyUi();
+    }
+
+    /// <summary>
+    /// Applies profile-authored Rewired player id and focus action name.
+    /// </summary>
+    public void ApplyControls(PlayerControlsSettings settings)
+    {
+        if (settings == null)
+            return;
+
+        rewiredPlayerId = Mathf.Max(0, settings.RewiredPlayerId);
+        focusAction = settings.FocusAction;
+        inputReader = new RewiredPlayerInputReader(rewiredPlayerId);
+    }
+
+    /// <summary>
+    /// Applies profile-authored focus resource and post-processing values.
+    /// </summary>
+    public void ApplySettings(PlayerFocusSettings settings, bool restoreToFull = false)
+    {
+        if (settings == null)
+            return;
+
+        maxFocusSeconds = Mathf.Max(0f, settings.MaxFocusSeconds);
+        regenerate = settings.Regenerate;
+        regenerationPerSecond = Mathf.Max(0f, settings.RegenerationPerSecond);
+        regenerationDelayAfterUse = Mathf.Max(0f, settings.RegenerationDelayAfterUse);
+        focusSaturation = Mathf.Clamp(settings.FocusSaturation, -100f, 100f);
+        focusTransitionDuration = Mathf.Max(0f, settings.FocusTransitionDuration);
 
         if (!Application.isPlaying || restoreToFull)
         {

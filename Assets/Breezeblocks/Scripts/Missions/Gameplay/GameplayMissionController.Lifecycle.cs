@@ -120,6 +120,8 @@ public partial class GameplayMissionController
         carEngineLoopTween = null;
         activeCinematicPlayerMoveTween?.Kill();
         activeCinematicPlayerMoveTween = null;
+        endScreenFadeTween?.Kill();
+        endScreenFadeTween = null;
 
         if (startupSequenceRoutine != null)
         {

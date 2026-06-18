@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Breezeblocks.WeaponSystem;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Events;
@@ -106,7 +107,9 @@ public sealed class CutWireInteractable : PlayerWorldInteractable, ICutWireSessi
             return false;
 
         return isLocked
-            ? lockpickDefinition != null && LockpickMinigameController.HasRegisteredInstance
+            ? lockpickDefinition != null &&
+              LockpickMinigameController.HasRegisteredInstance &&
+              PlayerLockpickInventoryUtility.HasAnyLockpickUses(interactorRoot)
             : CutWireController.HasRegisteredInstance;
     }
 

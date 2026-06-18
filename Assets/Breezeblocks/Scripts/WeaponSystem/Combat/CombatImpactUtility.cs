@@ -9,6 +9,10 @@ namespace Breezeblocks.WeaponSystem
 /// </summary>
 public static class CombatImpactUtility
 {
+    private const float MinimumKnockbackDirectionSqr = 0.0001f;
+    private const float MinimumKnockbackVelocitySqr = 0.0001f;
+    private const float MinimumBodyMass = 0.0001f;
+
     /// <summary>
     /// Caches combat-related component lookups for one impacted collider hierarchy.
     /// </summary>
@@ -257,14 +261,31 @@ public static class CombatImpactUtility
         Vector2 direction,
         float force)
     {
-        if (outcome != ActorDamageOutcome.Killed || force <= 0f || direction.sqrMagnitude <= Mathf.Epsilon)
+        if (outcome != ActorDamageOutcome.Killed || force <= 0f || direction.sqrMagnitude <= MinimumKnockbackDirectionSqr)
             return;
 
-        Rigidbody2D body = targetContext.Rigidbody2D;
-        if (body == null || !body.simulated)
+        ApplyProjectileDeathKnockback(targetContext.Rigidbody2D, direction.normalized, force);
+    }
+
+    /// <summary>
+    /// Applies death knockback in a way that works for both dynamic and kinematic top-down actor bodies.
+    /// </summary>
+    private static void ApplyProjectileDeathKnockback(Rigidbody2D body, Vector2 direction, float force)
+    {
+        if (body == null || !body.simulated || body.bodyType == RigidbodyType2D.Static)
             return;
 
-        body.AddForce(direction.normalized * force, ForceMode2D.Impulse);
+        Vector2 impulse = direction * force;
+        if (body.bodyType == RigidbodyType2D.Dynamic)
+        {
+            body.AddForce(impulse, ForceMode2D.Impulse);
+            if (body.linearVelocity.sqrMagnitude <= MinimumKnockbackVelocitySqr)
+                body.linearVelocity = impulse / Mathf.Max(body.mass, MinimumBodyMass);
+
+            return;
+        }
+
+        body.linearVelocity = impulse;
     }
 }
 

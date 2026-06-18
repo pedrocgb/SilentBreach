@@ -13,14 +13,9 @@ namespace Breezeblocks.WeaponSystem
 [RequireComponent(typeof(CharacterOrbitHandsAnimator))]
 public class PlayerMeleeController : MonoBehaviour
 {
-    [FoldoutGroup("Rewired"), MinValue(0)]
-    [SerializeField] private int rewiredPlayerId;
-
-    [FoldoutGroup("Rewired")]
-    [SerializeField] private string aimAction = "Aim";
-
-    [FoldoutGroup("Rewired")]
-    [SerializeField] private string fireAction = "Fire";
+    private int rewiredPlayerId = 1;
+    private string aimAction = "Aim";
+    private string fireAction = "Fire";
 
     [FoldoutGroup("References")]
     [SerializeField] private PlayerVisionLight playerVisionLight;
@@ -187,6 +182,21 @@ public class PlayerMeleeController : MonoBehaviour
     public void ApplyPerkModifiers(PlayerPerkModifierSet modifiers)
     {
         perkMeleeStaminaCostMultiplier = modifiers != null ? Mathf.Max(0f, modifiers.MeleeStaminaCostMultiplier) : 1f;
+    }
+
+    /// <summary>
+    /// Applies profile-authored Rewired player id and melee action names.
+    /// </summary>
+    public void ApplyControls(PlayerControlsSettings settings)
+    {
+        if (settings == null)
+            return;
+
+        rewiredPlayerId = Mathf.Max(0, settings.RewiredPlayerId);
+        aimAction = settings.AimAction;
+        fireAction = settings.FireAction;
+        inputReader = null;
+        inputReader = WeaponRuntimeUtility.EnsureInputReader(inputReader, rewiredPlayerId);
     }
 
     // Executes the EquipWeaponRoutine routine.

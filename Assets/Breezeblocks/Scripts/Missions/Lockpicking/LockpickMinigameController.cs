@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using Breezeblocks.Input;
+using Breezeblocks.WeaponSystem;
 using DG.Tweening;
 using Sirenix.OdinInspector;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -63,6 +65,9 @@ public sealed class LockpickMinigameController : MonoBehaviour
 
     [FoldoutGroup("References")]
     [SerializeField] private Volume targetVolume;
+
+    [FoldoutGroup("References")]
+    [SerializeField] private TMP_Text lockpickUsesText;
 
     [FoldoutGroup("Navigation"), Range(MinimumAxisThreshold, 1f)]
     [SerializeField] private float navigationAxisThreshold = 0.5f;
@@ -151,6 +156,24 @@ public sealed class LockpickMinigameController : MonoBehaviour
     [FoldoutGroup("Audio"), Range(0f, 1f)]
     [SerializeField] private float lockpickCompleteVolume = 1f;
 
+    [FoldoutGroup("Lockpick Break")]
+    [SerializeField] private AudioClipSet lockpickBreakSfx = new();
+
+    [FoldoutGroup("Lockpick Break"), Range(0f, 1f)]
+    [SerializeField] private float lockpickBreakSfxVolume = 1f;
+
+    [FoldoutGroup("Lockpick Break"), MinValue(0f), SuffixLabel("s", true)]
+    [SerializeField] private float lockpickBreakRetryDelay = 0.35f;
+
+    [FoldoutGroup("Lockpick Break"), MinValue(0f)]
+    [SerializeField] private float lockpickBreakNoise = 0.25f;
+
+    [FoldoutGroup("Lockpick Break")]
+    [SerializeField] private NoiseType lockpickBreakNoiseType = NoiseType.Common;
+
+    [FoldoutGroup("Lockpick Break")]
+    [SerializeField] private bool lockpickBreakExtremeNoise;
+
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsSessionActive => activeLockpickTarget != null;
 
@@ -190,6 +213,8 @@ public sealed class LockpickMinigameController : MonoBehaviour
     private bool navigationAxisEngaged;
     private bool waitForPushRelease;
     private bool successClosePending;
+    private bool lockpickBreakDelayActive;
+    private float lockpickBreakDelayEndsAt;
     private bool CanStartSessions => panelRoot != null && selectorRect != null && resolvedTumblerViews.Count > 0;
 
     /// <summary>
@@ -264,6 +289,11 @@ public sealed class LockpickMinigameController : MonoBehaviour
         tumblerLockVolume = Mathf.Clamp01(tumblerLockVolume);
         tumblerShakingLoopVolume = Mathf.Clamp01(tumblerShakingLoopVolume);
         lockpickCompleteVolume = Mathf.Clamp01(lockpickCompleteVolume);
+        lockpickBreakSfx ??= new AudioClipSet();
+        lockpickBreakSfx.Validate();
+        lockpickBreakSfxVolume = Mathf.Clamp01(lockpickBreakSfxVolume);
+        lockpickBreakRetryDelay = Mathf.Max(0f, lockpickBreakRetryDelay);
+        lockpickBreakNoise = Mathf.Max(0f, lockpickBreakNoise);
         ResolveReferences();
         RebuildResolvedTumblerViews();
     }
@@ -288,6 +318,17 @@ public sealed class LockpickMinigameController : MonoBehaviour
             return;
         }
 
+        if (lockpickBreakDelayActive)
+        {
+            if (Time.unscaledTime < lockpickBreakDelayEndsAt)
+            {
+                TrackSelectorToAnimatedTumbler();
+                return;
+            }
+
+            lockpickBreakDelayActive = false;
+        }
+
         inputReader ??= new RewiredPlayerInputReader(rewiredPlayerId);
         if (!inputReader.IsReady)
             return;
@@ -305,6 +346,12 @@ public sealed class LockpickMinigameController : MonoBehaviour
         if (closePressed)
         {
             CancelAndResetActiveSession();
+            return;
+        }
+
+        if (!PlayerLockpickInventoryUtility.HasAnyLockpickUses(activeInteractorRoot))
+        {
+            TrackSelectorToAnimatedTumbler();
             return;
         }
 
@@ -356,8 +403,13 @@ public sealed class LockpickMinigameController : MonoBehaviour
         RebuildResolvedTumblerViews();
 
         int usableTumblerCount = Mathf.Min(lockpickTarget.Definition.TumblerCount, resolvedTumblerViews.Count);
-        if (panelRoot == null || selectorRect == null || usableTumblerCount <= 0)
+        if (panelRoot == null ||
+            selectorRect == null ||
+            usableTumblerCount <= 0 ||
+            !PlayerLockpickInventoryUtility.HasAnyLockpickUses(interactorRoot))
+        {
             return false;
+        }
 
         activeLockpickTarget = lockpickTarget;
         activeLockpickTargetBehaviour = targetBehaviour;
@@ -458,6 +510,7 @@ public sealed class LockpickMinigameController : MonoBehaviour
         activeTumblerCount = Mathf.Max(0, usableTumblerCount);
         selectedIndex = 0;
         navigationAxisEngaged = false;
+        RefreshLockpickUsesText();
 
         EnsureStateCapacity(activeTumblerCount);
         for (int i = 0; i < resolvedTumblerViews.Count; i++)
@@ -621,6 +674,9 @@ public sealed class LockpickMinigameController : MonoBehaviour
         if (selectedState.IsLocked)
             return;
 
+        if (!PlayerLockpickInventoryUtility.HasAnyLockpickUses(activeInteractorRoot))
+            return;
+
         LockpickTumblerView selectedView = resolvedTumblerViews[selectedIndex];
         if (inputReader != null && inputReader.GetButtonUp(pushAction))
         {
@@ -736,6 +792,7 @@ public sealed class LockpickMinigameController : MonoBehaviour
         StopShakeLoopSfx();
         tumblerView.TweenToDepth(0f, duration, tumblerResetEase);
         PlayOneShot(tumblerFailSfx, tumblerFailVolume);
+        HandleLockpickBroken();
     }
 
     /// <summary>
@@ -837,6 +894,9 @@ public sealed class LockpickMinigameController : MonoBehaviour
         selectedIndex = 0;
         navigationAxisEngaged = false;
         waitForPushRelease = false;
+        lockpickBreakDelayActive = false;
+        lockpickBreakDelayEndsAt = 0f;
+        RefreshLockpickUsesText();
     }
 
     /// <summary>
@@ -864,6 +924,58 @@ public sealed class LockpickMinigameController : MonoBehaviour
         uiAudioSource.volume = 1f;
         uiAudioSource.loop = false;
         uiAudioSource.PlayOneShot(clip, Mathf.Clamp01(volume));
+    }
+
+    /// <summary>
+    /// Consumes one lockpick use, refreshes the counter, and briefly blocks another push attempt.
+    /// </summary>
+    private void HandleLockpickBroken()
+    {
+        if (!PlayerLockpickInventoryUtility.TryConsumeLockpickUse(activeInteractorRoot))
+        {
+            RefreshLockpickUsesText();
+            return;
+        }
+
+        RefreshLockpickUsesText();
+        PlayLockpickBreakFeedback();
+        if (lockpickBreakRetryDelay <= 0f)
+            return;
+
+        lockpickBreakDelayActive = true;
+        lockpickBreakDelayEndsAt = Time.unscaledTime + lockpickBreakRetryDelay;
+    }
+
+    /// <summary>
+    /// Plays world-space break SFX and emits a noise event from the lock target position.
+    /// </summary>
+    private void PlayLockpickBreakFeedback()
+    {
+        Vector3 feedbackPosition = activeLockpickTargetBehaviour != null
+            ? activeLockpickTargetBehaviour.transform.position
+            : transform.position;
+
+        GameObject noiseSource = activeLockpickTargetBehaviour != null
+            ? activeLockpickTargetBehaviour.gameObject
+            : gameObject;
+
+        if (lockpickBreakNoise > 0f)
+            NoiseManager.EmitNoise(feedbackPosition, lockpickBreakNoise, lockpickBreakNoiseType, noiseSource, lockpickBreakExtremeNoise);
+
+        WorldSfxManager.Instance?.PlayClipSetAt(feedbackPosition, lockpickBreakSfx, lockpickBreakNoiseType, lockpickBreakSfxVolume);
+    }
+
+    /// <summary>
+    /// Updates the lockpick uses text with the active player's total remaining lockpick charges.
+    /// </summary>
+    private void RefreshLockpickUsesText()
+    {
+        if (lockpickUsesText == null)
+            return;
+
+        int totalUses = 0;
+        PlayerLockpickInventoryUtility.TryGetTotalLockpickUses(activeInteractorRoot, out totalUses);
+        lockpickUsesText.text = totalUses.ToString();
     }
 
     /// <summary>

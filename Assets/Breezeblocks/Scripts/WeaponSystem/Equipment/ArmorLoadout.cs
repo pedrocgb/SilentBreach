@@ -8,6 +8,9 @@ namespace Breezeblocks.WeaponSystem
 
 public readonly struct ArmorImpactResult
 {
+    /// <summary>
+    /// Creates the result of applying incoming damage against the current armor state.
+    /// </summary>
     public ArmorImpactResult(bool hadArmor, bool penetrated, float damageToArmor, float damageToHealth)
     {
         HadArmor = hadArmor;
@@ -26,33 +29,32 @@ public readonly struct ArmorImpactResult
 [AddComponentMenu("Breezeblocks/Combat/Armor Loadout")]
 public class ArmorLoadout : MonoBehaviour
 {
-    [FoldoutGroup("Armor"), AssetsOnly]
-    [SerializeField] private ArmorData startingArmor;
+    private ArmorData equippedArmor;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
-    public ArmorData EquippedArmor => startingArmor;
+    public ArmorData EquippedArmor => equippedArmor;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public float CurrentArmorValue { get; private set; }
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
-    public float MaxArmorValue => startingArmor != null ? startingArmor.ArmorValue : 0f;
+    public float MaxArmorValue => equippedArmor != null ? equippedArmor.ArmorValue : 0f;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
-    public bool HasArmor => startingArmor != null && CurrentArmorValue > 0f;
+    public bool HasArmor => equippedArmor != null && CurrentArmorValue > 0f;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
-    public bool HasEquippedArmor => startingArmor != null;
+    public bool HasEquippedArmor => equippedArmor != null;
 
     public float RotationPenaltyPercent => HasEquippedArmor
-        ? startingArmor.RotationPenalty * perkRotationPenaltyMultiplier
+        ? equippedArmor.RotationPenalty * perkRotationPenaltyMultiplier
         : 0f;
     public float RotationSpeedMultiplier => 1f - Mathf.Clamp01(RotationPenaltyPercent / 100f);
     public float MovementNoiseMultiplier => HasEquippedArmor
-        ? 1f + ((startingArmor.MovementNoiseModifierPercent * perkMovementPenaltyMultiplier) / 100f)
+        ? 1f + ((equippedArmor.MovementNoiseModifierPercent * perkMovementPenaltyMultiplier) / 100f)
         : 1f;
     public float MovementSpeedPenaltyPercent => HasEquippedArmor
-        ? startingArmor.MovementSpeedPenaltyPercent * perkMovementPenaltyMultiplier
+        ? equippedArmor.MovementSpeedPenaltyPercent * perkMovementPenaltyMultiplier
         : 0f;
     public float MovementSpeedMultiplier => 1f - Mathf.Clamp01(MovementSpeedPenaltyPercent / 100f);
 
@@ -61,25 +63,37 @@ public class ArmorLoadout : MonoBehaviour
     private float perkRotationPenaltyMultiplier = 1f;
     private float perkMovementPenaltyMultiplier = 1f;
 
+    /// <summary>
+    /// Initializes armor durability from the current runtime armor item.
+    /// </summary>
     private void Awake()
     {
         RestoreArmor();
     }
 
+    /// <summary>
+    /// Restores durability to the currently equipped armor's maximum value.
+    /// </summary>
     [Button(ButtonSizes.Small)]
     [FoldoutGroup("Debug")]
     public void RestoreArmor()
     {
-        CurrentArmorValue = startingArmor != null ? startingArmor.ArmorValue : 0f;
+        CurrentArmorValue = equippedArmor != null ? equippedArmor.ArmorValue : 0f;
         NotifyArmorChanged();
     }
 
+    /// <summary>
+    /// Equips a runtime armor item and restores its durability.
+    /// </summary>
     public void EquipArmor(ArmorData armorData)
     {
-        startingArmor = armorData;
+        equippedArmor = armorData;
         RestoreArmor();
     }
 
+    /// <summary>
+    /// Applies perk modifiers that reduce armor movement and rotation penalties.
+    /// </summary>
     public void ApplyPerkModifiers(PlayerPerkModifierSet modifiers)
     {
         perkRotationPenaltyMultiplier = modifiers != null ? Mathf.Max(0f, modifiers.ArmorRotationPenaltyMultiplier) : 1f;
@@ -87,6 +101,9 @@ public class ArmorLoadout : MonoBehaviour
         NotifyArmorChanged();
     }
 
+    /// <summary>
+    /// Resolves a projectile hit against the currently equipped armor.
+    /// </summary>
     public ArmorImpactResult ResolveProjectileImpact(ProjectileData projectile)
     {
         if (projectile == null)
@@ -95,6 +112,9 @@ public class ArmorLoadout : MonoBehaviour
         return ResolveImpact(projectile.Damage, projectile.Penetration);
     }
 
+    /// <summary>
+    /// Resolves direct damage against the currently equipped armor.
+    /// </summary>
     public ArmorImpactResult ResolveDirectImpact(float damage, int penetration)
     {
         if (damage <= 0f)
@@ -103,24 +123,30 @@ public class ArmorLoadout : MonoBehaviour
         return ResolveImpact(damage, penetration);
     }
 
+    /// <summary>
+    /// Applies damage to armor or health based on penetration and current durability.
+    /// </summary>
     private ArmorImpactResult ResolveImpact(float damage, int penetration)
     {
         float clampedDamage = Mathf.Max(0f, damage);
-        if (!HasArmor || startingArmor == null)
+        if (!HasArmor || equippedArmor == null)
             return new ArmorImpactResult(false, true, 0f, clampedDamage);
 
-        if (penetration > startingArmor.ArmorClass)
+        if (penetration > equippedArmor.ArmorClass)
             return new ArmorImpactResult(true, true, 0f, clampedDamage);
 
         float armorDamage = clampedDamage;
-        if (penetration < startingArmor.ArmorClass)
-            armorDamage = startingArmor.ArmorClass > 0 ? clampedDamage / startingArmor.ArmorClass : clampedDamage;
+        if (penetration < equippedArmor.ArmorClass)
+            armorDamage = equippedArmor.ArmorClass > 0 ? clampedDamage / equippedArmor.ArmorClass : clampedDamage;
 
         CurrentArmorValue = Mathf.Max(0f, CurrentArmorValue - armorDamage);
         NotifyArmorChanged();
         return new ArmorImpactResult(true, false, armorDamage, 0f);
     }
 
+    /// <summary>
+    /// Notifies listeners that equipped armor or durability changed.
+    /// </summary>
     private void NotifyArmorChanged()
     {
         ArmorChanged?.Invoke();

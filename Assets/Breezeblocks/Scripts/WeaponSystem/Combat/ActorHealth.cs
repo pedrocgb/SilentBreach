@@ -20,17 +20,8 @@ public class ActorHealth : MonoBehaviour
     private bool isSleeping;
 
         [FoldoutGroup("State Presentation")]
-    [FoldoutGroup("State Presentation/Visuals")]
+       [FoldoutGroup("State Presentation/Visuals")]
     [SerializeField] private SpriteRenderer stateSpriteRenderer;
-
-    [FoldoutGroup("State Presentation/Visuals"), PreviewField(72, ObjectFieldAlignment.Left)]
-    [SerializeField] private Sprite incapacitatedSprite;
-
-    [FoldoutGroup("State Presentation/Visuals"), PreviewField(72, ObjectFieldAlignment.Left)]
-    [SerializeField] private Sprite deadSprite;
-
-    [FoldoutGroup("State Presentation/Visuals"), PreviewField(72, ObjectFieldAlignment.Left)]
-    [SerializeField] private Sprite sleepingSprite;
 
     [FoldoutGroup("State Presentation/Disable On Incapacitated Or Dead"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
     [SerializeField] private List<MonoBehaviour> additionalBehavioursToDisable = new();
@@ -65,6 +56,9 @@ public class ActorHealth : MonoBehaviour
     private readonly List<MonoBehaviour> runtimeBehavioursToDisable = new();
     private readonly Dictionary<MonoBehaviour, bool> cachedEnabledStates = new();
     private Rigidbody2D movementBody;
+    private Sprite incapacitatedSprite;
+    private Sprite deadSprite;
+    private Sprite sleepingSprite;
     private Sprite defaultSprite;
     private bool defaultSpriteCached;
 
@@ -117,6 +111,9 @@ public class ActorHealth : MonoBehaviour
 
         maxHealth = Mathf.Max(0f, settings.MaxHealth);
         isInvincible = settings.IsInvincible;
+        incapacitatedSprite = settings.IncapacitatedSprite;
+        deadSprite = settings.DeadSprite;
+        sleepingSprite = settings.SleepingSprite;
 
         if (!Application.isPlaying || restoreFullHealth)
         {

@@ -12,6 +12,27 @@ public class ActorHealthSettings
 
     [FoldoutGroup("Health")]
     public bool IsInvincible;
+
+    [FoldoutGroup("Recovery"), Range(0f, 1f)]
+    public float RestoredHealthFractionOnWake = 1f;
+
+    [FoldoutGroup("State Presentation"), PreviewField(72, ObjectFieldAlignment.Left)]
+    public Sprite IncapacitatedSprite;
+
+    [FoldoutGroup("State Presentation"), PreviewField(72, ObjectFieldAlignment.Left)]
+    public Sprite DeadSprite;
+
+    [FoldoutGroup("State Presentation"), PreviewField(72, ObjectFieldAlignment.Left)]
+    public Sprite SleepingSprite;
+
+    /// <summary>
+    /// Clamps health and recovery settings to safe runtime ranges.
+    /// </summary>
+    public void Validate()
+    {
+        MaxHealth = Mathf.Max(0f, MaxHealth);
+        RestoredHealthFractionOnWake = Mathf.Clamp01(RestoredHealthFractionOnWake);
+    }
 }
 
 [Serializable]
@@ -28,6 +49,28 @@ public class ActorStaggerSettings
 }
 
 [Serializable]
+public class MissionActorIdentitySettings
+{
+    [FoldoutGroup("Identity")]
+    public string ActorId;
+
+    [FoldoutGroup("Identity")]
+    public string ActorDisplayName;
+
+    [FoldoutGroup("Identity")]
+    public bool IsInnocent;
+
+    /// <summary>
+    /// Trims identity strings so mission matching remains consistent.
+    /// </summary>
+    public void Validate()
+    {
+        ActorId = ActorId != null ? ActorId.Trim() : string.Empty;
+        ActorDisplayName = ActorDisplayName != null ? ActorDisplayName.Trim() : string.Empty;
+    }
+}
+
+[Serializable]
 public class EnemySleepSettings
 {
     [FoldoutGroup("Startup")]
@@ -35,6 +78,304 @@ public class EnemySleepSettings
 
     [FoldoutGroup("Startup"), ShowIf(nameof(StartSleeping)), EnumToggleButtons]
     public EnemySleepType StartSleepType = EnemySleepType.NormalSleep;
+
+    [FoldoutGroup("Wake Thresholds"), Range(0f, 1f)]
+    public float NormalSleepWakeThreshold = 0.4f;
+
+    [FoldoutGroup("Wake Thresholds"), Range(0f, 1f)]
+    public float DeepSleepWakeThreshold = 0.8f;
+
+    [FoldoutGroup("Auto Wake"), MinValue(0f), SuffixLabel("s", true)]
+    public float NormalSleepAutoWakeDelay = 120f;
+
+    [FoldoutGroup("Auto Wake"), MinValue(0f), SuffixLabel("s", true)]
+    public float DeepSleepAutoWakeDelay = 240f;
+
+    [FoldoutGroup("Auto Wake"), MinValue(0f), SuffixLabel("s", true)]
+    public float ForcedSleepAutoWakeDelay = 60f;
+
+    /// <summary>
+    /// Clamps sleep settings to safe runtime ranges.
+    /// </summary>
+    public void Validate()
+    {
+        NormalSleepWakeThreshold = Mathf.Clamp01(NormalSleepWakeThreshold);
+        DeepSleepWakeThreshold = Mathf.Clamp01(DeepSleepWakeThreshold);
+        NormalSleepAutoWakeDelay = Mathf.Max(0f, NormalSleepAutoWakeDelay);
+        DeepSleepAutoWakeDelay = Mathf.Max(0f, DeepSleepAutoWakeDelay);
+        ForcedSleepAutoWakeDelay = Mathf.Max(0f, ForcedSleepAutoWakeDelay);
+    }
+}
+
+[Serializable]
+public class EnemyRoomAwarenessSettings
+{
+    private const float MinimumInterval = 0.02f;
+
+    [FoldoutGroup("Room Awareness")]
+    public bool RoomAwareness = true;
+
+    [FoldoutGroup("Room Awareness"), MinValue(MinimumInterval), SuffixLabel("s", true)]
+    public float RoomCheckInterval = 0.15f;
+
+    [FoldoutGroup("Light Reaction")]
+    public bool ConfusedByLightsOff;
+
+    [FoldoutGroup("Light Reaction"), HideIf(nameof(ConfusedByLightsOff)), MinValue(0f), SuffixLabel("s", true)]
+    public float WaitBeforeSwitchDuration = 1f;
+
+    [FoldoutGroup("Light Reaction"), HideIf(nameof(ConfusedByLightsOff)), MinValue(0f), SuffixLabel("s", true)]
+    public float LookAroundDurationAfterTurningLightsOn = 2.5f;
+
+    [FoldoutGroup("Light Reaction"), HideIf(nameof(ConfusedByLightsOff)), MinValue(MinimumInterval), SuffixLabel("s", true)]
+    public float LookAroundTurnInterval = 0.45f;
+
+    [FoldoutGroup("Light Reaction"), HideIf(nameof(ConfusedByLightsOff)), MinValue(0f), SuffixLabel("deg/s", true)]
+    public float LookAroundRotationSpeed = 420f;
+
+    [FoldoutGroup("Confused Reaction"), ShowIf(nameof(ConfusedByLightsOff)), MinValue(MinimumInterval), SuffixLabel("s", true)]
+    public float ConfusedReactionDuration = 1.2f;
+
+    [FoldoutGroup("Door State Awareness")]
+    public bool DoorStateAwareness = true;
+
+    [FoldoutGroup("Door State Awareness"), MinValue(0f), SuffixLabel("s", true)]
+    public float WaitBeforeDoorStateFixDuration = 1f;
+
+    /// <summary>
+    /// Clamps room awareness settings to safe runtime ranges.
+    /// </summary>
+    public void Validate()
+    {
+        RoomCheckInterval = Mathf.Max(MinimumInterval, RoomCheckInterval);
+        WaitBeforeSwitchDuration = Mathf.Max(0f, WaitBeforeSwitchDuration);
+        LookAroundDurationAfterTurningLightsOn = Mathf.Max(0f, LookAroundDurationAfterTurningLightsOn);
+        LookAroundTurnInterval = Mathf.Max(MinimumInterval, LookAroundTurnInterval);
+        LookAroundRotationSpeed = Mathf.Max(0f, LookAroundRotationSpeed);
+        ConfusedReactionDuration = Mathf.Max(MinimumInterval, ConfusedReactionDuration);
+        WaitBeforeDoorStateFixDuration = Mathf.Max(0f, WaitBeforeDoorStateFixDuration);
+    }
+}
+
+[Serializable]
+public class EnemyConfusedReactionSettings
+{
+    [FoldoutGroup("Animation"), SuffixLabel("s", true), MinValue(0.02f)]
+    public float PoseHoldDuration = 0.2f;
+
+    [FoldoutGroup("Animation")]
+    public Vector2 FirstLocalPosition = new(1f, 0f);
+
+    [FoldoutGroup("Animation"), SuffixLabel("deg", true)]
+    public float FirstLocalRotationZ = 30f;
+
+    [FoldoutGroup("Animation")]
+    public Vector2 SecondLocalPosition = new(-1f, 0f);
+
+    [FoldoutGroup("Animation"), SuffixLabel("deg", true)]
+    public float SecondLocalRotationZ = -30f;
+
+    /// <summary>
+    /// Clamps confused indicator timings to safe runtime ranges.
+    /// </summary>
+    public void Validate()
+    {
+        PoseHoldDuration = Mathf.Max(0.02f, PoseHoldDuration);
+    }
+}
+
+[Serializable]
+public class ActorFootstepSfxSettings
+{
+    private const float MinimumSpeed = 0.01f;
+
+    [FoldoutGroup("SFX"), InlineProperty, HideLabel]
+    public AudioClipSet FootstepSfx = new();
+
+    [FoldoutGroup("SFX"), EnumToggleButtons]
+    public NoiseType FootstepSoundType = NoiseType.Common;
+
+    [FoldoutGroup("Timing"), MinValue(0f)]
+    public float MinSpeedThreshold = 0.2f;
+
+    [FoldoutGroup("Timing"), MinValue(MinimumSpeed)]
+    public float SpeedForFastestStep = 5f;
+
+    [FoldoutGroup("Timing"), MinValue(0.01f), SuffixLabel("s", true)]
+    public float SlowStepInterval = 0.5f;
+
+    [FoldoutGroup("Timing"), MinValue(0.01f), SuffixLabel("s", true)]
+    public float FastStepInterval = 0.22f;
+
+    [FoldoutGroup("Mix"), Range(0f, 1f)]
+    public float MinimumVolumeMultiplier = 0.7f;
+
+    [FoldoutGroup("Mix"), Range(0f, 2f)]
+    public float MaximumVolumeMultiplier = 1f;
+
+    /// <summary>
+    /// Clamps footstep audio settings and validates nested clip data.
+    /// </summary>
+    public void Validate()
+    {
+        FootstepSfx ??= new AudioClipSet();
+        FootstepSfx.Validate();
+        MinSpeedThreshold = Mathf.Max(0f, MinSpeedThreshold);
+        SpeedForFastestStep = Mathf.Max(MinimumSpeed, SpeedForFastestStep);
+        SlowStepInterval = Mathf.Max(0.01f, SlowStepInterval);
+        FastStepInterval = Mathf.Max(0.01f, FastStepInterval);
+        MaximumVolumeMultiplier = Mathf.Max(0f, MaximumVolumeMultiplier);
+        MinimumVolumeMultiplier = Mathf.Clamp(MinimumVolumeMultiplier, 0f, MaximumVolumeMultiplier);
+    }
+}
+
+[Serializable]
+public class CharacterOrbitHandsSettings
+{
+    [FoldoutGroup("Rig"), MinValue(0f)]
+    public float SideOffset = 0.55f;
+
+    [FoldoutGroup("Rig"), MinValue(0f)]
+    public float LocomotionSwingAmplitude = 0.28f;
+
+    [FoldoutGroup("Rig"), MinValue(0f)]
+    public float HoldDistance = 0.52f;
+
+    [FoldoutGroup("Rig"), MinValue(0f)]
+    public float HoldHandSeparation = 0.12f;
+
+    [FoldoutGroup("Rig"), MinValue(0f)]
+    public float HeldItemScale = 0.75f;
+
+    [FoldoutGroup("Rig"), MinValue(0f)]
+    public float BodyDragHoldDistance = 0.24f;
+
+    [FoldoutGroup("Rig"), MinValue(0f)]
+    public float BodyDragHandSeparation = 0.05f;
+
+    [FoldoutGroup("Rig")]
+    public float HeldItemRotationOffset;
+
+    [FoldoutGroup("Rig"), MinValue(0f)]
+    public float AutoCreatedHandScale = 0.7f;
+
+    [FoldoutGroup("Motion"), MinValue(0f)]
+    public float SwingCyclesPerSpeedUnit = 1.35f;
+
+    [FoldoutGroup("Motion"), MinValue(0f)]
+    public float MinimumMoveSpeedForSwing = 0.05f;
+
+    [FoldoutGroup("Motion"), MinValue(0f)]
+    public float LocomotionDirectionSmoothing = 18f;
+
+    [FoldoutGroup("Motion"), MinValue(0f)]
+    public float EnemyUnarmedHandSmoothing = 22f;
+
+    /// <summary>
+    /// Clamps hand rig and motion settings to non-negative ranges.
+    /// </summary>
+    public void Validate()
+    {
+        SideOffset = Mathf.Max(0f, SideOffset);
+        LocomotionSwingAmplitude = Mathf.Max(0f, LocomotionSwingAmplitude);
+        HoldDistance = Mathf.Max(0f, HoldDistance);
+        HoldHandSeparation = Mathf.Max(0f, HoldHandSeparation);
+        HeldItemScale = Mathf.Max(0f, HeldItemScale);
+        BodyDragHoldDistance = Mathf.Max(0f, BodyDragHoldDistance);
+        BodyDragHandSeparation = Mathf.Max(0f, BodyDragHandSeparation);
+        AutoCreatedHandScale = Mathf.Max(0f, AutoCreatedHandScale);
+        SwingCyclesPerSpeedUnit = Mathf.Max(0f, SwingCyclesPerSpeedUnit);
+        MinimumMoveSpeedForSwing = Mathf.Max(0f, MinimumMoveSpeedForSwing);
+        LocomotionDirectionSmoothing = Mathf.Max(0f, LocomotionDirectionSmoothing);
+        EnemyUnarmedHandSmoothing = Mathf.Max(0f, EnemyUnarmedHandSmoothing);
+    }
+}
+
+[Serializable]
+public class PlayerControlsSettings
+{
+    [FoldoutGroup("Player"), MinValue(0)]
+    public int RewiredPlayerId = 1;
+
+    [FoldoutGroup("Movement")]
+    public string MoveHorizontalAction = "Move Horizontal";
+
+    [FoldoutGroup("Movement")]
+    public string MoveVerticalAction = "Move Vertical";
+
+    [FoldoutGroup("Movement")]
+    public string SprintAction = "Sprint";
+
+    [FoldoutGroup("Movement")]
+    public string ToggleMinMaxSpeedAction = "Toggle Speed MinMax";
+
+    [FoldoutGroup("Movement")]
+    public string MouseWheelAxisAction = "Mouse Wheel";
+
+    [FoldoutGroup("Combat")]
+    public string AimAction = "Aim";
+
+    [FoldoutGroup("Combat")]
+    public string FireAction = "Fire";
+
+    [FoldoutGroup("Combat")]
+    public string ReloadAction = "Reload";
+
+    [FoldoutGroup("Combat")]
+    public string CycleFireModeAction = "Cycle Fire Mode";
+
+    [FoldoutGroup("Utility")]
+    public string CancelThrowableAction = "Cancel Throw";
+
+    [FoldoutGroup("Equipment")]
+    public string EquipPrimaryAction = "Equip Primary";
+
+    [FoldoutGroup("Equipment")]
+    public string EquipSecondaryAction = "Equip Secondary";
+
+    [FoldoutGroup("Equipment")]
+    public string EquipBeltAction = "Equip Belt";
+
+    [FoldoutGroup("Equipment")]
+    public string ToggleEquipmentPanelAction = "Toggle Equipment Panel";
+
+    [FoldoutGroup("Interaction")]
+    public string InteractAction = "Interact";
+
+    [FoldoutGroup("Focus")]
+    public string FocusAction = "Focus";
+
+    /// <summary>
+    /// Normalizes player id and action names used by Rewired-backed player systems.
+    /// </summary>
+    public void Validate()
+    {
+        RewiredPlayerId = Mathf.Max(0, RewiredPlayerId);
+        MoveHorizontalAction = NormalizeAction(MoveHorizontalAction, "Move Horizontal");
+        MoveVerticalAction = NormalizeAction(MoveVerticalAction, "Move Vertical");
+        SprintAction = NormalizeAction(SprintAction, "Sprint");
+        ToggleMinMaxSpeedAction = NormalizeAction(ToggleMinMaxSpeedAction, "Toggle Speed MinMax");
+        MouseWheelAxisAction = NormalizeAction(MouseWheelAxisAction, "Mouse Wheel");
+        AimAction = NormalizeAction(AimAction, "Aim");
+        FireAction = NormalizeAction(FireAction, "Fire");
+        ReloadAction = NormalizeAction(ReloadAction, "Reload");
+        CycleFireModeAction = NormalizeAction(CycleFireModeAction, "Cycle Fire Mode");
+        CancelThrowableAction = NormalizeAction(CancelThrowableAction, "Cancel Throw");
+        EquipPrimaryAction = NormalizeAction(EquipPrimaryAction, "Equip Primary");
+        EquipSecondaryAction = NormalizeAction(EquipSecondaryAction, "Equip Secondary");
+        EquipBeltAction = NormalizeAction(EquipBeltAction, "Equip Belt");
+        ToggleEquipmentPanelAction = NormalizeAction(ToggleEquipmentPanelAction, "Toggle Equipment Panel");
+        InteractAction = NormalizeAction(InteractAction, "Interact");
+        FocusAction = NormalizeAction(FocusAction, "Focus");
+    }
+
+    /// <summary>
+    /// Keeps action names non-empty so Rewired reads remain valid after inspector edits.
+    /// </summary>
+    private static string NormalizeAction(string actionName, string fallback)
+    {
+        return string.IsNullOrWhiteSpace(actionName) ? fallback : actionName.Trim();
+    }
 }
 
 [Serializable]
@@ -69,6 +410,9 @@ public class PlayerMovementSettings
 
     [FoldoutGroup("Physics")]
     public bool FreezeRotationZ = true;
+
+    [FoldoutGroup("UI")]
+    public bool FillVelocityByLevel = true;
 }
 
 [Serializable]
@@ -206,6 +550,296 @@ public class PlayerStaminaSettings
 
     [FoldoutGroup("Stamina"), MinValue(0f)]
     public float MovementThreshold = 0.05f;
+
+    [FoldoutGroup("UI")]
+    public string StaminaTextFormat = "{0:0}/{1:0}";
+
+    [FoldoutGroup("UI Feedback"), MinValue(0f), SuffixLabel("s", true)]
+    public float InsufficientStaminaShakeDuration = 0.2f;
+
+    [FoldoutGroup("UI Feedback"), MinValue(0f)]
+    public float InsufficientStaminaShakeStrength = 18f;
+
+    [FoldoutGroup("UI Feedback"), MinValue(1)]
+    public int InsufficientStaminaShakeVibrato = 18;
+
+    /// <summary>
+    /// Clamps stamina values and UI feedback settings to safe ranges.
+    /// </summary>
+    public void Validate()
+    {
+        MaxStamina = Mathf.Max(0f, MaxStamina);
+        SprintDrainPerSecond = Mathf.Max(0f, SprintDrainPerSecond);
+        RegenerationPerSecond = Mathf.Max(0f, RegenerationPerSecond);
+        RegenerationDelayAfterSpend = Mathf.Max(0f, RegenerationDelayAfterSpend);
+        StaggerStaminaLossPercent = Mathf.Clamp(StaggerStaminaLossPercent, 0f, 100f);
+        MovementThreshold = Mathf.Max(0f, MovementThreshold);
+        StaminaTextFormat = string.IsNullOrWhiteSpace(StaminaTextFormat) ? "{0:0}/{1:0}" : StaminaTextFormat.Trim();
+        InsufficientStaminaShakeDuration = Mathf.Max(0f, InsufficientStaminaShakeDuration);
+        InsufficientStaminaShakeStrength = Mathf.Max(0f, InsufficientStaminaShakeStrength);
+        InsufficientStaminaShakeVibrato = Mathf.Max(1, InsufficientStaminaShakeVibrato);
+    }
+}
+
+[Serializable]
+public class PlayerFocusSettings
+{
+    [FoldoutGroup("Focus"), MinValue(0f), SuffixLabel("s", true)]
+    public float MaxFocusSeconds = 6f;
+
+    [FoldoutGroup("Focus")]
+    public bool Regenerate = true;
+
+    [FoldoutGroup("Focus"), ShowIf(nameof(Regenerate)), MinValue(0f)]
+    public float RegenerationPerSecond = 1.25f;
+
+    [FoldoutGroup("Focus"), ShowIf(nameof(Regenerate)), MinValue(0f), SuffixLabel("s", true)]
+    public float RegenerationDelayAfterUse = 1.25f;
+
+    [FoldoutGroup("Focus Effect"), Range(-100f, 100f)]
+    public float FocusSaturation = -100f;
+
+    [FoldoutGroup("Focus Effect"), MinValue(0f), SuffixLabel("s", true)]
+    public float FocusTransitionDuration = 0.22f;
+
+    /// <summary>
+    /// Clamps focus timing and visual effect values to valid ranges.
+    /// </summary>
+    public void Validate()
+    {
+        MaxFocusSeconds = Mathf.Max(0f, MaxFocusSeconds);
+        RegenerationPerSecond = Mathf.Max(0f, RegenerationPerSecond);
+        RegenerationDelayAfterUse = Mathf.Max(0f, RegenerationDelayAfterUse);
+        FocusSaturation = Mathf.Clamp(FocusSaturation, -100f, 100f);
+        FocusTransitionDuration = Mathf.Max(0f, FocusTransitionDuration);
+    }
+}
+
+[Serializable]
+public class PlayerStaggerFeedbackSettings
+{
+    [FoldoutGroup("Effect"), MinValue(0.01f), SuffixLabel("s", true)]
+    public float FullStrengthReferenceDuration = 0.5f;
+
+    [FoldoutGroup("Effect"), MinValue(0f)]
+    public float EffectLerpSpeed = 10f;
+
+    [FoldoutGroup("Effect"), Range(0f, 1f)]
+    public float MaxVignetteIntensity = 0.32f;
+
+    [FoldoutGroup("Effect"), Range(0f, 1f)]
+    public float MaxChromaticAberration = 0.22f;
+
+    [FoldoutGroup("Effect"), Range(-1f, 1f)]
+    public float MaxLensDistortion = -0.18f;
+
+    /// <summary>
+    /// Clamps stagger feedback post-processing values to safe ranges.
+    /// </summary>
+    public void Validate()
+    {
+        FullStrengthReferenceDuration = Mathf.Max(0.01f, FullStrengthReferenceDuration);
+        EffectLerpSpeed = Mathf.Max(0f, EffectLerpSpeed);
+        MaxVignetteIntensity = Mathf.Clamp01(MaxVignetteIntensity);
+        MaxChromaticAberration = Mathf.Clamp01(MaxChromaticAberration);
+        MaxLensDistortion = Mathf.Clamp(MaxLensDistortion, -1f, 1f);
+    }
+}
+
+[Serializable]
+public class PlayerWeaponControllerSettings
+{
+    [FoldoutGroup("Pooling"), AssetsOnly]
+    public HitscanProjectile ProjectilePrefab;
+
+    [FoldoutGroup("Pooling"), MinValue(0)]
+    public int ProjectilePoolPrewarm = 16;
+
+    [FoldoutGroup("Pooling"), AssetsOnly]
+    public MuzzleFlashEffect MuzzleFlashPrefab;
+
+    [FoldoutGroup("Pooling"), MinValue(0)]
+    public int MuzzleFlashPoolPrewarm = 8;
+
+    [FoldoutGroup("Aiming"), MinValue(0f)]
+    public float LookRotationSpeed = 720f;
+
+    [FoldoutGroup("Aiming"), MinValue(0f)]
+    public float StationarySpeedThreshold = 0.05f;
+
+    [FoldoutGroup("Aiming"), MinValue(0f)]
+    public float DebugTraceDuration = 0.1f;
+
+    [FoldoutGroup("Feedback")]
+    public float MuzzleFlashRotationOffset;
+
+    [FoldoutGroup("Debug Loadout")]
+    public bool AutoEquipDebugWeaponOnStart;
+
+    [FoldoutGroup("Debug Loadout"), AssetsOnly]
+    public FirearmData DebugFirearm;
+
+    [FoldoutGroup("Debug Loadout"), AssetsOnly]
+    public ProjectileData DebugProjectile;
+
+    [FoldoutGroup("Debug Loadout"), MinValue(-1)]
+    public int DebugStartingLoadedAmmo = -1;
+
+    [FoldoutGroup("Debug Loadout"), MinValue(-1)]
+    public int DebugStartingReserveAmmo = -1;
+
+    [FoldoutGroup("Debug Loadout"), MinValue(0)]
+    public int DebugReserveAmmoAddAmount = 12;
+
+    /// <summary>
+    /// Clamps weapon controller timing, pooling, and debug values to safe ranges.
+    /// </summary>
+    public void Validate()
+    {
+        ProjectilePoolPrewarm = Mathf.Max(0, ProjectilePoolPrewarm);
+        MuzzleFlashPoolPrewarm = Mathf.Max(0, MuzzleFlashPoolPrewarm);
+        LookRotationSpeed = Mathf.Max(0f, LookRotationSpeed);
+        StationarySpeedThreshold = Mathf.Max(0f, StationarySpeedThreshold);
+        DebugTraceDuration = Mathf.Max(0f, DebugTraceDuration);
+        DebugStartingLoadedAmmo = Mathf.Max(-1, DebugStartingLoadedAmmo);
+        DebugStartingReserveAmmo = Mathf.Max(-1, DebugStartingReserveAmmo);
+        DebugReserveAmmoAddAmount = Mathf.Max(0, DebugReserveAmmoAddAmount);
+    }
+}
+
+[Serializable]
+public class PlayerEquipmentSlotSettings
+{
+    [AssetsOnly]
+    public EquipmentItemData Item;
+
+    [ShowIf(nameof(IsFirearmItem)), AssetsOnly]
+    public ProjectileData FirearmProjectile;
+
+    [ShowIf(nameof(IsFirearmItem)), MinValue(-1)]
+    public int StartingLoadedAmmo = -1;
+
+    [ShowIf(nameof(IsFirearmItem)), MinValue(-1)]
+    public int StartingReserveAmmo = -1;
+
+    private bool IsFirearmItem => Item is FirearmData;
+
+    /// <summary>
+    /// Clamps ammo overrides to valid sentinel or non-negative values.
+    /// </summary>
+    public void Validate()
+    {
+        StartingLoadedAmmo = Mathf.Max(-1, StartingLoadedAmmo);
+        StartingReserveAmmo = Mathf.Max(-1, StartingReserveAmmo);
+    }
+}
+
+[Serializable]
+public class PlayerEquipmentSettings
+{
+    [FoldoutGroup("Starting Equipment/Hand Slots"), LabelText("Primary")]
+    public PlayerEquipmentSlotSettings PrimaryEquipment = new();
+
+    [FoldoutGroup("Starting Equipment/Hand Slots"), LabelText("Secondary")]
+    public PlayerEquipmentSlotSettings SecondaryEquipment = new();
+
+    [FoldoutGroup("Starting Equipment/Hand Slots"), LabelText("Belt")]
+    public PlayerEquipmentSlotSettings BeltEquipment = new();
+
+    [FoldoutGroup("Starting Equipment"), AssetsOnly]
+    public ArmorData StartingArmor;
+
+    [FoldoutGroup("Starting Equipment")]
+    public EquipmentSlotType StartingHeldSlot = EquipmentSlotType.Primary;
+
+    [FoldoutGroup("Panel")]
+    public bool HideCrosshairWhilePanelVisible = true;
+
+    [FoldoutGroup("Panel")]
+    public bool PauseGameWhilePanelVisible = true;
+
+    /// <summary>
+    /// Ensures nested loadout settings exist and starting slot points to a hand slot.
+    /// </summary>
+    public void Validate()
+    {
+        PrimaryEquipment ??= new PlayerEquipmentSlotSettings();
+        SecondaryEquipment ??= new PlayerEquipmentSlotSettings();
+        BeltEquipment ??= new PlayerEquipmentSlotSettings();
+        PrimaryEquipment.Validate();
+        SecondaryEquipment.Validate();
+        BeltEquipment.Validate();
+        StartingHeldSlot = StartingHeldSlot.IsHandSlot() ? StartingHeldSlot : EquipmentSlotType.Primary;
+    }
+}
+
+[Serializable]
+public class PlayerInteractionSettings
+{
+    private const float MinimumRange = 0.01f;
+
+    [FoldoutGroup("Detection"), MinValue(MinimumRange)]
+    public float InteractionRange = 1.25f;
+
+    /// <summary>
+    /// Clamps interaction detection values to safe ranges.
+    /// </summary>
+    public void Validate()
+    {
+        InteractionRange = Mathf.Max(MinimumRange, InteractionRange);
+    }
+}
+
+[Serializable]
+public class PlayerBodyDragSettings
+{
+    private const float MinimumDragFollowSpeed = 0.01f;
+    private const float MinimumDragNoiseInterval = 0.02f;
+
+    [FoldoutGroup("Drag"), MinValue(0f)]
+    public float DragDistance = 0.7f;
+
+    [FoldoutGroup("Drag")]
+    public float DragVerticalOffset;
+
+    [FoldoutGroup("Drag"), MinValue(MinimumDragFollowSpeed)]
+    public float DragFollowSpeed = 5f;
+
+    [FoldoutGroup("Drag"), MinValue(0f)]
+    public float MovingBodyThreshold = 0.05f;
+
+    [FoldoutGroup("Drag Noise"), InlineProperty, HideLabel]
+    public AudioClipSet DragMovementSfx = new();
+
+    [FoldoutGroup("Drag Noise"), MinValue(MinimumDragNoiseInterval)]
+    public float DragNoiseInterval = 0.28f;
+
+    [FoldoutGroup("Drag Noise"), MinValue(0f)]
+    public float DragNoiseIntensity = 0.35f;
+
+    [FoldoutGroup("Drag Noise")]
+    public NoiseType DragNoiseType = NoiseType.Common;
+
+    [FoldoutGroup("Drag Noise")]
+    public bool DragNoiseExtreme;
+
+    [FoldoutGroup("Drag Noise"), MinValue(0f)]
+    public float DragSfxVolumeMultiplier = 1f;
+
+    /// <summary>
+    /// Clamps body drag movement, noise, and SFX settings to safe ranges.
+    /// </summary>
+    public void Validate()
+    {
+        DragDistance = Mathf.Max(0f, DragDistance);
+        DragFollowSpeed = Mathf.Max(MinimumDragFollowSpeed, DragFollowSpeed);
+        MovingBodyThreshold = Mathf.Max(0f, MovingBodyThreshold);
+        DragMovementSfx ??= new AudioClipSet();
+        DragMovementSfx.Validate();
+        DragNoiseInterval = Mathf.Max(MinimumDragNoiseInterval, DragNoiseInterval);
+        DragNoiseIntensity = Mathf.Max(0f, DragNoiseIntensity);
+        DragSfxVolumeMultiplier = Mathf.Max(0f, DragSfxVolumeMultiplier);
+    }
 }
 
 [Serializable]
@@ -288,9 +922,6 @@ public class EnemyMovementSettings
 
     [FoldoutGroup("Alert"), MinValue(0f), SuffixLabel("s", true)]
     public float AlertTargetLostDuration = 3f;
-
-    [FoldoutGroup("Room Awareness")]
-    public bool ConfusedByLightsOff;
 
     [FoldoutGroup("Look Around"), MinValue(0f), SuffixLabel("s", true)]
     public float DefaultLookAroundDuration = 2.5f;
@@ -390,6 +1021,12 @@ public class EnemyMovementSettings
 
     [FoldoutGroup("Doors"), MinValue(0f), SuffixLabel("s", true)]
     public float DoorAutoOpenCooldown = 0.2f;
+
+    [FoldoutGroup("Doors"), MinValue(MinimumDistance), SuffixLabel("u", true)]
+    public float DoorPreferredRouteProbeDistance = 3f;
+
+    [FoldoutGroup("Doors"), MinValue(MinimumDistance), SuffixLabel("u", true)]
+    public float DoorPreferredRouteProbeWidth = 0.75f;
 
     private bool ShouldShowMissingFleeFallback =>
         DetectionBehavior == EnemyDetectionBehavior.FleeToPoint && !CanFlee;
@@ -659,6 +1296,9 @@ public class EnemyMeleeSettings
 
 public static class ActorProfileDataUtility
 {
+    /// <summary>
+    /// Clones a float array so runtime systems can safely mutate their local copy.
+    /// </summary>
     public static float[] CloneFloatArray(float[] source)
     {
         if (source == null)
@@ -669,6 +1309,9 @@ public static class ActorProfileDataUtility
         return clone;
     }
 
+    /// <summary>
+    /// Clones an animation curve so runtime systems can safely mutate their local copy.
+    /// </summary>
     public static AnimationCurve CloneCurve(AnimationCurve source)
     {
         if (source == null)
@@ -683,6 +1326,9 @@ public static class ActorProfileDataUtility
         return clone;
     }
 
+    /// <summary>
+    /// Clones enemy facing settings so runtime systems can safely mutate their local copy.
+    /// </summary>
     public static EnemyFacingSettings CloneFacing(EnemyFacingSettings source)
     {
         if (source == null)

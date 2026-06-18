@@ -388,11 +388,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ActorHealth
   stateSpriteRenderer: {fileID: 4260413919863464900}
-  incapacitatedSprite: {fileID: 0}
-  deadSprite: {fileID: 0}
-  sleepingSprite: {fileID: 0}
   additionalBehavioursToDisable: []
-  gameObjectsToHideOnDeath: []
+  gameObjectsToHideOnDeath:
+  - {fileID: 7353916533227906146}
 --- !u!114 &1378301211530684146
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -405,7 +403,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e56b206966707f8398a358e1cecc93fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.Missions.ActorIncapacitationController
-  restoredHealthFractionOnWake: 1
 --- !u!114 &5906783976553855376
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -433,11 +430,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStaggerFeedback
   targetVolume: {fileID: 0}
-  fullStrengthReferenceDuration: 1
-  effectLerpSpeed: 10
-  maxVignetteIntensity: 0.32
-  maxChromaticAberration: 0.22
-  maxLensDistortion: -0.18
 --- !u!114 &3248337889853992082
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -450,14 +442,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 13d5d1bb88ef0bf49a2de5bcddef44b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerTopDownMotor2D
-  rewiredPlayerId: 0
-  moveHorizontalAction: Move Horizontal
-  moveVerticalAction: Move Vertical
-  sprintAction: Sprint
-  toggleMinMaxSpeedAction: Toggle Speed
-  mouseWheelAxisAction: Mouse Wheel
   velocityFillImage: {fileID: 0}
-  fillByLevel: 1
 --- !u!114 &7147187823892813664
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -472,11 +457,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStaminaController
   staminaFillImage: {fileID: 0}
   staminaText: {fileID: 0}
-  staminaTextFormat: '{0:0}/{1:0}'
   staminaFeedbackRoot: {fileID: 0}
-  insufficientStaminaShakeDuration: 0.2
-  insufficientStaminaShakeStrength: 18
-  insufficientStaminaShakeVibrato: 18
 --- !u!114 &6118767502144997484
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -489,16 +470,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d4910600087867604ad50ed0bd2e491a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerFocusController
-  rewiredPlayerId: 0
-  focusAction: Focus
   targetVolume: {fileID: 0}
   focusFillImage: {fileID: 0}
-  maxFocusSeconds: 6
-  regenerate: 0
-  regenerationPerSecond: 1.25
-  regenerationDelayAfterUse: 1.25
-  focusSaturation: -100
-  focusTransitionDuration: 0.22
 --- !u!114 &8680320809265394288
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -511,31 +484,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8de3b94346411824f9050f737e5f9db2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponController
-  rewiredPlayerId: 0
-  aimAction: Aim
-  fireAction: Fire
-  reloadAction: Reload
-  cycleFireModeAction: Cycle Fire Mode
   firePoint: {fileID: 7585143778192225007}
   aimOrigin: {fileID: 7403247624616603103}
-  playerVisionLight: {fileID: 0}
+  playerVisionLight: {fileID: 3182283572867315003}
   aimCamera: {fileID: 0}
-  globalObjectPooler: {fileID: 0}
-  worldSfxManager: {fileID: 0}
-  projectilePrefab: {fileID: 28254537026718337, guid: 7a54f6b309326aa45a4c90553fa94571, type: 3}
-  projectilePoolPrewarm: 16
-  muzzleFlashPrefab: {fileID: 1306930571015351694, guid: a1c2931693f7f3145a1c248137422b23, type: 3}
-  muzzleFlashPoolPrewarm: 8
-  lookRotationSpeed: 720
-  stationarySpeedThreshold: 0.05
-  debugTraceDuration: 0.1
-  muzzleFlashRotationOffset: -90
-  autoEquipDebugWeaponOnStart: 1
-  debugFirearm: {fileID: 11400000, guid: 3d8f1d2672d507649b12b1008921e4b0, type: 2}
-  debugProjectile: {fileID: 11400000, guid: 891f5d528892fad49833ba5d9fd4ba7e, type: 2}
-  debugStartingLoadedAmmo: 30
-  debugStartingReserveAmmo: 120
-  debugReserveAmmoAddAmount: 120
 --- !u!114 &2380727152121690910
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -548,9 +500,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 47b9e5257f504fc6a1da6579976361f3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.WeaponSystem.PlayerMeleeController
-  rewiredPlayerId: 0
-  aimAction: Aim
-  fireAction: Fire
   playerVisionLight: {fileID: 3182283572867315003}
   aimCamera: {fileID: 0}
 --- !u!114 &8962792197773292426
@@ -565,17 +514,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cae2abefaab90e148943b4a1d5bb2773, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerUtilityController
-  rewiredPlayerId: 0
-  aimAction: Aim
-  primaryAction: Fire
-  cancelThrowableAction: Cancel Throw
-  playerVisionLight: {fileID: 0}
+  playerVisionLight: {fileID: 3182283572867315003}
   aimCamera: {fileID: 0}
   sfxOrigin: {fileID: 7230824171332157098}
   throwableSpawnOrigin: {fileID: 7585143778192225007}
   flashlightLight: {fileID: 6376836501048217281}
-  globalObjectPooler: {fileID: 0}
-  worldSfxManager: {fileID: 0}
 --- !u!114 &2757878757296612355
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -588,35 +531,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c74a0f68ab6acc499353bf97baf2c63, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerEquipmentController
-  rewiredPlayerId: 0
-  equipPrimaryAction: Equip Primary
-  equipSecondaryAction: Equip Secondary
-  equipBeltAction: Equip Belt
-  toggleEquipmentPanelAction: Toggle Equipment Panel
-  aimAction: Aim
   equipmentPanelUI: {fileID: 0}
   dynamicCrosshairUI: {fileID: 0}
-  playerVisionLight: {fileID: 0}
+  playerVisionLight: {fileID: 3182283572867315003}
   aimCamera: {fileID: 0}
-  primaryEquipment:
-    item: {fileID: 11400000, guid: 5152e0280506d2593affe6bf2c4b0ede, type: 2}
-    firearmProjectile: {fileID: 11400000, guid: 6f00bb3bbeef52346a3b09ed23ec74be, type: 2}
-    startingLoadedAmmo: 5
-    startingReserveAmmo: 10
-  secondaryEquipment:
-    item: {fileID: 0}
-    firearmProjectile: {fileID: 0}
-    startingLoadedAmmo: -1
-    startingReserveAmmo: -1
-  beltEquipment:
-    item: {fileID: 11400000, guid: 99d72a44fe0c3d1dd9112a77b4ebe119, type: 2}
-    firearmProjectile: {fileID: 0}
-    startingLoadedAmmo: -1
-    startingReserveAmmo: -1
-  startingArmor: {fileID: 0}
-  startingHeldSlot: 1
-  hideCrosshairWhilePanelVisible: 1
-  pauseGameWhilePanelVisible: 1
 --- !u!114 &4840595353442349855
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -629,7 +547,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fb54aa38ff211fe43af346ad579b6ace, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ArmorLoadout
-  startingArmor: {fileID: 11400000, guid: ea95feac09de47846a21232d81534981, type: 2}
 --- !u!114 &5060510992021282199
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -642,10 +559,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: add4020074d10ac3981f509c5bedd4ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.Missions.PlayerPickupInteractor
-  rewiredPlayerId: 0
-  pickUpAction: Interact
   interactionOrigin: {fileID: 7230824171332157098}
-  pickupRange: 1.25
 --- !u!114 &776685489575037490
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -660,25 +574,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerBodyDragController
   dragOrigin: {fileID: 7585143778192225007}
   draggedBodyHoldPoint: {fileID: 5676553739802876422}
-  worldSfxManager: {fileID: 0}
-  dragMovementSfx:
-    clips: []
-    volume: 1
-    pitchRange: {x: 1, y: 1}
-    overrideSpatialBlend: 0
-    spatialBlend: 1
-    overrideDistanceRange: 0
-    minDistance: 1.5
-    maxDistance: 24
-  dragDistance: 0.7
-  dragVerticalOffset: 0
-  dragFollowSpeed: 5
-  movingBodyThreshold: 0.05
-  dragNoiseInterval: 0.28
-  dragNoiseIntensity: 0.35
-  dragNoiseType: 1
-  dragNoiseExtreme: 0
-  dragSfxVolumeMultiplier: 1
 --- !u!114 &6276371154318424376
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -734,34 +629,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ActorFootstepSfx
   emitOrigin: {fileID: 7230824171332157098}
-  movementBody: {fileID: 1958748666808689097}
-  playerMotor: {fileID: 3248337889853992082}
-  enemyMovementController: {fileID: 0}
-  worldSfxManager: {fileID: 0}
-  footstepSfx:
-    clips:
-    - {fileID: 8300000, guid: 2c04c8d394e86b94a95d0bb2cce021d6, type: 3}
-    - {fileID: 8300000, guid: a22edc009c123594a9d4a258a2c0afbe, type: 3}
-    - {fileID: 8300000, guid: 450f4bb3f89eb2e458a4b2efee44af82, type: 3}
-    - {fileID: 8300000, guid: 465bf01a55b05b849a8409dda2d31a92, type: 3}
-    - {fileID: 8300000, guid: 29793f92ebc53024eb8e2801e99dce24, type: 3}
-    - {fileID: 8300000, guid: e49dee4f8e4854246accae485121e4f5, type: 3}
-    - {fileID: 8300000, guid: cf5e801bd5b4e3d4db957e71b0744cd2, type: 3}
-    - {fileID: 8300000, guid: c8f50566564e46344957f7e3ebed5d59, type: 3}
-    volume: 0.5
-    pitchRange: {x: 1, y: 1}
-    overrideSpatialBlend: 0
-    spatialBlend: 1
-    overrideDistanceRange: 0
-    minDistance: 1.5
-    maxDistance: 24
-  footstepSoundType: 1
-  minSpeedThreshold: 0.2
-  speedForFastestStep: 5
-  slowStepInterval: 0.85
-  fastStepInterval: 0.22
-  minimumVolumeMultiplier: 0.7
-  maximumVolumeMultiplier: 1
 --- !u!114 &283244791838622290
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -819,30 +686,6 @@ MonoBehaviour:
   leftHandRenderer: {fileID: 6116701004102859715}
   rightHandRenderer: {fileID: 1421850080000153769}
   heldItemRenderer: {fileID: 2238064817021847447}
-  playerMotor: {fileID: 3248337889853992082}
-  playerEquipmentController: {fileID: 2757878757296612355}
-  playerWeaponController: {fileID: 8680320809265394288}
-  playerUtilityController: {fileID: 8962792197773292426}
-  playerMeleeController: {fileID: 2380727152121690910}
-  playerVisionLight: {fileID: 3182283572867315003}
-  playerBodyDragController: {fileID: 776685489575037490}
-  enemyMovementController: {fileID: 0}
-  enemyCombatantAI: {fileID: 0}
-  enemyMeleeCombatantAI: {fileID: 0}
-  actorHealth: {fileID: 332678378023001690}
-  sideOffset: 0.55
-  locomotionSwingAmplitude: 0.28
-  holdDistance: 0.52
-  holdHandSeparation: 0.12
-  heldItemScale: 0.75
-  bodyDragHoldDistance: 0.24
-  bodyDragHandSeparation: 0.05
-  heldItemRotationOffset: 0
-  autoCreatedHandScale: 0.7
-  swingCyclesPerSpeedUnit: 1.35
-  minimumMoveSpeedForSwing: 0.05
-  locomotionDirectionSmoothing: 18
-  enemyUnarmedHandSmoothing: 22
   autoCreateMissingVisualRig: 1
   debugDraw: 0
 --- !u!114 &6929092136113647906

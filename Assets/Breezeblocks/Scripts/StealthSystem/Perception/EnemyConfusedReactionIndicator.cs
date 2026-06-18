@@ -12,25 +12,15 @@ public sealed class EnemyConfusedReactionIndicator : MonoBehaviour
     [FoldoutGroup("References")]
     [SerializeField] private RectTransform indicatorGraphic;
 
-    [FoldoutGroup("Animation"), SuffixLabel("s", true), MinValue(0.02f)]
-    [SerializeField] private float poseHoldDuration = 0.2f;
-
-    [FoldoutGroup("Animation")]
-    [SerializeField] private Vector2 firstLocalPosition = new(1f, 0f);
-
-    [FoldoutGroup("Animation"), SuffixLabel("deg", true)]
-    [SerializeField] private float firstLocalRotationZ = 30f;
-
-    [FoldoutGroup("Animation")]
-    [SerializeField] private Vector2 secondLocalPosition = new(-1f, 0f);
-
-    [FoldoutGroup("Animation"), SuffixLabel("deg", true)]
-    [SerializeField] private float secondLocalRotationZ = -30f;
-
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsPlaying => activeSequence != null && activeSequence.IsActive();
 
     private Sequence activeSequence;
+    private float poseHoldDuration = 0.2f;
+    private Vector2 firstLocalPosition = new(1f, 0f);
+    private float firstLocalRotationZ = 30f;
+    private Vector2 secondLocalPosition = new(-1f, 0f);
+    private float secondLocalRotationZ = -30f;
 
     /// <summary>
     /// Hides the indicator when the component is first added in the editor.
@@ -45,7 +35,7 @@ public sealed class EnemyConfusedReactionIndicator : MonoBehaviour
     /// </summary>
     private void OnValidate()
     {
-        poseHoldDuration = Mathf.Max(0.02f, poseHoldDuration);
+        ClampSettings();
     }
 
     /// <summary>
@@ -79,6 +69,22 @@ public sealed class EnemyConfusedReactionIndicator : MonoBehaviour
         DOVirtual.DelayedCall(clampedDuration, HideImmediate, true)
             .SetTarget(this)
             .SetUpdate(true);
+    }
+
+    /// <summary>
+    /// Applies profile-authored confused reaction animation settings.
+    /// </summary>
+    public void ApplySettings(EnemyConfusedReactionSettings settings)
+    {
+        if (settings == null)
+            return;
+
+        poseHoldDuration = settings.PoseHoldDuration;
+        firstLocalPosition = settings.FirstLocalPosition;
+        firstLocalRotationZ = settings.FirstLocalRotationZ;
+        secondLocalPosition = settings.SecondLocalPosition;
+        secondLocalRotationZ = settings.SecondLocalRotationZ;
+        ClampSettings();
     }
 
     /// <summary>
@@ -121,5 +127,13 @@ public sealed class EnemyConfusedReactionIndicator : MonoBehaviour
             return;
 
         indicatorGraphic.SetLocalPositionAndRotation(secondLocalPosition, Quaternion.Euler(0f, 0f, secondLocalRotationZ));
+    }
+
+    /// <summary>
+    /// Clamps profile-applied animation values to safe runtime ranges.
+    /// </summary>
+    private void ClampSettings()
+    {
+        poseHoldDuration = Mathf.Max(0.02f, poseHoldDuration);
     }
 }

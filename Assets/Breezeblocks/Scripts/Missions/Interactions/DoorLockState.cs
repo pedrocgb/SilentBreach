@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Breezeblocks.WeaponSystem;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -66,6 +67,7 @@ public sealed class DoorLockState : MonoBehaviour, ILockpickSessionTarget
         return isLocked &&
                interactorRoot != null &&
                definition != null &&
+               PlayerLockpickInventoryUtility.HasAnyLockpickUses(interactorRoot) &&
                LockpickMinigameController.HasRegisteredInstance;
     }
 

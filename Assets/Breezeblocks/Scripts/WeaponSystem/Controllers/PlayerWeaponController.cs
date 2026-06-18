@@ -25,20 +25,11 @@ public class PlayerWeaponController : MonoBehaviour
 
     private const float MinDirectionSqr = 0.0001f;
 
-    [FoldoutGroup("Rewired"), MinValue(0)]
-    [SerializeField] private int rewiredPlayerId;
-
-    [FoldoutGroup("Rewired")]
-    [SerializeField] private string aimAction = "Aim";
-
-    [FoldoutGroup("Rewired")]
-    [SerializeField] private string fireAction = "Fire";
-
-    [FoldoutGroup("Rewired")]
-    [SerializeField] private string reloadAction = "Reload";
-
-    [FoldoutGroup("Rewired")]
-    [SerializeField] private string cycleFireModeAction = "Cycle Fire Mode";
+    private int rewiredPlayerId = 1;
+    private string aimAction = "Aim";
+    private string fireAction = "Fire";
+    private string reloadAction = "Reload";
+    private string cycleFireModeAction = "Cycle Fire Mode";
 
     [FoldoutGroup("References"), Tooltip("Optional fire origin. Defaults to this transform if left empty.")]
     [SerializeField] private Transform firePoint;
@@ -67,53 +58,22 @@ public class PlayerWeaponController : MonoBehaviour
     [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
     private ActorStaggerController actorStaggerController;
 
-    [FoldoutGroup("Pooling"), Tooltip("Optional explicit reference to the shared global pooler. If empty, the singleton instance is used.")]
-    [SerializeField] private GlobalObjectPooler globalObjectPooler;
-
-    [FoldoutGroup("Audio"), Tooltip("Optional explicit reference to the pooled world SFX manager. If empty, the singleton instance is used.")]
-    [SerializeField] private WorldSfxManager worldSfxManager;
-
-    [FoldoutGroup("Pooling"), AssetsOnly]
-    [SerializeField] private HitscanProjectile projectilePrefab;
-
-    [FoldoutGroup("Pooling"), MinValue(0)]
-    [SerializeField] private int projectilePoolPrewarm = 16;
-
-    [FoldoutGroup("Pooling"), AssetsOnly]
-    [SerializeField] private MuzzleFlashEffect muzzleFlashPrefab;
-
-    [FoldoutGroup("Pooling"), MinValue(0)]
-    [SerializeField] private int muzzleFlashPoolPrewarm = 8;
-
-    [FoldoutGroup("Aiming"), MinValue(0f)]
-    [SerializeField] private float lookRotationSpeed = 720f;
-
-    [FoldoutGroup("Aiming"), MinValue(0f)]
-    [SerializeField] private float stationarySpeedThreshold = 0.05f;
-
-    [FoldoutGroup("Aiming"), MinValue(0f)]
-    [SerializeField] private float debugTraceDuration = 0.1f;
-
-    [FoldoutGroup("Feedback")]
-    [SerializeField] private float muzzleFlashRotationOffset;
-
-    [FoldoutGroup("Debug Loadout")]
-    [SerializeField] private bool autoEquipDebugWeaponOnStart;
-
-    [FoldoutGroup("Debug Loadout"), AssetsOnly]
-    [SerializeField] private FirearmData debugFirearm;
-
-    [FoldoutGroup("Debug Loadout"), AssetsOnly]
-    [SerializeField] private ProjectileData debugProjectile;
-
-    [FoldoutGroup("Debug Loadout"), MinValue(-1)]
-    [SerializeField] private int debugStartingLoadedAmmo = -1;
-
-    [FoldoutGroup("Debug Loadout"), MinValue(-1)]
-    [SerializeField] private int debugStartingReserveAmmo = -1;
-
-    [FoldoutGroup("Debug Loadout"), MinValue(0)]
-    [SerializeField] private int debugReserveAmmoAddAmount = 12;
+    private GlobalObjectPooler globalObjectPooler;
+    private WorldSfxManager worldSfxManager;
+    private HitscanProjectile projectilePrefab;
+    private int projectilePoolPrewarm = 16;
+    private MuzzleFlashEffect muzzleFlashPrefab;
+    private int muzzleFlashPoolPrewarm = 8;
+    private float lookRotationSpeed = 720f;
+    private float stationarySpeedThreshold = 0.05f;
+    private float debugTraceDuration = 0.1f;
+    private float muzzleFlashRotationOffset;
+    private bool autoEquipDebugWeaponOnStart;
+    private FirearmData debugFirearm;
+    private ProjectileData debugProjectile;
+    private int debugStartingLoadedAmmo = -1;
+    private int debugStartingReserveAmmo = -1;
+    private int debugReserveAmmoAddAmount = 12;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public FirearmData EquippedFirearm { get; private set; }
@@ -252,6 +212,49 @@ public class PlayerWeaponController : MonoBehaviour
         projectilePoolPrewarm = Mathf.Max(0, projectilePoolPrewarm);
         muzzleFlashPoolPrewarm = Mathf.Max(0, muzzleFlashPoolPrewarm);
         debugReserveAmmoAddAmount = Mathf.Max(0, debugReserveAmmoAddAmount);
+    }
+
+    /// <summary>
+    /// Applies profile-authored Rewired player id and firearm action names.
+    /// </summary>
+    public void ApplyControls(PlayerControlsSettings settings)
+    {
+        if (settings == null)
+            return;
+
+        rewiredPlayerId = Mathf.Max(0, settings.RewiredPlayerId);
+        aimAction = settings.AimAction;
+        fireAction = settings.FireAction;
+        reloadAction = settings.ReloadAction;
+        cycleFireModeAction = settings.CycleFireModeAction;
+        inputReader = null;
+        pointerInputReader = null;
+        WeaponRuntimeUtility.EnsureCombinedInputReaders(ref inputReader, ref pointerInputReader, rewiredPlayerId);
+    }
+
+    /// <summary>
+    /// Applies profile-authored firearm controller tuning, pooling, and debug loadout values.
+    /// </summary>
+    public void ApplySettings(PlayerWeaponControllerSettings settings)
+    {
+        if (settings == null)
+            return;
+
+        projectilePrefab = settings.ProjectilePrefab;
+        projectilePoolPrewarm = Mathf.Max(0, settings.ProjectilePoolPrewarm);
+        muzzleFlashPrefab = settings.MuzzleFlashPrefab;
+        muzzleFlashPoolPrewarm = Mathf.Max(0, settings.MuzzleFlashPoolPrewarm);
+        lookRotationSpeed = Mathf.Max(0f, settings.LookRotationSpeed);
+        stationarySpeedThreshold = Mathf.Max(0f, settings.StationarySpeedThreshold);
+        debugTraceDuration = Mathf.Max(0f, settings.DebugTraceDuration);
+        muzzleFlashRotationOffset = settings.MuzzleFlashRotationOffset;
+        autoEquipDebugWeaponOnStart = settings.AutoEquipDebugWeaponOnStart;
+        debugFirearm = settings.DebugFirearm;
+        debugProjectile = settings.DebugProjectile;
+        debugStartingLoadedAmmo = Mathf.Max(-1, settings.DebugStartingLoadedAmmo);
+        debugStartingReserveAmmo = Mathf.Max(-1, settings.DebugStartingReserveAmmo);
+        debugReserveAmmoAddAmount = Mathf.Max(0, settings.DebugReserveAmmoAddAmount);
+        RegisterPooledPrefabs();
     }
 
     // Executes the Update routine.

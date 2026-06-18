@@ -15,17 +15,10 @@ public class PlayerUtilityController : MonoBehaviour
     private const float MinimumFlashlightDirectionSqr = 0.0001f;
     private const float MinimumThrowDirectionSqr = 0.0001f;
 
-    [FoldoutGroup("Rewired"), MinValue(0)]
-    [SerializeField] private int rewiredPlayerId;
-
-    [FoldoutGroup("Rewired")]
-    [SerializeField] private string aimAction = "Aim";
-
-    [FoldoutGroup("Rewired")]
-    [SerializeField] private string primaryAction = "Fire";
-
-    [FoldoutGroup("Rewired")]
-    [SerializeField] private string cancelThrowableAction = "Cancel Throw";
+    private int rewiredPlayerId = 1;
+    private string aimAction = "Aim";
+    private string primaryAction = "Fire";
+    private string cancelThrowableAction = "Cancel Throw";
 
     [FoldoutGroup("References")]
     [SerializeField] private PlayerVisionLight playerVisionLight;
@@ -52,11 +45,8 @@ public class PlayerUtilityController : MonoBehaviour
     [Tooltip("Dedicated Light2D used by the flashlight utility. Assign this explicitly instead of the player vision light.")]
     [SerializeField] private Light2D flashlightLight;
 
-    [FoldoutGroup("Pooling")]
-    [SerializeField] private GlobalObjectPooler globalObjectPooler;
-
-    [FoldoutGroup("Audio")]
-    [SerializeField] private WorldSfxManager worldSfxManager;
+    private GlobalObjectPooler globalObjectPooler;
+    private WorldSfxManager worldSfxManager;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public UtilityItemData EquippedUtility { get; private set; }
@@ -225,7 +215,7 @@ public class PlayerUtilityController : MonoBehaviour
     // Executes the EquipUtility routine.
     public void EquipUtility(UtilityItemData utilityItem)
     {
-        if (utilityItem == null || IsBusy)
+        if (utilityItem == null || utilityItem is LockpickUtilityData || IsBusy)
             return;
 
         busyRoutine = StartCoroutine(EquipUtilityRoutine(utilityItem));
@@ -256,6 +246,22 @@ public class PlayerUtilityController : MonoBehaviour
         UpdateAimCameraState();
         if (changedState)
             NotifyUtilityStateChanged();
+    }
+
+    /// <summary>
+    /// Applies profile-authored Rewired player id and utility action names.
+    /// </summary>
+    public void ApplyControls(PlayerControlsSettings settings)
+    {
+        if (settings == null)
+            return;
+
+        rewiredPlayerId = Mathf.Max(0, settings.RewiredPlayerId);
+        aimAction = settings.AimAction;
+        primaryAction = settings.FireAction;
+        cancelThrowableAction = settings.CancelThrowableAction;
+        inputReader = null;
+        inputReader = WeaponRuntimeUtility.EnsureInputReader(inputReader, rewiredPlayerId);
     }
 
     // Executes the TryGetActiveFlashlightCone routine.

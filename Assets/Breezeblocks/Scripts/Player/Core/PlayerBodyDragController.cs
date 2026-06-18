@@ -21,11 +21,8 @@ public sealed class PlayerBodyDragController : MonoBehaviour
     [FoldoutGroup("References")]
     [SerializeField] private Transform draggedBodyHoldPoint;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private WorldSfxManager worldSfxManager;
-
-    [FoldoutGroup("References")]
-    [SerializeField] private AudioClipSet dragMovementSfx;
+    private WorldSfxManager worldSfxManager;
+    private AudioClipSet dragMovementSfx = new();
 
     [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
     private PlayerTopDownMotor2D playerMotor;
@@ -57,32 +54,15 @@ public sealed class PlayerBodyDragController : MonoBehaviour
     [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
     private ActorStaggerController actorStaggerController;
 
-    [FoldoutGroup("Drag"), MinValue(0f)]
-    [SerializeField] private float dragDistance = 0.7f;
-
-    [FoldoutGroup("Drag"), MinValue(0f)]
-    [SerializeField] private float dragVerticalOffset = 0f;
-
-    [FoldoutGroup("Drag"), MinValue(MinimumDragFollowSpeed)]
-    [SerializeField] private float dragFollowSpeed = 5f;
-
-    [FoldoutGroup("Drag"), MinValue(0f)]
-    [SerializeField] private float movingBodyThreshold = 0.05f;
-
-    [FoldoutGroup("Drag Noise"), MinValue(MinimumDragNoiseInterval)]
-    [SerializeField] private float dragNoiseInterval = 0.28f;
-
-    [FoldoutGroup("Drag Noise"), MinValue(0f)]
-    [SerializeField] private float dragNoiseIntensity = 0.35f;
-
-    [FoldoutGroup("Drag Noise")]
-    [SerializeField] private NoiseType dragNoiseType = NoiseType.Common;
-
-    [FoldoutGroup("Drag Noise")]
-    [SerializeField] private bool dragNoiseExtreme;
-
-    [FoldoutGroup("Drag Noise"), MinValue(0f)]
-    [SerializeField] private float dragSfxVolumeMultiplier = 1f;
+    private float dragDistance = 0.7f;
+    private float dragVerticalOffset;
+    private float dragFollowSpeed = 5f;
+    private float movingBodyThreshold = 0.05f;
+    private float dragNoiseInterval = 0.28f;
+    private float dragNoiseIntensity = 0.35f;
+    private NoiseType dragNoiseType = NoiseType.Common;
+    private bool dragNoiseExtreme;
+    private float dragSfxVolumeMultiplier = 1f;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsDragging => activeBody != null && isDragging;
@@ -136,7 +116,28 @@ public sealed class PlayerBodyDragController : MonoBehaviour
         dragNoiseInterval = Mathf.Max(MinimumDragNoiseInterval, dragNoiseInterval);
         dragNoiseIntensity = Mathf.Max(0f, dragNoiseIntensity);
         dragSfxVolumeMultiplier = Mathf.Max(0f, dragSfxVolumeMultiplier);
+        dragMovementSfx ??= new AudioClipSet();
         CacheReferences();
+    }
+
+    /// <summary>
+    /// Applies profile-authored body drag movement, noise, and SFX settings.
+    /// </summary>
+    public void ApplySettings(PlayerBodyDragSettings settings)
+    {
+        if (settings == null)
+            return;
+
+        dragDistance = Mathf.Max(0f, settings.DragDistance);
+        dragVerticalOffset = settings.DragVerticalOffset;
+        dragFollowSpeed = Mathf.Max(MinimumDragFollowSpeed, settings.DragFollowSpeed);
+        movingBodyThreshold = Mathf.Max(0f, settings.MovingBodyThreshold);
+        dragMovementSfx = settings.DragMovementSfx ?? new AudioClipSet();
+        dragNoiseInterval = Mathf.Max(MinimumDragNoiseInterval, settings.DragNoiseInterval);
+        dragNoiseIntensity = Mathf.Max(0f, settings.DragNoiseIntensity);
+        dragNoiseType = settings.DragNoiseType;
+        dragNoiseExtreme = settings.DragNoiseExtreme;
+        dragSfxVolumeMultiplier = Mathf.Max(0f, settings.DragSfxVolumeMultiplier);
     }
 
     /// <summary>

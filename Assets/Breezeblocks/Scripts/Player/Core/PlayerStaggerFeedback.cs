@@ -15,20 +15,11 @@ public class PlayerStaggerFeedback : MonoBehaviour
     [FoldoutGroup("References")]
     [SerializeField] private Volume targetVolume;
 
-    [FoldoutGroup("Effect"), MinValue(0.01f), SuffixLabel("s", true)]
-    [SerializeField] private float fullStrengthReferenceDuration = 0.5f;
-
-    [FoldoutGroup("Effect"), MinValue(0f)]
-    [SerializeField] private float effectLerpSpeed = 10f;
-
-    [FoldoutGroup("Effect"), Range(0f, 1f)]
-    [SerializeField] private float maxVignetteIntensity = 0.32f;
-
-    [FoldoutGroup("Effect"), Range(0f, 1f)]
-    [SerializeField] private float maxChromaticAberration = 0.22f;
-
-    [FoldoutGroup("Effect"), Range(-1f, 1f)]
-    [SerializeField] private float maxLensDistortion = -0.18f;
+    private float fullStrengthReferenceDuration = 0.5f;
+    private float effectLerpSpeed = 10f;
+    private float maxVignetteIntensity = 0.32f;
+    private float maxChromaticAberration = 0.22f;
+    private float maxLensDistortion = -0.18f;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly, ProgressBar(0f, 1f)]
     public float CurrentEffectStrength => currentEffectStrength;
@@ -67,6 +58,30 @@ public class PlayerStaggerFeedback : MonoBehaviour
     private void OnDisable()
     {
         ApplyEffectStrength(0f);
+    }
+
+    /// <summary>
+    /// Clamps profile-applied feedback values while editing.
+    /// </summary>
+    private void OnValidate()
+    {
+        ClampSettings();
+    }
+
+    /// <summary>
+    /// Applies profile-authored stagger feedback post-processing values.
+    /// </summary>
+    public void ApplySettings(PlayerStaggerFeedbackSettings settings)
+    {
+        if (settings == null)
+            return;
+
+        fullStrengthReferenceDuration = settings.FullStrengthReferenceDuration;
+        effectLerpSpeed = settings.EffectLerpSpeed;
+        maxVignetteIntensity = settings.MaxVignetteIntensity;
+        maxChromaticAberration = settings.MaxChromaticAberration;
+        maxLensDistortion = settings.MaxLensDistortion;
+        ClampSettings();
     }
 
     // Executes the Update routine.
@@ -134,5 +149,17 @@ public class PlayerStaggerFeedback : MonoBehaviour
             lensDistortion.intensity.overrideState = true;
             lensDistortion.intensity.value = Mathf.Lerp(baseLensDistortionIntensity, maxLensDistortion, strength);
         }
+    }
+
+    /// <summary>
+    /// Keeps feedback intensity and timing values in safe ranges.
+    /// </summary>
+    private void ClampSettings()
+    {
+        fullStrengthReferenceDuration = Mathf.Max(0.01f, fullStrengthReferenceDuration);
+        effectLerpSpeed = Mathf.Max(0f, effectLerpSpeed);
+        maxVignetteIntensity = Mathf.Clamp01(maxVignetteIntensity);
+        maxChromaticAberration = Mathf.Clamp01(maxChromaticAberration);
+        maxLensDistortion = Mathf.Clamp(maxLensDistortion, -1f, 1f);
     }
 }

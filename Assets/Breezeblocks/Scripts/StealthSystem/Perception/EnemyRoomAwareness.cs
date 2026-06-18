@@ -23,33 +23,18 @@ public class EnemyRoomAwareness : MonoBehaviour
     private AIHearing aiHearing;
     private EnemyVisionAI enemyVisionAI;
     private EnemyConfusedReactionIndicator confusedReactionIndicator;
+    private EnemySleepController enemySleepController;
 
-    [FoldoutGroup("Room Awareness")]
-    [SerializeField] private bool roomAwareness = true;
-
-    [FoldoutGroup("Room Awareness"), MinValue(MinimumInterval), SuffixLabel("s", true)]
-    [SerializeField] private float roomCheckInterval = 0.15f;
-
-    [FoldoutGroup("Room Awareness"), MinValue(0f), SuffixLabel("s", true)]
-    [SerializeField] private float waitBeforeSwitchDuration = 1f;
-
-    [FoldoutGroup("Room Awareness"), MinValue(MinimumInterval), SuffixLabel("s", true)]
-    [SerializeField] private float confusedReactionDuration = 1.2f;
-
-    [FoldoutGroup("Room Awareness"), MinValue(0f), SuffixLabel("s", true)]
-    [SerializeField] private float lookAroundDurationAfterTurningLightsOn = 2.5f;
-
-    [FoldoutGroup("Room Awareness"), MinValue(MinimumInterval), SuffixLabel("s", true)]
-    [SerializeField] private float lookAroundTurnInterval = 0.45f;
-
-    [FoldoutGroup("Room Awareness"), MinValue(0f), SuffixLabel("deg/s", true)]
-    [SerializeField] private float lookAroundRotationSpeed = 420f;
-
-    [FoldoutGroup("Door State Awareness")]
-    [SerializeField] private bool doorStateAwareness = true;
-
-    [FoldoutGroup("Door State Awareness"), MinValue(0f), SuffixLabel("s", true)]
-    [SerializeField] private float waitBeforeDoorStateFixDuration = 1f;
+    private bool roomAwareness = true;
+    private float roomCheckInterval = 0.15f;
+    private float waitBeforeSwitchDuration = 1f;
+    private float confusedReactionDuration = 1.2f;
+    private float lookAroundDurationAfterTurningLightsOn = 2.5f;
+    private float lookAroundTurnInterval = 0.45f;
+    private float lookAroundRotationSpeed = 420f;
+    private bool confusedByLightsOff;
+    private bool doorStateAwareness = true;
+    private float waitBeforeDoorStateFixDuration = 1f;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool RoomAwareness => roomAwareness;
@@ -153,13 +138,28 @@ public class EnemyRoomAwareness : MonoBehaviour
     private void OnValidate()
     {
         CacheReferences();
-        roomCheckInterval = Mathf.Max(MinimumInterval, roomCheckInterval);
-        waitBeforeSwitchDuration = Mathf.Max(0f, waitBeforeSwitchDuration);
-        lookAroundDurationAfterTurningLightsOn = Mathf.Max(0f, lookAroundDurationAfterTurningLightsOn);
-        lookAroundTurnInterval = Mathf.Max(MinimumInterval, lookAroundTurnInterval);
-        lookAroundRotationSpeed = Mathf.Max(0f, lookAroundRotationSpeed);
-        waitBeforeDoorStateFixDuration = Mathf.Max(0f, waitBeforeDoorStateFixDuration);
-        confusedReactionDuration = Mathf.Max(MinimumInterval, confusedReactionDuration);
+        ClampSettings();
+    }
+
+    /// <summary>
+    /// Applies profile-authored room awareness settings to this enemy.
+    /// </summary>
+    public void ApplySettings(EnemyRoomAwarenessSettings settings)
+    {
+        if (settings == null)
+            return;
+
+        roomAwareness = settings.RoomAwareness;
+        roomCheckInterval = settings.RoomCheckInterval;
+        waitBeforeSwitchDuration = settings.WaitBeforeSwitchDuration;
+        confusedReactionDuration = settings.ConfusedReactionDuration;
+        confusedByLightsOff = settings.ConfusedByLightsOff;
+        lookAroundDurationAfterTurningLightsOn = settings.LookAroundDurationAfterTurningLightsOn;
+        lookAroundTurnInterval = settings.LookAroundTurnInterval;
+        lookAroundRotationSpeed = settings.LookAroundRotationSpeed;
+        doorStateAwareness = settings.DoorStateAwareness;
+        waitBeforeDoorStateFixDuration = settings.WaitBeforeDoorStateFixDuration;
+        ClampSettings();
     }
 
     /// <summary>
@@ -167,6 +167,12 @@ public class EnemyRoomAwareness : MonoBehaviour
     /// </summary>
     private void Update()
     {
+        if (IsRoomAwarenessSuppressedBySleep())
+        {
+            SuppressRoomAwarenessWhileSleeping();
+            return;
+        }
+
         if (!CanEvaluateRoomAwarenessThisFrame())
             return;
 
@@ -206,6 +212,12 @@ public class EnemyRoomAwareness : MonoBehaviour
             return;
 
         currentRoomLightsOn = lightsOn;
+        if (IsRoomAwarenessSuppressedBySleep())
+        {
+            SuppressRoomAwarenessWhileSleeping();
+            return;
+        }
+
         if (IsRoomPowerDisabled(room))
         {
             pendingConfusedLightReaction = false;
@@ -221,8 +233,8 @@ public class EnemyRoomAwareness : MonoBehaviour
 
         if (!lightsOn)
         {
-            if (enemyMovementController != null &&
-                enemyMovementController.ConfusedByLightsOff &&
+            if (confusedByLightsOff &&
+                enemyMovementController != null &&
                 !IsHigherPriorityState(enemyMovementController.CurrentState))
             {
                 pendingConfusedLightReaction = true;
@@ -314,7 +326,7 @@ public class EnemyRoomAwareness : MonoBehaviour
             if (IsRoomPowerDisabled(currentRoom))
                 return;
 
-            if (enemyMovementController != null && enemyMovementController.ConfusedByLightsOff)
+            if (confusedByLightsOff)
                 TryStartConfusedLightReaction(currentRoom);
             else
                 TryStartDarkRoomReaction(currentRoom);
@@ -721,6 +733,7 @@ public class EnemyRoomAwareness : MonoBehaviour
     private bool CanEvaluateRoomAwarenessThisFrame()
     {
         return !GameplayMissionController.EnemyRuntimeBlockedAtMissionStart &&
+               !IsRoomAwarenessSuppressedBySleep() &&
                Time.time >= nextRoomCheckTime;
     }
 
@@ -731,9 +744,30 @@ public class EnemyRoomAwareness : MonoBehaviour
     {
         return reactionRoutine == null &&
                roomAwareness &&
+               !IsRoomAwarenessSuppressedBySleep() &&
                currentRoom != null &&
                enemyMovementController != null &&
                !IsHigherPriorityState(enemyMovementController.CurrentState);
+    }
+
+    /// <summary>
+    /// Returns whether sleep state should block room-awareness reactions.
+    /// </summary>
+    private bool IsRoomAwarenessSuppressedBySleep()
+    {
+        return enemySleepController != null && enemySleepController.IsSleeping;
+    }
+
+    /// <summary>
+    /// Clears pending room-awareness work while the enemy is sleeping.
+    /// </summary>
+    private void SuppressRoomAwarenessWhileSleeping()
+    {
+        pendingConfusedLightReaction = false;
+        nextRoomCheckTime = Time.time + roomCheckInterval;
+
+        if (reactionRoutine != null || reactingRoom != null)
+            ForceEndReaction(resumeDefaultBehavior: false);
     }
 
     /// <summary>
@@ -818,6 +852,21 @@ public class EnemyRoomAwareness : MonoBehaviour
         aiHearing ??= GetComponent<AIHearing>();
         enemyVisionAI ??= GetComponent<EnemyVisionAI>();
         confusedReactionIndicator ??= GetComponent<EnemyConfusedReactionIndicator>();
+        enemySleepController ??= GetComponent<EnemySleepController>();
+    }
+
+    /// <summary>
+    /// Clamps profile-applied room awareness settings to safe runtime ranges.
+    /// </summary>
+    private void ClampSettings()
+    {
+        roomCheckInterval = Mathf.Max(MinimumInterval, roomCheckInterval);
+        waitBeforeSwitchDuration = Mathf.Max(0f, waitBeforeSwitchDuration);
+        lookAroundDurationAfterTurningLightsOn = Mathf.Max(0f, lookAroundDurationAfterTurningLightsOn);
+        lookAroundTurnInterval = Mathf.Max(MinimumInterval, lookAroundTurnInterval);
+        lookAroundRotationSpeed = Mathf.Max(0f, lookAroundRotationSpeed);
+        waitBeforeDoorStateFixDuration = Mathf.Max(0f, waitBeforeDoorStateFixDuration);
+        confusedReactionDuration = Mathf.Max(MinimumInterval, confusedReactionDuration);
     }
 
     /// <summary>

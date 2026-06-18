@@ -53,11 +53,20 @@ public class ActorStatsInitializer : MonoBehaviour
         if (TryGetComponent(out ActorHealth health))
             health.ApplySettings(playerProfile.Health);
 
+        if (TryGetComponent(out ActorIncapacitationController incapacitationController))
+            incapacitationController.ApplySettings(playerProfile.Health);
+
         if (TryGetComponent(out ActorStaggerController staggerController))
             staggerController.ApplySettings(playerProfile.Stagger);
 
+        if (TryGetComponent(out PlayerStaggerFeedback staggerFeedback))
+            staggerFeedback.ApplySettings(playerProfile.StaggerFeedback);
+
         if (TryGetComponent(out PlayerTopDownMotor2D playerMotor))
+        {
+            playerMotor.ApplyControls(playerProfile.Controls);
             playerMotor.ApplySettings(playerProfile.Movement);
+        }
 
         if (TryGetComponent(out PlayerNoise playerNoise))
             playerNoise.ApplySettings(playerProfile.Noise);
@@ -75,7 +84,44 @@ public class ActorStatsInitializer : MonoBehaviour
             staminaController.ApplySettings(playerProfile.Stamina);
 
         if (TryGetComponent(out PlayerEquipmentController equipmentController))
+        {
+            equipmentController.ApplyControls(playerProfile.Controls);
+            equipmentController.ApplySettings(playerProfile.Equipment);
             equipmentController.ApplyUnarmedAimSettings(playerProfile.VisionLight.UnarmedAimRotationSpeed, playerProfile.VisionLight.UnarmedAimPanDistance);
+        }
+
+        if (TryGetComponent(out PlayerFocusController focusController))
+        {
+            focusController.ApplyControls(playerProfile.Controls);
+            focusController.ApplySettings(playerProfile.Focus);
+        }
+
+        if (TryGetComponent(out PlayerWeaponController weaponController))
+        {
+            weaponController.ApplyControls(playerProfile.Controls);
+            weaponController.ApplySettings(playerProfile.Weapon);
+        }
+
+        if (TryGetComponent(out PlayerMeleeController meleeController))
+            meleeController.ApplyControls(playerProfile.Controls);
+
+        if (TryGetComponent(out PlayerUtilityController utilityController))
+            utilityController.ApplyControls(playerProfile.Controls);
+
+        if (TryGetComponent(out PlayerPickupInteractor pickupInteractor))
+        {
+            pickupInteractor.ApplyControls(playerProfile.Controls);
+            pickupInteractor.ApplySettings(playerProfile.Interaction);
+        }
+
+        if (TryGetComponent(out PlayerBodyDragController bodyDragController))
+            bodyDragController.ApplySettings(playerProfile.BodyDrag);
+
+        if (TryGetComponent(out CharacterOrbitHandsAnimator handsAnimator))
+            handsAnimator.ApplySettings(playerProfile.Hands);
+
+        if (TryGetComponent(out ActorFootstepSfx footstepSfx))
+            footstepSfx.ApplySettings(playerProfile.Footsteps);
     }
 
     /// <summary>
@@ -83,10 +129,16 @@ public class ActorStatsInitializer : MonoBehaviour
     /// </summary>
     private void ApplyEnemyProfile()
     {
-        MissionActorIdentity.EnsureOn(gameObject);
+        MissionActorIdentity identity = MissionActorIdentity.EnsureOn(gameObject);
+        identity?.ApplySettings(enemyProfile.Identity);
+
         ActorIncapacitationController.EnsureOn(gameObject);
+        if (TryGetComponent(out ActorIncapacitationController incapacitationController))
+            incapacitationController.ApplySettings(enemyProfile.Health);
+
         EnemyAiSensesDebugGizmos.EnsureOn(gameObject);
-        EnemyRoomAwareness.EnsureOn(gameObject);
+        EnemyRoomAwareness roomAwareness = EnemyRoomAwareness.EnsureOn(gameObject);
+        roomAwareness?.ApplySettings(enemyProfile.RoomAwareness);
 
         if (TryGetComponent(out ActorHealth health))
             health.ApplySettings(enemyProfile.Health);
@@ -103,14 +155,38 @@ public class ActorStatsInitializer : MonoBehaviour
         if (TryGetComponent(out AIHearing hearing))
             hearing.ApplySettings(enemyProfile.Hearing);
 
+        if (TryGetComponent(out EnemyConfusedReactionIndicator confusedReactionIndicator))
+            confusedReactionIndicator.ApplySettings(enemyProfile.ConfusedReaction);
+
         if (TryGetComponent(out EnemySleepController sleepController))
             sleepController.ApplySettings(enemyProfile.Sleep);
 
-        if (TryGetComponent(out EnemyCombatantAI combatantAI))
-            combatantAI.ApplySettings(enemyProfile.Combat);
+        if (TryGetComponent(out ActorFootstepSfx footstepSfx))
+            footstepSfx.ApplySettings(enemyProfile.Footsteps);
 
-        EnemyMeleeCombatantAI meleeCombatantAI = GetEnemyMeleeCombatant();
-        meleeCombatantAI?.ApplySettings(enemyProfile.Melee);
+        if (TryGetComponent(out CharacterOrbitHandsAnimator handsAnimator))
+            handsAnimator.ApplySettings(enemyProfile.Hands);
+
+        if (TryGetComponent(out EnemyCombatantAI combatantAI))
+        {
+            combatantAI.enabled = enemyProfile.IsCombatant;
+            if (enemyProfile.IsCombatant)
+                combatantAI.ApplySettings(enemyProfile.Combat);
+        }
+
+        if (enemyProfile.IsCombatant)
+        {
+            EnemyMeleeCombatantAI meleeCombatantAI = GetEnemyMeleeCombatant();
+            if (meleeCombatantAI != null)
+            {
+                meleeCombatantAI.enabled = true;
+                meleeCombatantAI.ApplySettings(enemyProfile.Melee);
+            }
+        }
+        else if (TryGetComponent(out EnemyMeleeCombatantAI existingMeleeCombatantAI))
+        {
+            existingMeleeCombatantAI.enabled = false;
+        }
     }
 
     /// <summary>
@@ -118,7 +194,7 @@ public class ActorStatsInitializer : MonoBehaviour
     /// </summary>
     private EnemyMeleeCombatantAI GetEnemyMeleeCombatant()
     {
-        if (enemyProfile == null || enemyProfile.Melee == null)
+        if (enemyProfile == null || !enemyProfile.IsCombatant || enemyProfile.Melee == null)
             return TryGetComponent(out EnemyMeleeCombatantAI existingMeleeCombatant) ? existingMeleeCombatant : null;
 
         if (enemyProfile.Melee.StartingWeapon == null)

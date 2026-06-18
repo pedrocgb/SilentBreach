@@ -101,6 +101,7 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
     [Serializable]
     private sealed class EquippedPerksView
     {
+        public GameObject root;
         public RectTransform contentRoot;
         public HideoutPerkItemUI itemPrefab;
         public TMP_Text emptyStateText;
@@ -268,6 +269,14 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
     }
 
     /// <summary>
+    /// Refreshes the read-only gameplay perk section after runtime perk changes.
+    /// </summary>
+    public void RefreshEquippedPerksFromRuntime()
+    {
+        RefreshEquippedPerks();
+    }
+
+    /// <summary>
     /// Resolves optional scene references that this panel depends on at runtime.
     /// </summary>
     private void ResolveReferences()
@@ -381,6 +390,8 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
     private void RefreshEquippedPerks()
     {
         SyncEquippedPerksFromRuntime();
+        bool hasEquippedPerks = equippedPerks.Count > 0;
+        SetEquippedPerksRootVisible(hasEquippedPerks);
         EnsureValidPerkSelection();
         RebuildEquippedPerkList();
         RefreshSelectedPerkDetails();
@@ -432,6 +443,15 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
     {
         if (equippedPerksView.itemPrefab != null)
             equippedPerksView.itemPrefab.gameObject.SetActive(false);
+    }
+
+    /// <summary>
+    /// Shows the gameplay perk section only when at least one runtime perk exists.
+    /// </summary>
+    private void SetEquippedPerksRootVisible(bool visible)
+    {
+        if (equippedPerksView.root != null)
+            equippedPerksView.root.SetActive(visible);
     }
 
     /// <summary>
@@ -707,6 +727,19 @@ public class PlayerEquipmentPanelUI : MonoBehaviour
             }
 
             quantityValue = maxUses.ToString();
+            showQuantity = true;
+        }
+        else if (utilityItemData is LockpickUtilityData lockpickData)
+        {
+            int remainingUses = quantityOverride >= 0 ? quantityOverride : lockpickData.MaxUses;
+            if (quantityOverride < 0 &&
+                equipmentController != null &&
+                equipmentController.TryGetRuntimeLockpickState(slotType, out int runtimeRemainingUses, out _))
+            {
+                remainingUses = runtimeRemainingUses;
+            }
+
+            quantityValue = remainingUses.ToString();
             showQuantity = true;
         }
 

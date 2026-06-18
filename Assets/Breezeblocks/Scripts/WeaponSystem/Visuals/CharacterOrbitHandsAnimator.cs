@@ -36,77 +36,52 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
     [FoldoutGroup("References")]
     [SerializeField] private SpriteRenderer heldItemRenderer;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerTopDownMotor2D playerMotor;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerTopDownMotor2D playerMotor;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerEquipmentController playerEquipmentController;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerEquipmentController playerEquipmentController;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerWeaponController playerWeaponController;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerWeaponController playerWeaponController;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerUtilityController playerUtilityController;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerUtilityController playerUtilityController;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerMeleeController playerMeleeController;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerMeleeController playerMeleeController;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerVisionLight playerVisionLight;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerVisionLight playerVisionLight;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private PlayerBodyDragController playerBodyDragController;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private PlayerBodyDragController playerBodyDragController;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private EnemyMovementController enemyMovementController;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private EnemyMovementController enemyMovementController;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private EnemyCombatantAI enemyCombatantAI;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private EnemyCombatantAI enemyCombatantAI;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private EnemyMeleeCombatantAI enemyMeleeCombatantAI;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private EnemyMeleeCombatantAI enemyMeleeCombatantAI;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private ActorHealth actorHealth;
+    [FoldoutGroup("Cached References"), ShowInInspector, ReadOnly]
+    private ActorHealth actorHealth;
 
-    [FoldoutGroup("Rig"), MinValue(0f)]
-    [SerializeField] private float sideOffset = 0.55f;
-
-    [FoldoutGroup("Rig"), MinValue(0f)]
-    [SerializeField] private float locomotionSwingAmplitude = 0.28f;
-
-    [FoldoutGroup("Rig"), MinValue(0f)]
-    [SerializeField] private float holdDistance = 0.52f;
-
-    [FoldoutGroup("Rig"), MinValue(0f)]
-    [SerializeField] private float holdHandSeparation = 0.12f;
-
-    [FoldoutGroup("Rig"), MinValue(0f)]
-    [SerializeField] private float heldItemScale = 0.75f;
-
-    [FoldoutGroup("Rig"), MinValue(0f)]
-    [SerializeField] private float bodyDragHoldDistance = 0.24f;
-
-    [FoldoutGroup("Rig"), MinValue(0f)]
-    [SerializeField] private float bodyDragHandSeparation = 0.05f;
-
-    [FoldoutGroup("Rig")]
-    [SerializeField] private float heldItemRotationOffset;
-
-    [FoldoutGroup("Rig"), MinValue(0f)]
-    [SerializeField] private float autoCreatedHandScale = 0.7f;
-
-    [FoldoutGroup("Motion"), MinValue(0f)]
-    [SerializeField] private float swingCyclesPerSpeedUnit = 1.35f;
-
-    [FoldoutGroup("Motion"), MinValue(0f)]
-    [SerializeField] private float minimumMoveSpeedForSwing = 0.05f;
-
-    [FoldoutGroup("Motion"), MinValue(0f)]
-    [SerializeField] private float locomotionDirectionSmoothing = 18f;
-
-    [FoldoutGroup("Motion"), MinValue(0f)]
-    [SerializeField] private float enemyUnarmedHandSmoothing = 22f;
+    private float sideOffset = 0.55f;
+    private float locomotionSwingAmplitude = 0.28f;
+    private float holdDistance = 0.52f;
+    private float holdHandSeparation = 0.12f;
+    private float heldItemScale = 0.75f;
+    private float bodyDragHoldDistance = 0.24f;
+    private float bodyDragHandSeparation = 0.05f;
+    private float heldItemRotationOffset;
+    private float autoCreatedHandScale = 0.7f;
+    private float swingCyclesPerSpeedUnit = 1.35f;
+    private float minimumMoveSpeedForSwing = 0.05f;
+    private float locomotionDirectionSmoothing = 18f;
+    private float enemyUnarmedHandSmoothing = 22f;
 
     [FoldoutGroup("Setup")]
     [SerializeField] private bool autoCreateMissingVisualRig = true;
@@ -154,6 +129,30 @@ public class CharacterOrbitHandsAnimator : MonoBehaviour
         animator.ResolveReferences();
         animator.EnsureRig();
         return animator;
+    }
+
+    /// <summary>
+    /// Applies profile-authored hand rig and motion values shared by player and enemy actors.
+    /// </summary>
+    public void ApplySettings(CharacterOrbitHandsSettings settings)
+    {
+        if (settings == null)
+            return;
+
+        sideOffset = Mathf.Max(0f, settings.SideOffset);
+        locomotionSwingAmplitude = Mathf.Max(0f, settings.LocomotionSwingAmplitude);
+        holdDistance = Mathf.Max(0f, settings.HoldDistance);
+        holdHandSeparation = Mathf.Max(0f, settings.HoldHandSeparation);
+        heldItemScale = Mathf.Max(0f, settings.HeldItemScale);
+        bodyDragHoldDistance = Mathf.Max(0f, settings.BodyDragHoldDistance);
+        bodyDragHandSeparation = Mathf.Max(0f, settings.BodyDragHandSeparation);
+        heldItemRotationOffset = settings.HeldItemRotationOffset;
+        autoCreatedHandScale = Mathf.Max(0f, settings.AutoCreatedHandScale);
+        swingCyclesPerSpeedUnit = Mathf.Max(0f, settings.SwingCyclesPerSpeedUnit);
+        minimumMoveSpeedForSwing = Mathf.Max(0f, settings.MinimumMoveSpeedForSwing);
+        locomotionDirectionSmoothing = Mathf.Max(0f, settings.LocomotionDirectionSmoothing);
+        enemyUnarmedHandSmoothing = Mathf.Max(0f, settings.EnemyUnarmedHandSmoothing);
+        ApplyImmediateState();
     }
 
     private void Reset()

@@ -1475,9 +1475,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ActorHealth
   stateSpriteRenderer: {fileID: 4880940306454928862}
-  incapacitatedSprite: {fileID: -6089007737513708103, guid: c7493064e8fa40389881165fd46f88e3, type: 3}
-  deadSprite: {fileID: 7474744633217478141, guid: c7493064e8fa40389881165fd46f88e3, type: 3}
-  sleepingSprite: {fileID: -6948837563952519065, guid: 0a87a1e4fa840f313a2876b6e6ea53f2, type: 3}
   additionalBehavioursToDisable: []
   gameObjectsToHideOnDeath:
   - {fileID: 4597997853144929911}
@@ -1493,7 +1490,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e56b206966707f8398a358e1cecc93fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.Missions.ActorIncapacitationController
-  restoredHealthFractionOnWake: 1
 --- !u!114 &2346215835051100379
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1506,11 +1502,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 62271603462642355a65b9b5c8865767, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemySleepController
-  normalSleepWakeThreshold: 0.1
-  deepSleepWakeThreshold: 0.25
-  normalSleepAutoWakeDelay: 300
-  deepSleepAutoWakeDelay: 540
-  forcedSleepAutoWakeDelay: 1020
 --- !u!114 &7111871098375090206
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1570,23 +1561,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2cb65d69e8a547f4b9a54d3e8b7e4c12, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMovementController
-  allowClosedDoorTraversalWhilePatrol: 1
-  allowClosedDoorTraversalWhileAlert: 1
-  allowClosedDoorTraversalWhileSuspicious: 1
-  allowClosedDoorTraversalWhileSearching: 1
-  allowClosedDoorTraversalWhileFleeing: 1
-  allowClosedDoorTraversalWhileDetected: 1
-  closedDoorPathTag: 1
-  closedDoorTagPenalty: 0
-  closedDoorPatrolTagPenalty: 0
-  doorDetectionMask:
-    serializedVersion: 2
-    m_Bits: 8192
-  doorAutoOpenRange: 0.9
-  doorAutoOpenRadius: 0.18
-  doorAutoOpenCooldown: 0.2
-  doorPreferredRouteProbeDistance: 3
-  doorPreferredRouteProbeWidth: 0.75
   patrolPoints: []
   itinerarySteps:
   - StepName: Patrol Step
@@ -1716,7 +1690,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7291814284469564373}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0a9f5431dd5e4d08a52ef73c5e64b620, type: 3}
   m_Name: 
@@ -1786,15 +1760,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f231a8e9675af590595777a413899546, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyRoomAwareness
-  roomAwareness: 1
-  roomCheckInterval: 0.15
-  waitBeforeSwitchDuration: 1
-  confusedReactionDuration: 1.2
-  lookAroundDurationAfterTurningLightsOn: 2.5
-  lookAroundTurnInterval: 0.45
-  lookAroundRotationSpeed: 420
-  doorStateAwareness: 1
-  waitBeforeDoorStateFixDuration: 1
 --- !u!114 &4553391849794662228
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1822,34 +1787,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ActorFootstepSfx
   emitOrigin: {fileID: 5790842226232511309}
-  movementBody: {fileID: 3422409181800808453}
-  playerMotor: {fileID: 0}
-  enemyMovementController: {fileID: 1144342578178190841}
-  worldSfxManager: {fileID: 0}
-  footstepSfx:
-    clips:
-    - {fileID: 8300000, guid: 2c04c8d394e86b94a95d0bb2cce021d6, type: 3}
-    - {fileID: 8300000, guid: a22edc009c123594a9d4a258a2c0afbe, type: 3}
-    - {fileID: 8300000, guid: 450f4bb3f89eb2e458a4b2efee44af82, type: 3}
-    - {fileID: 8300000, guid: 465bf01a55b05b849a8409dda2d31a92, type: 3}
-    - {fileID: 8300000, guid: 29793f92ebc53024eb8e2801e99dce24, type: 3}
-    - {fileID: 8300000, guid: e49dee4f8e4854246accae485121e4f5, type: 3}
-    - {fileID: 8300000, guid: cf5e801bd5b4e3d4db957e71b0744cd2, type: 3}
-    - {fileID: 8300000, guid: c8f50566564e46344957f7e3ebed5d59, type: 3}
-    volume: 0.5
-    pitchRange: {x: 1, y: 1}
-    overrideSpatialBlend: 1
-    spatialBlend: 1
-    overrideDistanceRange: 1
-    minDistance: 1
-    maxDistance: 6
-  footstepSoundType: 1
-  minSpeedThreshold: 0.2
-  speedForFastestStep: 5
-  slowStepInterval: 0.85
-  fastStepInterval: 0.22
-  minimumVolumeMultiplier: 0.7
-  maximumVolumeMultiplier: 1
 --- !u!114 &964956265490721195
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1869,30 +1806,6 @@ MonoBehaviour:
   leftHandRenderer: {fileID: 35638988193002078}
   rightHandRenderer: {fileID: 8577600794587643674}
   heldItemRenderer: {fileID: 5269102959820320445}
-  playerMotor: {fileID: 0}
-  playerEquipmentController: {fileID: 0}
-  playerWeaponController: {fileID: 0}
-  playerUtilityController: {fileID: 0}
-  playerMeleeController: {fileID: 0}
-  playerVisionLight: {fileID: 0}
-  playerBodyDragController: {fileID: 0}
-  enemyMovementController: {fileID: 1144342578178190841}
-  enemyCombatantAI: {fileID: 2036771187581058827}
-  enemyMeleeCombatantAI: {fileID: 1678362193530572592}
-  actorHealth: {fileID: 1952562364349307822}
-  sideOffset: 0.55
-  locomotionSwingAmplitude: 0.28
-  holdDistance: 0.52
-  holdHandSeparation: 0.12
-  heldItemScale: 0.75
-  bodyDragHoldDistance: 0.24
-  bodyDragHandSeparation: 0.05
-  heldItemRotationOffset: 0
-  autoCreatedHandScale: 0.7
-  swingCyclesPerSpeedUnit: 1.35
-  minimumMoveSpeedForSwing: 0.05
-  locomotionDirectionSmoothing: 18
-  enemyUnarmedHandSmoothing: 5
   autoCreateMissingVisualRig: 0
   debugDraw: 0
 --- !u!114 &6114714859363010518
@@ -1959,9 +1872,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ae18928b75bd398ea645c5013ab2b7c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.Missions.MissionActorIdentity
-  actorId: enemy_combatent_1
-  actorDisplayName: 
-  isInnocent: 0
 --- !u!114 &2075099057516833013
 MonoBehaviour:
   m_ObjectHideFlags: 0

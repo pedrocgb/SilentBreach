@@ -12,13 +12,41 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 829bae7ef0e1457a85f80ae2d830eb5f, type: 3}
   m_Name: Player Profile
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStatsProfile
+  Controls:
+    RewiredPlayerId: 0
+    MoveHorizontalAction: Move Horizontal
+    MoveVerticalAction: Move Vertical
+    SprintAction: Sprint
+    ToggleMinMaxSpeedAction: Toggle Speed MinMax
+    MouseWheelAxisAction: Mouse Wheel
+    AimAction: Aim
+    FireAction: Fire
+    ReloadAction: Reload
+    CycleFireModeAction: Cycle Fire Mode
+    CancelThrowableAction: Cancel Throw
+    EquipPrimaryAction: Equip Primary
+    EquipSecondaryAction: Equip Secondary
+    EquipBeltAction: Equip Belt
+    ToggleEquipmentPanelAction: Toggle Equipment Panel
+    InteractAction: Interact
+    FocusAction: Focus
   Health:
     MaxHealth: 1
     IsInvincible: 0
+    RestoredHealthFractionOnWake: 1
+    IncapacitatedSprite: {fileID: -2481363419433577811, guid: c7493064e8fa40389881165fd46f88e3, type: 3}
+    DeadSprite: {fileID: -6979561388616357253, guid: c7493064e8fa40389881165fd46f88e3, type: 3}
+    SleepingSprite: {fileID: -8921366926826803672, guid: 0a87a1e4fa840f313a2876b6e6ea53f2, type: 3}
   Stagger:
     EnableStagger: 1
     StaggeredMoveSpeed: 0.25
     TurnSpeedReductionPercent: 80
+  StaggerFeedback:
+    FullStrengthReferenceDuration: 0.5
+    EffectLerpSpeed: 10
+    MaxVignetteIntensity: 0.32
+    MaxChromaticAberration: 0.22
+    MaxLensDistortion: -0.18
   Movement:
     WalkSpeedLevels:
     - 0.8
@@ -38,6 +66,7 @@ MonoBehaviour:
     NormalizeInput: 1
     ForceZeroGravity: 1
     FreezeRotationZ: 1
+    FillVelocityByLevel: 1
   Noise:
     IdleNoise: 0
     WalkNoiseAtMinSpeed: 0.02
@@ -78,5 +107,111 @@ MonoBehaviour:
     SprintDrainPerSecond: 28
     RegenerationPerSecond: 44
     RegenerationDelayAfterSpend: 1.5
-    StaggerStaminaLossPercent: 12
+    StaggerStaminaLossPercent: 20
     MovementThreshold: 0.05
+    StaminaTextFormat: '{0:0}/{1:0}'
+    InsufficientStaminaShakeDuration: 0.2
+    InsufficientStaminaShakeStrength: 18
+    InsufficientStaminaShakeVibrato: 18
+  Focus:
+    MaxFocusSeconds: 6
+    Regenerate: 0
+    RegenerationPerSecond: 1.25
+    RegenerationDelayAfterUse: 1.25
+    FocusSaturation: -100
+    FocusTransitionDuration: 0.22
+  Equipment:
+    PrimaryEquipment:
+      Item: {fileID: 0}
+      FirearmProjectile: {fileID: 0}
+      StartingLoadedAmmo: -1
+      StartingReserveAmmo: -1
+    SecondaryEquipment:
+      Item: {fileID: 0}
+      FirearmProjectile: {fileID: 0}
+      StartingLoadedAmmo: -1
+      StartingReserveAmmo: -1
+    BeltEquipment:
+      Item: {fileID: 0}
+      FirearmProjectile: {fileID: 0}
+      StartingLoadedAmmo: -1
+      StartingReserveAmmo: -1
+    StartingArmor: {fileID: 0}
+    StartingHeldSlot: 1
+    HideCrosshairWhilePanelVisible: 1
+    PauseGameWhilePanelVisible: 1
+  Weapon:
+    ProjectilePrefab: {fileID: 28254537026718337, guid: 7a54f6b309326aa45a4c90553fa94571, type: 3}
+    ProjectilePoolPrewarm: 16
+    MuzzleFlashPrefab: {fileID: 1306930571015351694, guid: a1c2931693f7f3145a1c248137422b23, type: 3}
+    MuzzleFlashPoolPrewarm: 8
+    LookRotationSpeed: 720
+    StationarySpeedThreshold: 0.05
+    DebugTraceDuration: 0.1
+    MuzzleFlashRotationOffset: 0
+    AutoEquipDebugWeaponOnStart: 0
+    DebugFirearm: {fileID: 0}
+    DebugProjectile: {fileID: 0}
+    DebugStartingLoadedAmmo: -1
+    DebugStartingReserveAmmo: -1
+    DebugReserveAmmoAddAmount: 12
+  Interaction:
+    InteractionRange: 1
+  BodyDrag:
+    DragDistance: 0.7
+    DragVerticalOffset: 0
+    DragFollowSpeed: 5
+    MovingBodyThreshold: 0.05
+    DragMovementSfx:
+      clips: []
+      volume: 1
+      pitchRange: {x: 1, y: 1}
+      overrideSpatialBlend: 1
+      spatialBlend: 1
+      overrideDistanceRange: 1
+      minDistance: 1.5
+      maxDistance: 8
+    DragNoiseInterval: 0.25
+    DragNoiseIntensity: 0.4
+    DragNoiseType: 1
+    DragNoiseExtreme: 0
+    DragSfxVolumeMultiplier: 1
+  Hands:
+    SideOffset: 0.55
+    LocomotionSwingAmplitude: 0.28
+    HoldDistance: 0.52
+    HoldHandSeparation: 0.12
+    HeldItemScale: 0.75
+    BodyDragHoldDistance: 0.24
+    BodyDragHandSeparation: 0.05
+    HeldItemRotationOffset: 0
+    AutoCreatedHandScale: 0.7
+    SwingCyclesPerSpeedUnit: 1.35
+    MinimumMoveSpeedForSwing: 0.05
+    LocomotionDirectionSmoothing: 18
+    EnemyUnarmedHandSmoothing: 5
+  Footsteps:
+    FootstepSfx:
+      clips:
+      - {fileID: 8300000, guid: 2c04c8d394e86b94a95d0bb2cce021d6, type: 3}
+      - {fileID: 8300000, guid: a22edc009c123594a9d4a258a2c0afbe, type: 3}
+      - {fileID: 8300000, guid: 450f4bb3f89eb2e458a4b2efee44af82, type: 3}
+      - {fileID: 8300000, guid: 465bf01a55b05b849a8409dda2d31a92, type: 3}
+      - {fileID: 8300000, guid: 29793f92ebc53024eb8e2801e99dce24, type: 3}
+      - {fileID: 8300000, guid: e49dee4f8e4854246accae485121e4f5, type: 3}
+      - {fileID: 8300000, guid: cf5e801bd5b4e3d4db957e71b0744cd2, type: 3}
+      - {fileID: 8300000, guid: c8f50566564e46344957f7e3ebed5d59, type: 3}
+      volume: 1
+      pitchRange: {x: 1, y: 1}
+      overrideSpatialBlend: 1
+      spatialBlend: 1
+      overrideDistanceRange: 0
+      minDistance: 1.5
+      maxDistance: 24
+    FootstepSoundType: 1
+    MinSpeedThreshold: 0.2
+    SpeedForFastestStep: 5
+    SlowStepInterval: 0.5
+    FastStepInterval: 0.22
+    MinimumVolumeMultiplier: 0.7
+    MaximumVolumeMultiplier: 1

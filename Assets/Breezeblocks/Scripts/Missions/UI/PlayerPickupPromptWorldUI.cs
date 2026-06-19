@@ -27,8 +27,12 @@ public class PlayerPickupPromptWorldUI : MonoBehaviour
     [SerializeField] private float typewriterCharacterDuration = 0.014f;
 
     private Tween typewriterTween;
+    private Tween feedbackMoveTween;
+    private Tween feedbackColorTween;
     private PlayerWorldInteractable observedInteractable;
     private string currentShownLabel = string.Empty;
+    private Color defaultLabelColor = Color.white;
+    private Vector2 defaultLabelAnchoredPosition;
 
     /// <summary>
     /// Resolves the pickup interactor reference and applies the initial prompt visibility.
@@ -38,6 +42,7 @@ public class PlayerPickupPromptWorldUI : MonoBehaviour
         if (pickupInteractor == null)
             pickupInteractor = GetComponentInParent<PlayerPickupInteractor>();
 
+        CacheLabelDefaults();
         Refresh();
     }
 
@@ -66,6 +71,7 @@ public class PlayerPickupPromptWorldUI : MonoBehaviour
 
         BindPresentationEvents(null);
         StopTypewriterTween();
+        StopFeedbackTweens(restoreVisuals: true);
     }
 
     /// <summary>
@@ -86,6 +92,18 @@ public class PlayerPickupPromptWorldUI : MonoBehaviour
     }
 
     /// <summary>
+    /// Plays temporary prompt feedback requested by the current interactable.
+    /// </summary>
+    private void HandleInteractionFeedbackRequested(PlayerWorldInteractable interactable, InteractionPromptFeedback feedback)
+    {
+        if (interactable != observedInteractable)
+            return;
+
+        UpdateLabel(feedback.Label);
+        PlayFeedbackAnimation(feedback);
+    }
+
+    /// <summary>
     /// Shows the prompt only while interaction is possible and input is not blocked.
     /// </summary>
     private void Refresh()
@@ -103,7 +121,7 @@ public class PlayerPickupPromptWorldUI : MonoBehaviour
             return;
         }
 
-        UpdateLabel(pickupInteractor.CurrentInteractable.InteractionDisplayName);
+        UpdateLabel(pickupInteractor.CurrentInteractable.GetInteractionDisplayName(pickupInteractor.gameObject));
     }
 
     /// <summary>
@@ -115,11 +133,29 @@ public class PlayerPickupPromptWorldUI : MonoBehaviour
             return;
 
         if (observedInteractable != null)
+        {
             observedInteractable.InteractionPresentationChanged -= HandleInteractionPresentationChanged;
+            observedInteractable.InteractionFeedbackRequested -= HandleInteractionFeedbackRequested;
+        }
 
         observedInteractable = interactable;
         if (observedInteractable != null)
+        {
             observedInteractable.InteractionPresentationChanged += HandleInteractionPresentationChanged;
+            observedInteractable.InteractionFeedbackRequested += HandleInteractionFeedbackRequested;
+        }
+    }
+
+    /// <summary>
+    /// Stores the label's authored color and anchored position for feedback reset.
+    /// </summary>
+    private void CacheLabelDefaults()
+    {
+        if (interactionLabelText == null)
+            return;
+
+        defaultLabelColor = interactionLabelText.color;
+        defaultLabelAnchoredPosition = interactionLabelText.rectTransform.anchoredPosition;
     }
 
     /// <summary>
@@ -179,12 +215,83 @@ public class PlayerPickupPromptWorldUI : MonoBehaviour
     }
 
     /// <summary>
+    /// Plays a short red flash and fixed left-right movement on the label to communicate a denied interaction.
+    /// </summary>
+    private void PlayFeedbackAnimation(InteractionPromptFeedback feedback)
+    {
+        if (interactionLabelText == null)
+            return;
+
+        StopFeedbackTweens(restoreVisuals: false);
+
+        RectTransform labelRect = interactionLabelText.rectTransform;
+        labelRect.anchoredPosition = defaultLabelAnchoredPosition;
+        interactionLabelText.color = defaultLabelColor;
+
+        float duration = Mathf.Max(0f, feedback.Duration);
+        if (duration <= 0f)
+        {
+            interactionLabelText.color = feedback.FlashColor;
+            return;
+        }
+
+        int sideSteps = Mathf.Max(1, feedback.Vibrato);
+        float stepDuration = duration / ((sideSteps * 2f) + 1f);
+        Sequence movementSequence = DOTween.Sequence().SetUpdate(true);
+        for (int i = 0; i < sideSteps; i++)
+        {
+            movementSequence.Append(labelRect.DOAnchorPosX(defaultLabelAnchoredPosition.x + feedback.Strength, stepDuration).SetEase(Ease.Linear));
+            movementSequence.Append(labelRect.DOAnchorPosX(defaultLabelAnchoredPosition.x - feedback.Strength, stepDuration).SetEase(Ease.Linear));
+        }
+
+        movementSequence
+            .Append(labelRect.DOAnchorPos(defaultLabelAnchoredPosition, stepDuration).SetEase(Ease.Linear))
+            .OnComplete(() =>
+            {
+                if (labelRect != null)
+                    labelRect.anchoredPosition = defaultLabelAnchoredPosition;
+
+                feedbackMoveTween = null;
+            });
+        feedbackMoveTween = movementSequence;
+
+        feedbackColorTween = interactionLabelText
+            .DOColor(feedback.FlashColor, duration * 0.5f)
+            .SetLoops(2, LoopType.Yoyo)
+            .SetUpdate(true)
+            .OnComplete(() =>
+            {
+                if (interactionLabelText != null)
+                    interactionLabelText.color = defaultLabelColor;
+
+                feedbackColorTween = null;
+            });
+    }
+
+    /// <summary>
     /// Stops the active typewriter tween before the label changes or the prompt is disabled.
     /// </summary>
     private void StopTypewriterTween()
     {
         typewriterTween?.Kill();
         typewriterTween = null;
+    }
+
+    /// <summary>
+    /// Stops active feedback tweens and optionally restores the authored label visual state.
+    /// </summary>
+    private void StopFeedbackTweens(bool restoreVisuals)
+    {
+        feedbackMoveTween?.Kill();
+        feedbackColorTween?.Kill();
+        feedbackMoveTween = null;
+        feedbackColorTween = null;
+
+        if (!restoreVisuals || interactionLabelText == null)
+            return;
+
+        interactionLabelText.color = defaultLabelColor;
+        interactionLabelText.rectTransform.anchoredPosition = defaultLabelAnchoredPosition;
     }
 }
 

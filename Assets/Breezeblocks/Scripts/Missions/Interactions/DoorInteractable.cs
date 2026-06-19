@@ -62,6 +62,9 @@ public class DoorInteractable : PlayerWorldInteractable
     [SerializeField] private Transform interactionPoint;
 
     [FoldoutGroup("References")]
+    [SerializeField] private Transform oppositeInteractionPoint;
+
+    [FoldoutGroup("References")]
     [SerializeField] private Transform audioOrigin;
 
     [FoldoutGroup("References")]
@@ -139,7 +142,7 @@ public class DoorInteractable : PlayerWorldInteractable
 
     public override string InteractionDisplayName =>
         doorLockState != null && doorLockState.IsLocked
-            ? doorLockState.LockedInteractionDisplayName
+            ? doorLockState.GetPlayerLockedInteractionDisplayName(null)
             : isOpen
                 ? (string.IsNullOrWhiteSpace(closeInteractionLabel) ? base.InteractionDisplayName : closeInteractionLabel)
                 : (string.IsNullOrWhiteSpace(openInteractionLabel) ? base.InteractionDisplayName : openInteractionLabel);
@@ -235,6 +238,32 @@ public class DoorInteractable : PlayerWorldInteractable
     }
 
     /// <summary>
+    /// Resolves the door prompt label for the specific player standing near the door.
+    /// </summary>
+    public override string GetInteractionDisplayName(GameObject interactorRoot)
+    {
+        if (doorLockState != null && doorLockState.IsLocked)
+            return doorLockState.GetPlayerLockedInteractionDisplayName(interactorRoot);
+
+        return InteractionDisplayName;
+    }
+
+    /// <summary>
+    /// Returns the closest configured door-side interaction point to the player.
+    /// </summary>
+    public override Vector3 GetClosestInteractionPosition(Vector3 origin)
+    {
+        Vector3 primaryPosition = interactionPoint != null ? interactionPoint.position : base.InteractionPosition;
+        if (oppositeInteractionPoint == null)
+            return primaryPosition;
+
+        Vector3 oppositePosition = oppositeInteractionPoint.position;
+        float primaryDistanceSqr = ((Vector2)(primaryPosition - origin)).sqrMagnitude;
+        float oppositeDistanceSqr = ((Vector2)(oppositePosition - origin)).sqrMagnitude;
+        return oppositeDistanceSqr < primaryDistanceSqr ? oppositePosition : primaryPosition;
+    }
+
+    /// <summary>
     /// Returns whether the player may currently interact with this door or start its lockpick flow.
     /// </summary>
     public override bool CanInteract(GameObject interactorRoot)
@@ -242,7 +271,10 @@ public class DoorInteractable : PlayerWorldInteractable
         if (!allowPlayerInteraction || isTransitioning || !base.CanInteract(interactorRoot))
             return false;
 
-        return doorLockState == null || !doorLockState.IsLocked || doorLockState.CanPlayerAttemptUnlock(interactorRoot);
+        return doorLockState == null ||
+               !doorLockState.IsLocked ||
+               doorLockState.CanPlayerAttemptUnlock(interactorRoot) ||
+               doorLockState.CanPlayerInspectLockedState(interactorRoot);
     }
 
     /// <summary>
@@ -303,7 +335,8 @@ public class DoorInteractable : PlayerWorldInteractable
             return false;
 
         isTransitioning = true;
-        ApplyBlockingColliderState(open);
+        // Keep the blocking collider disabled during close animation so moving actors are not pushed.
+        ApplyBlockingColliderState(open: true);
 
         if (playFeedback)
             PlayDoorFeedback(open);
@@ -337,7 +370,17 @@ public class DoorInteractable : PlayerWorldInteractable
     protected override bool Interact(GameObject interactorRoot)
     {
         if (doorLockState != null && doorLockState.IsLocked)
+        {
+            if (!doorLockState.HasPlayerLockpickUses(interactorRoot))
+            {
+                InteractionPromptFeedback feedback = doorLockState.CreateBlockedAttemptFeedback();
+                RequestInteractionFeedback(feedback);
+                doorLockState.PlayBlockedAttemptWorldFeedback(GetClosestInteractionPosition(interactorRoot != null ? interactorRoot.transform.position : InteractionPosition), gameObject);
+                return false;
+            }
+
             return doorLockState.TryBeginLockpick(interactorRoot);
+        }
 
         return TrySetOpen(!isOpen, playFeedback: true, interactorRoot);
     }

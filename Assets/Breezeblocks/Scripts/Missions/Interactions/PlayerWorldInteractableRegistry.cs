@@ -54,7 +54,8 @@ public static class PlayerWorldInteractableRegistry
             if (candidate == null || !candidate.CanInteract(interactorRoot))
                 continue;
 
-            float distanceSqr = ((Vector2)(candidate.InteractionPosition - origin)).sqrMagnitude;
+            Vector3 closestInteractionPosition = candidate.GetClosestInteractionPosition(origin);
+            float distanceSqr = ((Vector2)(closestInteractionPosition - origin)).sqrMagnitude;
             if (distanceSqr > maxDistanceSqr || distanceSqr >= bestDistanceSqr)
                 continue;
 

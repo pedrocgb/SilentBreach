@@ -32,6 +32,7 @@ public sealed class LockpickMinigameController : MonoBehaviour
     private const float MinimumHotspotWindowDuration = 0.02f;
 
     private static LockpickMinigameController activeInstance;
+    private static readonly LockedInteractionFeedbackSettings DefaultNoLockpickFeedback = new();
 
     [FoldoutGroup("Rewired"), MinValue(0)]
     [SerializeField] private int rewiredPlayerId;
@@ -68,6 +69,18 @@ public sealed class LockpickMinigameController : MonoBehaviour
 
     [FoldoutGroup("References")]
     [SerializeField] private TMP_Text lockpickUsesText;
+
+    [FoldoutGroup("References/Lockpick Break Visual")]
+    [SerializeField] private GameObject lockpickPoint;
+
+    [FoldoutGroup("References/Lockpick Break Visual")]
+    [SerializeField] private RectTransform brokenLockpickPoint;
+
+    [FoldoutGroup("References/Lockpick Break Visual")]
+    [SerializeField] private RectTransform brokenLockpickPieceOne;
+
+    [FoldoutGroup("References/Lockpick Break Visual")]
+    [SerializeField] private RectTransform brokenLockpickPieceTwo;
 
     [FoldoutGroup("Navigation"), Range(MinimumAxisThreshold, 1f)]
     [SerializeField] private float navigationAxisThreshold = 0.5f;
@@ -165,6 +178,33 @@ public sealed class LockpickMinigameController : MonoBehaviour
     [FoldoutGroup("Lockpick Break"), MinValue(0f), SuffixLabel("s", true)]
     [SerializeField] private float lockpickBreakRetryDelay = 0.35f;
 
+    [FoldoutGroup("Lockpick Break"), MinValue(0f), SuffixLabel("s", true)]
+    [SerializeField] private float outOfLockpicksCloseDelayDuration = 0.75f;
+
+    [FoldoutGroup("Lockpick Break/Visual"), SuffixLabel("deg", true)]
+    [SerializeField] private float brokenLockpickPieceOneRotationZ = -34.5f;
+
+    [FoldoutGroup("Lockpick Break/Visual"), SuffixLabel("deg", true)]
+    [SerializeField] private float brokenLockpickPieceTwoRotationZ = -45f;
+
+    [FoldoutGroup("Lockpick Break/Visual"), MinValue(MinimumDuration), SuffixLabel("s", true)]
+    [SerializeField] private float brokenLockpickRotationDuration = 0.12f;
+
+    [FoldoutGroup("Lockpick Break/Visual")]
+    [SerializeField] private Ease brokenLockpickRotationEase = Ease.OutBack;
+
+    [FoldoutGroup("Lockpick Break/Visual"), MinValue(MinimumDuration), SuffixLabel("s", true)]
+    [SerializeField] private float brokenLockpickDropDelay = 0.06f;
+
+    [FoldoutGroup("Lockpick Break/Visual"), SuffixLabel("anchored Y", true)]
+    [SerializeField] private float brokenLockpickDropTargetY = -520f;
+
+    [FoldoutGroup("Lockpick Break/Visual"), MinValue(MinimumDuration), SuffixLabel("s", true)]
+    [SerializeField] private float brokenLockpickDropDuration = 0.32f;
+
+    [FoldoutGroup("Lockpick Break/Visual")]
+    [SerializeField] private Ease brokenLockpickDropEase = Ease.InBack;
+
     [FoldoutGroup("Lockpick Break"), MinValue(0f)]
     [SerializeField] private float lockpickBreakNoise = 0.25f;
 
@@ -173,6 +213,9 @@ public sealed class LockpickMinigameController : MonoBehaviour
 
     [FoldoutGroup("Lockpick Break")]
     [SerializeField] private bool lockpickBreakExtremeNoise;
+
+    [FoldoutGroup("No Lockpick Feedback"), InlineProperty, HideLabel]
+    [SerializeField] private LockedInteractionFeedbackSettings noLockpickFeedback = new();
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool IsSessionActive => activeLockpickTarget != null;
@@ -204,15 +247,24 @@ public sealed class LockpickMinigameController : MonoBehaviour
     private Tween panelFadeTween;
     private Tween selectorTween;
     private Tween successDelayTween;
+    private Tween outOfLockpicksCloseTween;
+    private Sequence lockpickBreakVisualTween;
     private ILockpickSessionTarget activeLockpickTarget;
     private MonoBehaviour activeLockpickTargetBehaviour;
     private LockpickMinigameDefinition activeDefinition;
     private GameObject activeInteractorRoot;
+    private Vector2 brokenLockpickInitialAnchoredPosition;
+    private Quaternion brokenLockpickInitialRotation = Quaternion.identity;
+    private Quaternion brokenLockpickPieceOneInitialRotation = Quaternion.identity;
+    private Quaternion brokenLockpickPieceTwoInitialRotation = Quaternion.identity;
     private int activeTumblerCount;
     private int selectedIndex;
     private bool navigationAxisEngaged;
     private bool waitForPushRelease;
     private bool successClosePending;
+    private bool outOfLockpicksClosePending;
+    private bool lockpickBreakVisualActive;
+    private bool hasBrokenLockpickInitialState;
     private bool lockpickBreakDelayActive;
     private float lockpickBreakDelayEndsAt;
     private bool CanStartSessions => panelRoot != null && selectorRect != null && resolvedTumblerViews.Count > 0;
@@ -225,6 +277,8 @@ public sealed class LockpickMinigameController : MonoBehaviour
         CacheAudioSource();
         ResolveReferences();
         RebuildResolvedTumblerViews();
+        ValidateNoLockpickFeedback();
+        CaptureBrokenLockpickVisualInitialState();
         inputReader = new RewiredPlayerInputReader(rewiredPlayerId);
         HidePanelImmediate();
     }
@@ -257,6 +311,10 @@ public sealed class LockpickMinigameController : MonoBehaviour
         blurController.KillTween();
         successDelayTween?.Kill();
         successDelayTween = null;
+        outOfLockpicksCloseTween?.Kill();
+        outOfLockpicksCloseTween = null;
+        lockpickBreakVisualTween?.Kill();
+        lockpickBreakVisualTween = null;
         StopShakeLoopSfx();
 
         if (activeInstance == this)
@@ -293,7 +351,12 @@ public sealed class LockpickMinigameController : MonoBehaviour
         lockpickBreakSfx.Validate();
         lockpickBreakSfxVolume = Mathf.Clamp01(lockpickBreakSfxVolume);
         lockpickBreakRetryDelay = Mathf.Max(0f, lockpickBreakRetryDelay);
+        outOfLockpicksCloseDelayDuration = Mathf.Max(0f, outOfLockpicksCloseDelayDuration);
+        brokenLockpickRotationDuration = Mathf.Max(MinimumDuration, brokenLockpickRotationDuration);
+        brokenLockpickDropDelay = Mathf.Max(MinimumDuration, brokenLockpickDropDelay);
+        brokenLockpickDropDuration = Mathf.Max(MinimumDuration, brokenLockpickDropDuration);
         lockpickBreakNoise = Mathf.Max(0f, lockpickBreakNoise);
+        ValidateNoLockpickFeedback();
         ResolveReferences();
         RebuildResolvedTumblerViews();
     }
@@ -312,7 +375,7 @@ public sealed class LockpickMinigameController : MonoBehaviour
             return;
         }
 
-        if (successClosePending)
+        if (successClosePending || outOfLockpicksClosePending || lockpickBreakVisualActive)
         {
             TrackSelectorToAnimatedTumbler();
             return;
@@ -374,6 +437,31 @@ public sealed class LockpickMinigameController : MonoBehaviour
     public static bool TryBeginActiveSession(GameObject interactorRoot, ILockpickSessionTarget lockpickTarget)
     {
         return activeInstance != null && activeInstance.TryBeginSession(interactorRoot, lockpickTarget);
+    }
+
+    /// <summary>
+    /// Resolves the shared denied-lock prompt label for any system that uses lockpicking.
+    /// </summary>
+    public static string ResolveNoLockpickDisplayName(bool blockedAttemptRevealed)
+    {
+        LockedInteractionFeedbackSettings settings = ResolveNoLockpickFeedbackSettings();
+        return blockedAttemptRevealed ? settings.LockedLabel : settings.AttemptLabel;
+    }
+
+    /// <summary>
+    /// Creates the shared prompt feedback payload used when the player tries a lock without lockpicks.
+    /// </summary>
+    public static InteractionPromptFeedback CreateNoLockpickPromptFeedback()
+    {
+        return ResolveNoLockpickFeedbackSettings().CreatePromptFeedback();
+    }
+
+    /// <summary>
+    /// Plays the shared denied-lock world feedback from the supplied target position.
+    /// </summary>
+    public static void PlayNoLockpickWorldFeedback(Vector3 position, GameObject source)
+    {
+        ResolveNoLockpickFeedbackSettings().PlayWorldFeedback(position, source);
     }
 
     /// <summary>
@@ -493,6 +581,30 @@ public sealed class LockpickMinigameController : MonoBehaviour
     }
 
     /// <summary>
+    /// Returns the configured no-lockpick feedback settings, falling back to safe defaults when no controller exists.
+    /// </summary>
+    private static LockedInteractionFeedbackSettings ResolveNoLockpickFeedbackSettings()
+    {
+        if (activeInstance != null)
+        {
+            activeInstance.ValidateNoLockpickFeedback();
+            return activeInstance.noLockpickFeedback;
+        }
+
+        DefaultNoLockpickFeedback.Validate();
+        return DefaultNoLockpickFeedback;
+    }
+
+    /// <summary>
+    /// Ensures the shared no-lockpick feedback settings remain valid before consumers use them.
+    /// </summary>
+    private void ValidateNoLockpickFeedback()
+    {
+        noLockpickFeedback ??= new LockedInteractionFeedbackSettings();
+        noLockpickFeedback.Validate();
+    }
+
+    /// <summary>
     /// Blocks or restores the player's normal gameplay input while the minigame is active.
     /// </summary>
     private void ApplyInteractorInputBlocked(bool blocked)
@@ -513,6 +625,7 @@ public sealed class LockpickMinigameController : MonoBehaviour
         RefreshLockpickUsesText();
 
         EnsureStateCapacity(activeTumblerCount);
+        ResetLockpickBreakVisual(showLockpickPoint: true);
         for (int i = 0; i < resolvedTumblerViews.Count; i++)
         {
             LockpickTumblerView tumblerView = resolvedTumblerViews[i];
@@ -587,6 +700,7 @@ public sealed class LockpickMinigameController : MonoBehaviour
     {
         panelFadeTween?.Kill();
         panelFadeTween = null;
+        ResetLockpickBreakVisual(showLockpickPoint: true);
         AnimateBlur(false, immediate: true);
 
         if (panelCanvasGroup != null)
@@ -849,6 +963,13 @@ public sealed class LockpickMinigameController : MonoBehaviour
         successDelayTween?.Kill();
         successDelayTween = null;
         successClosePending = false;
+        outOfLockpicksCloseTween?.Kill();
+        outOfLockpicksCloseTween = null;
+        outOfLockpicksClosePending = false;
+        lockpickBreakVisualTween?.Kill();
+        lockpickBreakVisualTween = null;
+        lockpickBreakVisualActive = false;
+        ResetLockpickBreakVisual(showLockpickPoint: true);
         StopShakeLoopSfx();
         ApplyInteractorInputBlocked(false);
         HidePanel();
@@ -868,6 +989,13 @@ public sealed class LockpickMinigameController : MonoBehaviour
         successDelayTween?.Kill();
         successDelayTween = null;
         successClosePending = false;
+        outOfLockpicksCloseTween?.Kill();
+        outOfLockpicksCloseTween = null;
+        outOfLockpicksClosePending = false;
+        lockpickBreakVisualTween?.Kill();
+        lockpickBreakVisualTween = null;
+        lockpickBreakVisualActive = false;
+        ResetLockpickBreakVisual(showLockpickPoint: true);
         StopShakeLoopSfx();
         ApplyInteractorInputBlocked(false);
         HidePanelImmediate();
@@ -894,6 +1022,8 @@ public sealed class LockpickMinigameController : MonoBehaviour
         selectedIndex = 0;
         navigationAxisEngaged = false;
         waitForPushRelease = false;
+        outOfLockpicksClosePending = false;
+        lockpickBreakVisualActive = false;
         lockpickBreakDelayActive = false;
         lockpickBreakDelayEndsAt = 0f;
         RefreshLockpickUsesText();
@@ -939,11 +1069,193 @@ public sealed class LockpickMinigameController : MonoBehaviour
 
         RefreshLockpickUsesText();
         PlayLockpickBreakFeedback();
+        PlayerLockpickInventoryUtility.TryGetTotalLockpickUses(activeInteractorRoot, out int remainingUses);
+        BeginLockpickBreakVisual(remainingUses);
+    }
+
+    /// <summary>
+    /// Starts the authored broken-lockpick UI animation before the minigame resumes or closes.
+    /// </summary>
+    private void BeginLockpickBreakVisual(int remainingUses)
+    {
+        lockpickBreakVisualTween?.Kill();
+        lockpickBreakVisualTween = null;
+
+        if (!CanPlayLockpickBreakVisual())
+        {
+            CompleteLockpickBreakVisual(remainingUses);
+            return;
+        }
+
+        lockpickBreakVisualActive = true;
+        lockpickBreakDelayActive = false;
+        ResetLockpickBreakVisual(showLockpickPoint: false);
+
+        lockpickBreakVisualTween = DOTween.Sequence()
+            .SetUpdate(true)
+            .Join(brokenLockpickPieceOne
+                .DOLocalRotate(new Vector3(0f, 0f, brokenLockpickPieceOneRotationZ), brokenLockpickRotationDuration)
+                .SetEase(brokenLockpickRotationEase))
+            .Join(brokenLockpickPieceTwo
+                .DOLocalRotate(new Vector3(0f, 0f, brokenLockpickPieceTwoRotationZ), brokenLockpickRotationDuration)
+                .SetEase(brokenLockpickRotationEase))
+            .AppendInterval(brokenLockpickDropDelay)
+            .Append(brokenLockpickPoint
+                .DOAnchorPosY(brokenLockpickDropTargetY, brokenLockpickDropDuration)
+                .SetEase(brokenLockpickDropEase))
+            .OnComplete(() =>
+            {
+                lockpickBreakVisualTween = null;
+                CompleteLockpickBreakVisual(remainingUses);
+            });
+    }
+
+    /// <summary>
+    /// Finishes the broken-lockpick feedback by either restoring the pick or closing the session.
+    /// </summary>
+    private void CompleteLockpickBreakVisual(int remainingUses)
+    {
+        lockpickBreakVisualActive = false;
+        lockpickBreakVisualTween?.Kill();
+        lockpickBreakVisualTween = null;
+
+        if (remainingUses <= 0)
+        {
+            BeginOutOfLockpicksClose();
+            return;
+        }
+
+        ResetLockpickBreakVisual(showLockpickPoint: true);
         if (lockpickBreakRetryDelay <= 0f)
             return;
 
         lockpickBreakDelayActive = true;
         lockpickBreakDelayEndsAt = Time.unscaledTime + lockpickBreakRetryDelay;
+    }
+
+    /// <summary>
+    /// Returns whether all broken-lockpick UI references are assigned and ready to animate.
+    /// </summary>
+    private bool CanPlayLockpickBreakVisual()
+    {
+        return brokenLockpickPoint != null &&
+               brokenLockpickPieceOne != null &&
+               brokenLockpickPieceTwo != null;
+    }
+
+    /// <summary>
+    /// Captures the authored starting transform values so repeated break animations reset cleanly.
+    /// </summary>
+    private void CaptureBrokenLockpickVisualInitialState()
+    {
+        if (brokenLockpickPoint == null)
+            return;
+
+        brokenLockpickInitialAnchoredPosition = brokenLockpickPoint.anchoredPosition;
+        brokenLockpickInitialRotation = brokenLockpickPoint.localRotation;
+        brokenLockpickPieceOneInitialRotation = brokenLockpickPieceOne != null
+            ? brokenLockpickPieceOne.localRotation
+            : Quaternion.identity;
+        brokenLockpickPieceTwoInitialRotation = brokenLockpickPieceTwo != null
+            ? brokenLockpickPieceTwo.localRotation
+            : Quaternion.identity;
+        hasBrokenLockpickInitialState = true;
+    }
+
+    /// <summary>
+    /// Restores the visible and broken pick UI states before a session starts or after feedback completes.
+    /// </summary>
+    private void ResetLockpickBreakVisual(bool showLockpickPoint)
+    {
+        if (!hasBrokenLockpickInitialState)
+            CaptureBrokenLockpickVisualInitialState();
+
+        if (brokenLockpickPoint == null)
+        {
+            if (lockpickPoint != null)
+                lockpickPoint.SetActive(showLockpickPoint);
+
+            return;
+        }
+
+        if (showLockpickPoint)
+        {
+            if (hasBrokenLockpickInitialState)
+            {
+                brokenLockpickPoint.anchoredPosition = brokenLockpickInitialAnchoredPosition;
+                brokenLockpickPoint.localRotation = brokenLockpickInitialRotation;
+            }
+        }
+        else
+        {
+            SyncBrokenLockpickPointToLockpickPoint();
+        }
+
+        if (brokenLockpickPieceOne != null)
+            brokenLockpickPieceOne.localRotation = hasBrokenLockpickInitialState
+                ? brokenLockpickPieceOneInitialRotation
+                : Quaternion.identity;
+
+        if (brokenLockpickPieceTwo != null)
+            brokenLockpickPieceTwo.localRotation = hasBrokenLockpickInitialState
+                ? brokenLockpickPieceTwoInitialRotation
+                : Quaternion.identity;
+
+        if (lockpickPoint != null)
+            lockpickPoint.SetActive(showLockpickPoint);
+
+        brokenLockpickPoint.gameObject.SetActive(!showLockpickPoint);
+    }
+
+    /// <summary>
+    /// Aligns the broken lockpick parent with the current visible lockpick so break feedback starts from the same UI point.
+    /// </summary>
+    private void SyncBrokenLockpickPointToLockpickPoint()
+    {
+        if (lockpickPoint == null || brokenLockpickPoint == null)
+            return;
+
+        Transform lockpickTransform = lockpickPoint.transform;
+        brokenLockpickPoint.position = lockpickTransform.position;
+        brokenLockpickPoint.rotation = lockpickTransform.rotation;
+        brokenLockpickPoint.localScale = lockpickTransform.localScale;
+    }
+
+    /// <summary>
+    /// Starts a delayed close after the player breaks the last available lockpick.
+    /// </summary>
+    private void BeginOutOfLockpicksClose()
+    {
+        if (outOfLockpicksClosePending)
+            return;
+
+        outOfLockpicksClosePending = true;
+        lockpickBreakDelayActive = false;
+        StopShakeLoopSfx();
+        outOfLockpicksCloseTween?.Kill();
+        outOfLockpicksCloseTween = null;
+
+        if (outOfLockpicksCloseDelayDuration <= 0f)
+        {
+            FinalizeOutOfLockpicksClose();
+            return;
+        }
+
+        outOfLockpicksCloseTween = DOVirtual
+            .DelayedCall(outOfLockpicksCloseDelayDuration, FinalizeOutOfLockpicksClose)
+            .SetUpdate(true)
+            .OnComplete(() => outOfLockpicksCloseTween = null);
+    }
+
+    /// <summary>
+    /// Closes the lockpicking session after the player's lockpick inventory reaches zero.
+    /// </summary>
+    private void FinalizeOutOfLockpicksClose()
+    {
+        outOfLockpicksCloseTween?.Kill();
+        outOfLockpicksCloseTween = null;
+        outOfLockpicksClosePending = false;
+        CloseSessionInternal();
     }
 
     /// <summary>
@@ -983,7 +1295,7 @@ public sealed class LockpickMinigameController : MonoBehaviour
     /// </summary>
     private void UpdateShakeLoopSfx(bool shouldPlay)
     {
-        if (uiAudioSource == null || tumblerShakingLoopSfx == null || successClosePending)
+        if (uiAudioSource == null || tumblerShakingLoopSfx == null || successClosePending || outOfLockpicksClosePending)
             return;
 
         if (!shouldPlay)

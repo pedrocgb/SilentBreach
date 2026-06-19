@@ -39,6 +39,7 @@ public sealed class CutWireFuseBoxDoorView : MonoBehaviour
     public bool IsAnimating => isAnimating;
 
     public event Action Opened;
+    public event Action OpeningStarted;
     public event Action<bool> HeaderVisibilityChanged;
 
     private Button button;
@@ -123,6 +124,7 @@ public sealed class CutWireFuseBoxDoorView : MonoBehaviour
         if (!interactionEnabled || isOpen || isAnimating)
             return false;
 
+        OpeningStarted?.Invoke();
         AnimateTo(openYAngle, opening: true, () => Opened?.Invoke());
         return true;
     }

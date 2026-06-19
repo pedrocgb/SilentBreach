@@ -9,6 +9,9 @@ EditorBuildSettings:
     path: Assets/Breezeblocks/Scenes/[1] Hideout.unity
     guid: 1e632417fc7e5ff41bc6c50058d26751
   - enabled: 1
+    path: Assets/Breezeblocks/Scenes/[2] The Test.unity
+    guid: 51ce84bdc50d4fbb8af008e1700c72fc
+  - enabled: 1
     path: Assets/Breezeblocks/Scenes/[3] Poker Scene.unity
     guid: 8c9cfa26abfee488c85f1582747f6a02
   m_configObjects:

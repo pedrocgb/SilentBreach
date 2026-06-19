@@ -1607,12 +1607,16 @@ public sealed class HideoutSceneController : MonoBehaviour
         return item is FirearmData firearmData ? firearmData.AmmoCapacity : 0;
     }
 
+    /// <summary>
+    /// Resolves the starting quantity stored in a loadout slot for ammo-like equipment.
+    /// </summary>
     private static int ResolveReserveAmmo(EquipmentItemData item)
     {
         return item switch
         {
             FirearmData firearmData => firearmData.DefaultReserveAmmo,
             ThrowableUtilityData throwableData => throwableData.MaxUses,
+            LockpickUtilityData lockpickData => lockpickData.MaxUses,
             _ => 0
         };
     }

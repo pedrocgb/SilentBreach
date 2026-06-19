@@ -153,12 +153,12 @@ TextureImporter:
       name: Lockpicking Frame_2
       rect:
         serializedVersion: 2
-        x: 59
-        y: 111
-        width: 1029
+        x: 47
+        y: 196
+        width: 1096
         height: 121
       alignment: 9
-      pivot: {x: 0.99111617, y: 0.96415204}
+      pivot: {x: 0.98076236, y: 0.974024}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -197,20 +197,42 @@ TextureImporter:
       name: Lockpicking Frame_4
       rect:
         serializedVersion: 2
-        x: 1088
-        y: 111
-        width: 51
-        height: 121
+        x: 623
+        y: 23
+        width: 511
+        height: 142
       alignment: 9
-      pivot: {x: 0.79701144, y: 0.97257906}
+      pivot: {x: 0.9838095, y: 0.97573715}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 4963127f9438291a0987111df770ce18
+      spriteID: 7e641b17e25f8e8cb852117a295e39af
       internalID: 179608538
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Lockpicking Frame_5
+      rect:
+        serializedVersion: 2
+        x: 45
+        y: 23
+        width: 578
+        height: 141
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 32ba398edaac402f19d92086b6f6b21f
+      internalID: 102870332
       vertices: []
       indices: 
       edges: []
@@ -234,6 +256,7 @@ TextureImporter:
       Lockpicking Frame_2: 6497634482841299366
       Lockpicking Frame_3: 1695082840
       Lockpicking Frame_4: 179608538
+      Lockpicking Frame_5: 102870332
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

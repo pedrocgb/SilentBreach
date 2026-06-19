@@ -15,8 +15,8 @@ public sealed class CutWireWireView : MonoBehaviour, IPointerEnterHandler, IPoin
     [FoldoutGroup("References")]
     [SerializeField] private Image wireImage;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private GameObject hoverObject;
+    [FoldoutGroup("Highlight"), AssetsOnly]
+    [SerializeField] private Material hoverMaterial;
 
     [FoldoutGroup("Sprites"), AssetsOnly]
     [SerializeField] private Sprite intactSprite;
@@ -47,6 +47,7 @@ public sealed class CutWireWireView : MonoBehaviour, IPointerEnterHandler, IPoin
     public int WireIndex { get; private set; }
     public bool IsCut { get; private set; }
 
+    private readonly UIImageMaterialHoverFeedback hoverFeedback = new();
     private Button button;
 
     /// <summary>
@@ -55,6 +56,7 @@ public sealed class CutWireWireView : MonoBehaviour, IPointerEnterHandler, IPoin
     private void Awake()
     {
         button = GetComponent<Button>();
+        hoverFeedback.Bind(wireImage, hoverMaterial);
         SetHovered(false);
     }
 
@@ -64,6 +66,7 @@ public sealed class CutWireWireView : MonoBehaviour, IPointerEnterHandler, IPoin
     private void OnEnable()
     {
         button ??= GetComponent<Button>();
+        hoverFeedback.Bind(wireImage, hoverMaterial);
         button.onClick.AddListener(HandleClicked);
     }
 
@@ -76,6 +79,14 @@ public sealed class CutWireWireView : MonoBehaviour, IPointerEnterHandler, IPoin
             button.onClick.RemoveListener(HandleClicked);
 
         SetHovered(false);
+    }
+
+    /// <summary>
+    /// Keeps the hover material reference synced while editing.
+    /// </summary>
+    private void OnValidate()
+    {
+        hoverFeedback.SetHighlightMaterial(hoverMaterial);
     }
 
     /// <summary>
@@ -159,8 +170,7 @@ public sealed class CutWireWireView : MonoBehaviour, IPointerEnterHandler, IPoin
     /// </summary>
     private void SetHovered(bool hovered)
     {
-        if (hoverObject != null)
-            hoverObject.SetActive(hovered);
+        hoverFeedback.SetHighlighted(hovered);
     }
 
     /// <summary>

@@ -73,3 +73,11 @@ MonoBehaviour:
     firearmProjectile: {fileID: 0}
     availabilityProbability: 1
     maxQuantity: 2
+  - item: {fileID: 11400000, guid: 3efdde5336713342c930a7a1952623d9, type: 2}
+    firearmProjectile: {fileID: 0}
+    availabilityProbability: 1
+    maxQuantity: 5
+  - item: {fileID: 11400000, guid: fc4392705251bc90c880e46dbcb7ca2d, type: 2}
+    firearmProjectile: {fileID: 0}
+    availabilityProbability: 1
+    maxQuantity: 1

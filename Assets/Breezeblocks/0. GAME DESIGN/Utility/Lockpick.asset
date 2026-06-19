@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: Lockpick
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.WeaponSystem.LockpickUtilityData
   itemDisplayName: Gazua
-  itemIcon: {fileID: 0}
-  itemDescription: 
+  itemIcon: {fileID: -1292674622, guid: f66f6aa33031fee42a54a5bbece4662b, type: 3}
+  itemDescription: Uma ferramenta de metal (geralmente um gancho fino) usada para
+    manipular os mecanismos internos de uma fechadura sem a chave original.
   shopPrice: 50
   heldVisualSprite: {fileID: 0}
   equipTime: 0

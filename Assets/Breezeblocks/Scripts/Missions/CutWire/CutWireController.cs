@@ -88,6 +88,9 @@ public sealed class CutWireController : MonoBehaviour
     [SerializeField] private AudioClip cutWireSfx;
 
     [FoldoutGroup("Audio"), AssetsOnly]
+    [SerializeField] private AudioClip doorOpenSfx;
+
+    [FoldoutGroup("Audio"), AssetsOnly]
     [SerializeField] private AudioClip successSfx;
 
     [FoldoutGroup("Audio"), AssetsOnly]
@@ -95,6 +98,9 @@ public sealed class CutWireController : MonoBehaviour
 
     [FoldoutGroup("Audio"), Range(0f, 1f)]
     [SerializeField] private float cutWireVolume = 1f;
+
+    [FoldoutGroup("Audio"), Range(0f, 1f)]
+    [SerializeField] private float doorOpenVolume = 1f;
 
     [FoldoutGroup("Audio"), Range(0f, 1f)]
     [SerializeField] private float successVolume = 1f;
@@ -198,6 +204,7 @@ public sealed class CutWireController : MonoBehaviour
         blurBokehBladeCurvature = Mathf.Clamp01(blurBokehBladeCurvature);
         blurBokehBladeRotation = Mathf.Clamp(blurBokehBladeRotation, -180f, 180f);
         cutWireVolume = Mathf.Clamp01(cutWireVolume);
+        doorOpenVolume = Mathf.Clamp01(doorOpenVolume);
         successVolume = Mathf.Clamp01(successVolume);
         failureVolume = Mathf.Clamp01(failureVolume);
         ResolvePanelCanvasGroup();
@@ -542,6 +549,8 @@ public sealed class CutWireController : MonoBehaviour
 
         fuseBoxDoorView.Opened -= HandleFuseBoxDoorOpened;
         fuseBoxDoorView.Opened += HandleFuseBoxDoorOpened;
+        fuseBoxDoorView.OpeningStarted -= HandleFuseBoxDoorOpeningStarted;
+        fuseBoxDoorView.OpeningStarted += HandleFuseBoxDoorOpeningStarted;
         fuseBoxDoorView.HeaderVisibilityChanged -= SetHeaderVisible;
         fuseBoxDoorView.HeaderVisibilityChanged += SetHeaderVisible;
     }
@@ -555,7 +564,16 @@ public sealed class CutWireController : MonoBehaviour
             return;
 
         fuseBoxDoorView.Opened -= HandleFuseBoxDoorOpened;
+        fuseBoxDoorView.OpeningStarted -= HandleFuseBoxDoorOpeningStarted;
         fuseBoxDoorView.HeaderVisibilityChanged -= SetHeaderVisible;
+    }
+
+    /// <summary>
+    /// Plays the configured fuse-box door opening UI feedback as soon as the player opens the panel door.
+    /// </summary>
+    private void HandleFuseBoxDoorOpeningStarted()
+    {
+        PlayOneShot(doorOpenSfx, doorOpenVolume);
     }
 
     /// <summary>

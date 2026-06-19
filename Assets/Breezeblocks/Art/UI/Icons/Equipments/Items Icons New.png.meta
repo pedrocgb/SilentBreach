@@ -148,12 +148,12 @@ TextureImporter:
       name: Items Icons New_0
       rect:
         serializedVersion: 2
-        x: 26
-        y: 707
-        width: 276
-        height: 278
+        x: 23
+        y: 955
+        width: 274
+        height: 276
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -170,12 +170,12 @@ TextureImporter:
       name: Items Icons New_1
       rect:
         serializedVersion: 2
-        x: 326
-        y: 706
-        width: 276
-        height: 279
+        x: 323
+        y: 954
+        width: 274
+        height: 277
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -192,12 +192,12 @@ TextureImporter:
       name: Items Icons New_2
       rect:
         serializedVersion: 2
-        x: 627
-        y: 707
-        width: 276
-        height: 279
+        x: 624
+        y: 955
+        width: 274
+        height: 277
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -214,12 +214,12 @@ TextureImporter:
       name: Items Icons New_3
       rect:
         serializedVersion: 2
-        x: 928
-        y: 706
-        width: 275
-        height: 280
+        x: 925
+        y: 954
+        width: 273
+        height: 278
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -236,12 +236,12 @@ TextureImporter:
       name: Items Icons New_4
       rect:
         serializedVersion: 2
-        x: 1230
-        y: 707
-        width: 275
-        height: 279
+        x: 1227
+        y: 955
+        width: 273
+        height: 277
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -258,12 +258,12 @@ TextureImporter:
       name: Items Icons New_5
       rect:
         serializedVersion: 2
-        x: 26
-        y: 396
-        width: 276
-        height: 279
+        x: 23
+        y: 644
+        width: 274
+        height: 277
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -280,12 +280,12 @@ TextureImporter:
       name: Items Icons New_6
       rect:
         serializedVersion: 2
-        x: 326
-        y: 396
-        width: 276
-        height: 279
+        x: 323
+        y: 644
+        width: 274
+        height: 277
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -302,12 +302,12 @@ TextureImporter:
       name: Items Icons New_7
       rect:
         serializedVersion: 2
-        x: 627
-        y: 396
-        width: 276
-        height: 279
+        x: 624
+        y: 644
+        width: 274
+        height: 277
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -324,12 +324,12 @@ TextureImporter:
       name: Items Icons New_8
       rect:
         serializedVersion: 2
-        x: 928
-        y: 396
-        width: 275
-        height: 279
+        x: 925
+        y: 644
+        width: 273
+        height: 277
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -346,12 +346,12 @@ TextureImporter:
       name: Items Icons New_9
       rect:
         serializedVersion: 2
-        x: 1230
-        y: 396
-        width: 273
-        height: 279
+        x: 1227
+        y: 644
+        width: 271
+        height: 277
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -368,12 +368,12 @@ TextureImporter:
       name: Items Icons New_10
       rect:
         serializedVersion: 2
-        x: 1500
-        y: 415
-        width: 6
-        height: 240
+        x: 1497
+        y: 663
+        width: 4
+        height: 238
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -390,12 +390,12 @@ TextureImporter:
       name: Items Icons New_11
       rect:
         serializedVersion: 2
-        x: 29
-        y: 81
-        width: 275
-        height: 280
+        x: 26
+        y: 329
+        width: 273
+        height: 278
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -412,12 +412,12 @@ TextureImporter:
       name: Items Icons New_12
       rect:
         serializedVersion: 2
-        x: 329
-        y: 81
-        width: 276
-        height: 280
+        x: 326
+        y: 329
+        width: 274
+        height: 278
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -434,12 +434,12 @@ TextureImporter:
       name: Items Icons New_13
       rect:
         serializedVersion: 2
-        x: 629
-        y: 81
-        width: 277
-        height: 280
+        x: 626
+        y: 329
+        width: 275
+        height: 278
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -456,12 +456,12 @@ TextureImporter:
       name: Items Icons New_14
       rect:
         serializedVersion: 2
-        x: 930
-        y: 81
-        width: 276
-        height: 280
+        x: 927
+        y: 329
+        width: 274
+        height: 278
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -478,12 +478,12 @@ TextureImporter:
       name: Items Icons New_15
       rect:
         serializedVersion: 2
-        x: 1203
-        y: 99
-        width: 6
-        height: 243
+        x: 1200
+        y: 347
+        width: 4
+        height: 241
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -496,11 +496,55 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
+    - serializedVersion: 2
+      name: Items Icons New_16
+      rect:
+        serializedVersion: 2
+        x: 1230
+        y: 326
+        width: 262
+        height: 275
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a067320ed80ed457c95f483bdb7731f7
+      internalID: 1812749678
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Items Icons New_17
+      rect:
+        serializedVersion: 2
+        x: 30
+        y: 34
+        width: 268
+        height: 271
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 37dcb7489fc182e95b6309a05460adee
+      internalID: -1292674622
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
     outline: []
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 472805aa401d1653bbdeccd5fc105072
     internalID: 0
     vertices: []
     indices: 
@@ -508,7 +552,9 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries: []
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
       Items Icons New_0: -3854106236664618458
       Items Icons New_1: 5798706290265224291
@@ -518,6 +564,8 @@ TextureImporter:
       Items Icons New_13: -477137186574945396
       Items Icons New_14: -1796000162420136196
       Items Icons New_15: 5466114349194766119
+      Items Icons New_16: 1812749678
+      Items Icons New_17: -1292674622
       Items Icons New_2: -613789303891133912
       Items Icons New_3: 6744713032217520389
       Items Icons New_4: -8141219322014433838

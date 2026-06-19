@@ -20,6 +20,7 @@ public abstract class PlayerWorldInteractable : MonoBehaviour
     public static System.Collections.Generic.IReadOnlyList<PlayerWorldInteractable> ActiveInteractables => PlayerWorldInteractableRegistry.ActiveInteractables;
 
     public event System.Action<PlayerWorldInteractable> InteractionPresentationChanged;
+    public event System.Action<PlayerWorldInteractable, InteractionPromptFeedback> InteractionFeedbackRequested;
 
     /// <summary>
     /// Registers the interactable so players can discover it at runtime.
@@ -54,6 +55,22 @@ public abstract class PlayerWorldInteractable : MonoBehaviour
     }
 
     /// <summary>
+    /// Resolves the display label for a specific interactor when an interaction prompt is visible.
+    /// </summary>
+    public virtual string GetInteractionDisplayName(GameObject interactorRoot)
+    {
+        return InteractionDisplayName;
+    }
+
+    /// <summary>
+    /// Returns the closest usable interaction point to the supplied origin.
+    /// </summary>
+    public virtual Vector3 GetClosestInteractionPosition(Vector3 origin)
+    {
+        return InteractionPosition;
+    }
+
+    /// <summary>
     /// Attempts to interact only when the interactable currently accepts the interactor.
     /// </summary>
     public bool TryInteract(GameObject interactorRoot)
@@ -67,6 +84,14 @@ public abstract class PlayerWorldInteractable : MonoBehaviour
     public void RefreshInteractionPresentation()
     {
         InteractionPresentationChanged?.Invoke(this);
+    }
+
+    /// <summary>
+    /// Requests temporary prompt feedback from any UI observing this interactable.
+    /// </summary>
+    protected void RequestInteractionFeedback(InteractionPromptFeedback feedback)
+    {
+        InteractionFeedbackRequested?.Invoke(this, feedback);
     }
 
     /// <summary>

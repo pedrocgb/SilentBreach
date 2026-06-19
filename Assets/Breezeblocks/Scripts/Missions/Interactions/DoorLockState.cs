@@ -39,6 +39,7 @@ public sealed class DoorLockState : MonoBehaviour, ILockpickSessionTarget
 
     private DoorInteractable doorInteractable;
     private bool isLocked;
+    private bool blockedAttemptRevealed;
 
     /// <summary>
     /// Caches the same-object door reference and initializes the authored runtime lock state.
@@ -72,12 +73,57 @@ public sealed class DoorLockState : MonoBehaviour, ILockpickSessionTarget
     }
 
     /// <summary>
+    /// Returns whether the locked door should remain available as a denied interaction prompt.
+    /// </summary>
+    public bool CanPlayerInspectLockedState(GameObject interactorRoot)
+    {
+        return isLocked && interactorRoot != null && definition != null;
+    }
+
+    /// <summary>
+    /// Returns whether the player currently has lockpick uses available for this lock.
+    /// </summary>
+    public bool HasPlayerLockpickUses(GameObject interactorRoot)
+    {
+        return PlayerLockpickInventoryUtility.HasAnyLockpickUses(interactorRoot);
+    }
+
+    /// <summary>
+    /// Resolves the locked door prompt label for a player with or without lockpicks.
+    /// </summary>
+    public string GetPlayerLockedInteractionDisplayName(GameObject interactorRoot)
+    {
+        if (HasPlayerLockpickUses(interactorRoot))
+            return LockedInteractionDisplayName;
+
+        return LockpickMinigameController.ResolveNoLockpickDisplayName(blockedAttemptRevealed);
+    }
+
+    /// <summary>
     /// Starts the shared lockpicking minigame for this locked door when the player is allowed to unlock it.
     /// </summary>
     public bool TryBeginLockpick(GameObject interactorRoot)
     {
         return CanPlayerAttemptUnlock(interactorRoot) &&
                LockpickMinigameController.TryBeginActiveSession(interactorRoot, this);
+    }
+
+    /// <summary>
+    /// Marks this lock as visibly denied and returns the prompt feedback payload to play.
+    /// </summary>
+    public InteractionPromptFeedback CreateBlockedAttemptFeedback()
+    {
+        blockedAttemptRevealed = true;
+        doorInteractable?.RefreshInteractionPresentation();
+        return LockpickMinigameController.CreateNoLockpickPromptFeedback();
+    }
+
+    /// <summary>
+    /// Plays locked-door SFX and noise from the supplied world position.
+    /// </summary>
+    public void PlayBlockedAttemptWorldFeedback(Vector3 position, GameObject source)
+    {
+        LockpickMinigameController.PlayNoLockpickWorldFeedback(position, source != null ? source : gameObject);
     }
 
     /// <summary>
@@ -109,6 +155,7 @@ public sealed class DoorLockState : MonoBehaviour, ILockpickSessionTarget
             return;
 
         isLocked = false;
+        blockedAttemptRevealed = false;
         doorInteractable?.RefreshInteractionPresentation();
     }
 
@@ -118,6 +165,7 @@ public sealed class DoorLockState : MonoBehaviour, ILockpickSessionTarget
     public void ResetLock()
     {
         isLocked = startsLocked;
+        blockedAttemptRevealed = false;
         doorInteractable?.RefreshInteractionPresentation();
     }
 

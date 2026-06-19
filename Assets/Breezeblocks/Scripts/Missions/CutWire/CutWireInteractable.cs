@@ -56,7 +56,7 @@ public sealed class CutWireInteractable : PlayerWorldInteractable, ICutWireSessi
     public CutWireMinigameDefinition Definition => definition;
     public override string InteractionDisplayName =>
         isLocked
-            ? string.IsNullOrWhiteSpace(lockedInteractionLabel) ? DefaultLockedInteractionLabel : lockedInteractionLabel
+            ? ResolveLockedInteractionDisplayName(null)
             : string.IsNullOrWhiteSpace(interactionLabel) ? DefaultInteractionLabel : interactionLabel;
 
     LockpickMinigameDefinition ILockpickSessionTarget.Definition => lockpickDefinition;
@@ -65,6 +65,7 @@ public sealed class CutWireInteractable : PlayerWorldInteractable, ICutWireSessi
     private bool isResolved;
     private bool wasSuccessful;
     private bool isLocked;
+    private bool blockedAttemptRevealed;
 
     /// <summary>
     /// Initializes the authored lock state before the fuse box becomes interactable.
@@ -108,9 +109,19 @@ public sealed class CutWireInteractable : PlayerWorldInteractable, ICutWireSessi
 
         return isLocked
             ? lockpickDefinition != null &&
-              LockpickMinigameController.HasRegisteredInstance &&
-              PlayerLockpickInventoryUtility.HasAnyLockpickUses(interactorRoot)
+              (!PlayerLockpickInventoryUtility.HasAnyLockpickUses(interactorRoot) ||
+               LockpickMinigameController.HasRegisteredInstance)
             : CutWireController.HasRegisteredInstance;
+    }
+
+    /// <summary>
+    /// Resolves the fuse box prompt label for players with or without lockpick uses.
+    /// </summary>
+    public override string GetInteractionDisplayName(GameObject interactorRoot)
+    {
+        return isLocked
+            ? ResolveLockedInteractionDisplayName(interactorRoot)
+            : string.IsNullOrWhiteSpace(interactionLabel) ? DefaultInteractionLabel : interactionLabel;
     }
 
     /// <summary>
@@ -119,7 +130,18 @@ public sealed class CutWireInteractable : PlayerWorldInteractable, ICutWireSessi
     protected override bool Interact(GameObject interactorRoot)
     {
         if (isLocked)
+        {
+            if (!PlayerLockpickInventoryUtility.HasAnyLockpickUses(interactorRoot))
+            {
+                blockedAttemptRevealed = true;
+                RefreshInteractionPresentation();
+                RequestInteractionFeedback(LockpickMinigameController.CreateNoLockpickPromptFeedback());
+                LockpickMinigameController.PlayNoLockpickWorldFeedback(InteractionPosition, gameObject);
+                return false;
+            }
+
             return LockpickMinigameController.TryBeginActiveSession(interactorRoot, this);
+        }
 
         EnsureCutStateCapacity();
         return CutWireController.TryBeginActiveSession(interactorRoot, this);
@@ -134,6 +156,7 @@ public sealed class CutWireInteractable : PlayerWorldInteractable, ICutWireSessi
             return;
 
         isLocked = false;
+        blockedAttemptRevealed = false;
         RefreshInteractionPresentation();
     }
 
@@ -184,8 +207,20 @@ public sealed class CutWireInteractable : PlayerWorldInteractable, ICutWireSessi
         isResolved = false;
         wasSuccessful = false;
         isLocked = startsLocked;
+        blockedAttemptRevealed = false;
         EnsureCutStateCapacity(clearExisting: true);
         RefreshInteractionPresentation();
+    }
+
+    /// <summary>
+    /// Returns the correct locked label for the current lockpick inventory state.
+    /// </summary>
+    private string ResolveLockedInteractionDisplayName(GameObject interactorRoot)
+    {
+        if (PlayerLockpickInventoryUtility.HasAnyLockpickUses(interactorRoot))
+            return string.IsNullOrWhiteSpace(lockedInteractionLabel) ? DefaultLockedInteractionLabel : lockedInteractionLabel;
+
+        return LockpickMinigameController.ResolveNoLockpickDisplayName(blockedAttemptRevealed);
     }
 
     /// <summary>

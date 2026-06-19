@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: Thieves Tools
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.WeaponSystem.LockpickUtilityData
   itemDisplayName: "Ferramentas de Ladr\xE3o"
-  itemIcon: {fileID: 0}
+  itemIcon: {fileID: 1812749678, guid: f66f6aa33031fee42a54a5bbece4662b, type: 3}
   itemDescription: Um punhado de ferramentas utilizadas para arrombamento de portas,
     cadeados e desmontar objetos em geral.
-  shopPrice: 450
+  shopPrice: 400
   heldVisualSprite: {fileID: 0}
   equipTime: 0
   holsterTime: 0

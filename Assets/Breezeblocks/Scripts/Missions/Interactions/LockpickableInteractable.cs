@@ -32,11 +32,12 @@ public sealed class LockpickableInteractable : PlayerWorldInteractable, ILockpic
     public LockpickMinigameDefinition Definition => definition;
 
     public override string InteractionDisplayName =>
-        !isUnlocked && !string.IsNullOrWhiteSpace(lockedInteractionLabel)
-            ? lockedInteractionLabel
+        !isUnlocked
+            ? ResolveLockedInteractionDisplayName(null)
             : base.InteractionDisplayName;
 
     private bool isUnlocked;
+    private bool blockedAttemptRevealed;
 
     /// <summary>
     /// Trims the authored interaction label while editing.
@@ -52,11 +53,19 @@ public sealed class LockpickableInteractable : PlayerWorldInteractable, ILockpic
     /// </summary>
     public override bool CanInteract(GameObject interactorRoot)
     {
-        return !isUnlocked &&
-               definition != null &&
-               LockpickMinigameController.HasRegisteredInstance &&
-               PlayerLockpickInventoryUtility.HasAnyLockpickUses(interactorRoot) &&
-               base.CanInteract(interactorRoot);
+        if (isUnlocked || definition == null || !base.CanInteract(interactorRoot))
+            return false;
+
+        return !PlayerLockpickInventoryUtility.HasAnyLockpickUses(interactorRoot) ||
+               LockpickMinigameController.HasRegisteredInstance;
+    }
+
+    /// <summary>
+    /// Resolves the prompt label from the player's current lockpick inventory state.
+    /// </summary>
+    public override string GetInteractionDisplayName(GameObject interactorRoot)
+    {
+        return !isUnlocked ? ResolveLockedInteractionDisplayName(interactorRoot) : base.GetInteractionDisplayName(interactorRoot);
     }
 
     /// <summary>
@@ -64,6 +73,15 @@ public sealed class LockpickableInteractable : PlayerWorldInteractable, ILockpic
     /// </summary>
     protected override bool Interact(GameObject interactorRoot)
     {
+        if (!PlayerLockpickInventoryUtility.HasAnyLockpickUses(interactorRoot))
+        {
+            blockedAttemptRevealed = true;
+            RefreshInteractionPresentation();
+            RequestInteractionFeedback(LockpickMinigameController.CreateNoLockpickPromptFeedback());
+            LockpickMinigameController.PlayNoLockpickWorldFeedback(InteractionPosition, gameObject);
+            return false;
+        }
+
         return LockpickMinigameController.TryBeginActiveSession(interactorRoot, this);
     }
 
@@ -76,6 +94,7 @@ public sealed class LockpickableInteractable : PlayerWorldInteractable, ILockpic
             return;
 
         isUnlocked = true;
+        blockedAttemptRevealed = false;
         onUnlocked?.Invoke();
         RefreshInteractionPresentation();
     }
@@ -86,7 +105,19 @@ public sealed class LockpickableInteractable : PlayerWorldInteractable, ILockpic
     public void ResetLock()
     {
         isUnlocked = false;
+        blockedAttemptRevealed = false;
         RefreshInteractionPresentation();
+    }
+
+    /// <summary>
+    /// Returns the correct locked label for players with or without lockpick uses.
+    /// </summary>
+    private string ResolveLockedInteractionDisplayName(GameObject interactorRoot)
+    {
+        if (PlayerLockpickInventoryUtility.HasAnyLockpickUses(interactorRoot))
+            return string.IsNullOrWhiteSpace(lockedInteractionLabel) ? base.InteractionDisplayName : lockedInteractionLabel;
+
+        return LockpickMinigameController.ResolveNoLockpickDisplayName(blockedAttemptRevealed);
     }
 }
 

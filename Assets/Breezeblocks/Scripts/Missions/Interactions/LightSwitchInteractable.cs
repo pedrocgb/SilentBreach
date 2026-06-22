@@ -14,14 +14,14 @@ public class LightSwitchInteractable : PlayerWorldInteractable
 {
     public event Action<LightSwitchInteractable, bool> LightStateChanged;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private WorldSfxManager worldSfxManager;
-
     [FoldoutGroup("Lights"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
     [SerializeField] private List<GameObject> controlledLights = new();
 
     [FoldoutGroup("Lights")]
     [SerializeField] private bool startEnabled = true;
+
+    [FoldoutGroup("Enemy Lookaround")]
+    [SerializeField] private LightSwitchLookaroundPreset enemyLookaroundPreset = LightSwitchLookaroundPreset.RightLookaround;
 
     [FoldoutGroup("SFX"), InlineProperty, LabelText("Toggle SFX")]
     [SerializeField] private AudioClipSet toggleSfx = new();
@@ -36,9 +36,11 @@ public class LightSwitchInteractable : PlayerWorldInteractable
     public bool IsPowerDisabled => isPowerDisabled;
 
     public IReadOnlyList<GameObject> ControlledLights => controlledLights;
+    public LightSwitchLookaroundPreset EnemyLookaroundPreset => enemyLookaroundPreset;
 
     private bool isOn;
     private bool isPowerDisabled;
+    private WorldSfxManager worldSfxManager;
 
     /// <summary>
     /// Applies the authored starting state unless an external power shutdown already disabled this switch.

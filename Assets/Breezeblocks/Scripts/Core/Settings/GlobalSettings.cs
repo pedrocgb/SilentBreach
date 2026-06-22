@@ -490,6 +490,30 @@ public class GlobalSettings : MonoBehaviour
     [Tooltip("How long sleeping enemies wait after waking up before resuming their requested behavior.")]
     [SerializeField] private float sleepWakeActionDelay = 1f;
 
+    [FoldoutGroup("AI/Light Switch Lookaround"), HorizontalGroup("AI/Light Switch Lookaround/Left"), LabelText("Left Min"), SuffixLabel("deg", true)]
+    [SerializeField] private float leftLookaroundMinAngle = 135f;
+
+    [FoldoutGroup("AI/Light Switch Lookaround"), HorizontalGroup("AI/Light Switch Lookaround/Left"), LabelText("Left Max"), SuffixLabel("deg", true)]
+    [SerializeField] private float leftLookaroundMaxAngle = 225f;
+
+    [FoldoutGroup("AI/Light Switch Lookaround"), HorizontalGroup("AI/Light Switch Lookaround/Right"), LabelText("Right Min"), SuffixLabel("deg", true)]
+    [SerializeField] private float rightLookaroundMinAngle = -45f;
+
+    [FoldoutGroup("AI/Light Switch Lookaround"), HorizontalGroup("AI/Light Switch Lookaround/Right"), LabelText("Right Max"), SuffixLabel("deg", true)]
+    [SerializeField] private float rightLookaroundMaxAngle = 45f;
+
+    [FoldoutGroup("AI/Light Switch Lookaround"), HorizontalGroup("AI/Light Switch Lookaround/Up"), LabelText("Up Min"), SuffixLabel("deg", true)]
+    [SerializeField] private float upLookaroundMinAngle = 45f;
+
+    [FoldoutGroup("AI/Light Switch Lookaround"), HorizontalGroup("AI/Light Switch Lookaround/Up"), LabelText("Up Max"), SuffixLabel("deg", true)]
+    [SerializeField] private float upLookaroundMaxAngle = 135f;
+
+    [FoldoutGroup("AI/Light Switch Lookaround"), HorizontalGroup("AI/Light Switch Lookaround/Down"), LabelText("Down Min"), SuffixLabel("deg", true)]
+    [SerializeField] private float downLookaroundMinAngle = -135f;
+
+    [FoldoutGroup("AI/Light Switch Lookaround"), HorizontalGroup("AI/Light Switch Lookaround/Down"), LabelText("Down Max"), SuffixLabel("deg", true)]
+    [SerializeField] private float downLookaroundMaxAngle = -45f;
+
     [FoldoutGroup("Player"), Range(0f, 100f), SuffixLabel("%", true)]
     [Tooltip("How much slower the player moves while dragging a body.")]
     [SerializeField] private float dragSlowPercentage = 35f;
@@ -511,6 +535,14 @@ public class GlobalSettings : MonoBehaviour
     public float HolsterNoiseDuration => holsterNoiseDuration;
     public float IncapacitatedWakeUpDelay => incapacitatedWakeUpDelay;
     public float SleepWakeActionDelay => sleepWakeActionDelay;
+    public float LeftLookaroundMinAngle => leftLookaroundMinAngle;
+    public float LeftLookaroundMaxAngle => leftLookaroundMaxAngle;
+    public float RightLookaroundMinAngle => rightLookaroundMinAngle;
+    public float RightLookaroundMaxAngle => rightLookaroundMaxAngle;
+    public float UpLookaroundMinAngle => upLookaroundMinAngle;
+    public float UpLookaroundMaxAngle => upLookaroundMaxAngle;
+    public float DownLookaroundMinAngle => downLookaroundMinAngle;
+    public float DownLookaroundMaxAngle => downLookaroundMaxAngle;
     public float DragSlowPercentage => dragSlowPercentage;
     public EquipmentContextUiSettings EquipmentContextUi => equipmentContextUi ??= new EquipmentContextUiSettings();
     public string PerksText => EquipmentContextUi.PerksText;
@@ -556,10 +588,52 @@ public class GlobalSettings : MonoBehaviour
         holsterNoiseDuration = Mathf.Max(0f, holsterNoiseDuration);
         incapacitatedWakeUpDelay = Mathf.Max(0f, incapacitatedWakeUpDelay);
         sleepWakeActionDelay = Mathf.Max(0f, sleepWakeActionDelay);
+        ValidateAngleRange(ref leftLookaroundMinAngle, ref leftLookaroundMaxAngle);
+        ValidateAngleRange(ref rightLookaroundMinAngle, ref rightLookaroundMaxAngle);
+        ValidateAngleRange(ref upLookaroundMinAngle, ref upLookaroundMaxAngle);
+        ValidateAngleRange(ref downLookaroundMinAngle, ref downLookaroundMaxAngle);
         dragSlowPercentage = Mathf.Clamp(dragSlowPercentage, 0f, 100f);
         equipmentContextUi ??= new EquipmentContextUiSettings();
         hudUi ??= new HudUiSettings();
         missionFailurePresentation ??= new MissionFailurePresentationSettings();
+    }
+
+    /// <summary>
+    /// Resolves the configured angle range for one light-switch lookaround preset.
+    /// </summary>
+    public void GetLightSwitchLookaroundAngles(LightSwitchLookaroundPreset preset, out float minAngle, out float maxAngle)
+    {
+        switch (preset)
+        {
+            case LightSwitchLookaroundPreset.LeftLookaround:
+                minAngle = LeftLookaroundMinAngle;
+                maxAngle = LeftLookaroundMaxAngle;
+                break;
+
+            case LightSwitchLookaroundPreset.UpLookaround:
+                minAngle = UpLookaroundMinAngle;
+                maxAngle = UpLookaroundMaxAngle;
+                break;
+
+            case LightSwitchLookaroundPreset.DownLookaround:
+                minAngle = DownLookaroundMinAngle;
+                maxAngle = DownLookaroundMaxAngle;
+                break;
+
+            default:
+                minAngle = RightLookaroundMinAngle;
+                maxAngle = RightLookaroundMaxAngle;
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Keeps one authored minimum and maximum angle ordered correctly.
+    /// </summary>
+    private static void ValidateAngleRange(ref float minAngle, ref float maxAngle)
+    {
+        if (maxAngle < minAngle)
+            maxAngle = minAngle;
     }
 
     /// <summary>

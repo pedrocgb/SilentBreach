@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 91728a3c3cc84dc484f28943a3430a67, type: 3}
+  m_Name: Cutwire (Grand Theft Auto - Alarm)
+  m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.Missions.CutWireMinigameDefinition
+  fuseBoxName: Fuse Box
+  companyLogo: {fileID: 0}
+  difficulty: 1
+  wires:
+  - color: 1
+    mustBeCut: 1
+  - color: 0
+    mustBeCut: 0
+  - color: 2
+    mustBeCut: 0
+  - color: 3
+    mustBeCut: 0

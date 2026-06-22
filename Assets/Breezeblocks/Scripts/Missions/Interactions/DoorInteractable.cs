@@ -15,6 +15,12 @@ public enum DoorDefaultState
     Closed
 }
 
+public enum DoorOpeningStyle
+{
+    Normal,
+    Upwards
+}
+
 [DefaultExecutionOrder(-6000)]
 [DisallowMultipleComponent]
 [AddComponentMenu("Breezeblocks/Missions/Door Interactable")]
@@ -51,6 +57,9 @@ public class DoorInteractable : PlayerWorldInteractable
     [FoldoutGroup("References")]
     [SerializeField] private Transform doorPivot;
 
+    [FoldoutGroup("References"), ShowIf(nameof(UsesUpwardsOpeningStyle))]
+    [SerializeField] private SpriteRenderer upwardsDoorVisual;
+
     [FoldoutGroup("References")]
     [SerializeField] private Collider2D blockingCollider;
 
@@ -67,9 +76,6 @@ public class DoorInteractable : PlayerWorldInteractable
     [FoldoutGroup("References")]
     [SerializeField] private Transform audioOrigin;
 
-    [FoldoutGroup("References")]
-    [SerializeField] private WorldSfxManager worldSfxManager;
-
     [FoldoutGroup("Awareness")]
     [SerializeField] private DoorDefaultState defaultState = DoorDefaultState.None;
 
@@ -79,10 +85,13 @@ public class DoorInteractable : PlayerWorldInteractable
     [FoldoutGroup("Awareness"), MinValue(MinimumVisibilitySampleInterval), SuffixLabel("s", true)]
     [SerializeField] private float visibilitySampleInterval = 0.1f;
 
-    [FoldoutGroup("Animation"), SuffixLabel("deg", true)]
+    [FoldoutGroup("Animation")]
+    [SerializeField] private DoorOpeningStyle openingStyle = DoorOpeningStyle.Normal;
+
+    [FoldoutGroup("Animation"), ShowIf(nameof(UsesNormalOpeningStyle)), SuffixLabel("deg", true)]
     [SerializeField] private float closedLocalAngle;
 
-    [FoldoutGroup("Animation"), SuffixLabel("deg", true)]
+    [FoldoutGroup("Animation"), ShowIf(nameof(UsesNormalOpeningStyle)), SuffixLabel("deg", true)]
     [SerializeField] private float openAngleOffset = 90f;
 
     [FoldoutGroup("Animation"), MinValue(MinimumAnimationDuration), SuffixLabel("s", true)]
@@ -151,7 +160,7 @@ public class DoorInteractable : PlayerWorldInteractable
 
     public event Action<DoorInteractable, bool> DoorStateChanged;
 
-    private Tween rotationTween;
+    private Tween doorAnimationTween;
     private bool isOpen;
     private bool isTransitioning;
     private Bounds closedPathBounds;
@@ -159,6 +168,7 @@ public class DoorInteractable : PlayerWorldInteractable
     private float cachedVisibility = 1f;
     private float nextVisibilitySampleTime = float.NegativeInfinity;
     private DoorLockState doorLockState;
+    private WorldSfxManager worldSfxManager;
 
     /// <summary>
     /// Caches nearby authoring references and records the currently authored closed angle when reset.
@@ -212,8 +222,8 @@ public class DoorInteractable : PlayerWorldInteractable
     {
         base.OnDisable();
         ActiveDoorsInternal.Remove(this);
-        rotationTween?.Kill();
-        rotationTween = null;
+        doorAnimationTween?.Kill();
+        doorAnimationTween = null;
         isTransitioning = false;
     }
 
@@ -341,24 +351,37 @@ public class DoorInteractable : PlayerWorldInteractable
         if (playFeedback)
             PlayDoorFeedback(open);
 
-        rotationTween?.Kill();
-        rotationTween = null;
+        doorAnimationTween?.Kill();
+        doorAnimationTween = null;
 
-        if (animationDuration <= 0f || doorPivot == null)
+        if (animationDuration <= 0f || !CanAnimateDoorVisual())
         {
             ApplyDoorVisualStateImmediate(open);
             CompleteDoorStateChange(open);
             return true;
         }
 
+        if (openingStyle == DoorOpeningStyle.Upwards)
+        {
+            doorAnimationTween = DOVirtual
+                .Float(upwardsDoorVisual.color.a, open ? 0f : 1f, animationDuration, ApplyUpwardsDoorAlpha)
+                .SetEase(animationEase)
+                .OnComplete(() =>
+                {
+                    doorAnimationTween = null;
+                    CompleteDoorStateChange(open);
+                });
+            return true;
+        }
+
         Vector3 localEulerAngles = doorPivot.localEulerAngles;
         localEulerAngles.z = ResolveTargetAngle(open);
-        rotationTween = doorPivot
+        doorAnimationTween = doorPivot
             .DOLocalRotate(localEulerAngles, animationDuration, RotateMode.Fast)
             .SetEase(animationEase)
             .OnComplete(() =>
             {
-                rotationTween = null;
+                doorAnimationTween = null;
                 CompleteDoorStateChange(open);
             });
         return true;
@@ -371,15 +394,13 @@ public class DoorInteractable : PlayerWorldInteractable
     {
         if (doorLockState != null && doorLockState.IsLocked)
         {
-            if (!doorLockState.HasPlayerLockpickUses(interactorRoot))
-            {
-                InteractionPromptFeedback feedback = doorLockState.CreateBlockedAttemptFeedback();
-                RequestInteractionFeedback(feedback);
-                doorLockState.PlayBlockedAttemptWorldFeedback(GetClosestInteractionPosition(interactorRoot != null ? interactorRoot.transform.position : InteractionPosition), gameObject);
-                return false;
-            }
+            if (doorLockState.CanPlayerAttemptUnlock(interactorRoot))
+                return doorLockState.TryBeginLockpick(interactorRoot);
 
-            return doorLockState.TryBeginLockpick(interactorRoot);
+            InteractionPromptFeedback feedback = doorLockState.CreateBlockedAttemptFeedback();
+            RequestInteractionFeedback(feedback);
+            doorLockState.PlayBlockedAttemptWorldFeedback(GetClosestInteractionPosition(interactorRoot != null ? interactorRoot.transform.position : InteractionPosition), gameObject);
+            return false;
         }
 
         return TrySetOpen(!isOpen, playFeedback: true, interactorRoot);
@@ -437,7 +458,7 @@ public class DoorInteractable : PlayerWorldInteractable
             return;
         }
 
-        if (doorPivot == null)
+        if (doorPivot == null || openingStyle == DoorOpeningStyle.Upwards)
         {
             Physics2D.SyncTransforms();
             closedPathBounds = boundsSource.bounds;
@@ -492,16 +513,69 @@ public class DoorInteractable : PlayerWorldInteractable
     }
 
     /// <summary>
-    /// Applies the requested open or closed angle immediately without tweening.
+    /// Applies the requested visual state immediately without tweening.
     /// </summary>
     private void ApplyDoorVisualStateImmediate(bool open)
     {
+        if (openingStyle == DoorOpeningStyle.Upwards)
+        {
+            if (doorPivot != null)
+            {
+                Vector3 closedEulerAngles = doorPivot.localEulerAngles;
+                closedEulerAngles.z = ResolveTargetAngle(open: false);
+                doorPivot.localEulerAngles = closedEulerAngles;
+            }
+
+            ApplyUpwardsDoorAlpha(open ? 0f : 1f);
+            return;
+        }
+
+        ApplyUpwardsDoorAlpha(1f);
         if (doorPivot == null)
             return;
 
         Vector3 localEulerAngles = doorPivot.localEulerAngles;
         localEulerAngles.z = ResolveTargetAngle(open);
         doorPivot.localEulerAngles = localEulerAngles;
+    }
+
+    /// <summary>
+    /// Applies an exact alpha to the visual used by upwards-style doors.
+    /// </summary>
+    private void ApplyUpwardsDoorAlpha(float alpha)
+    {
+        if (upwardsDoorVisual == null)
+            return;
+
+        Color color = upwardsDoorVisual.color;
+        color.a = Mathf.Clamp01(alpha);
+        upwardsDoorVisual.color = color;
+    }
+
+    /// <summary>
+    /// Returns whether the selected opening style has the visual reference needed for animation.
+    /// </summary>
+    private bool CanAnimateDoorVisual()
+    {
+        return openingStyle == DoorOpeningStyle.Upwards
+            ? upwardsDoorVisual != null
+            : doorPivot != null;
+    }
+
+    /// <summary>
+    /// Returns whether Odin should expose normal-style rotation settings.
+    /// </summary>
+    private bool UsesNormalOpeningStyle()
+    {
+        return openingStyle == DoorOpeningStyle.Normal;
+    }
+
+    /// <summary>
+    /// Returns whether Odin should expose upwards-style visual references.
+    /// </summary>
+    private bool UsesUpwardsOpeningStyle()
+    {
+        return openingStyle == DoorOpeningStyle.Upwards;
     }
 
     /// <summary>
@@ -544,6 +618,9 @@ public class DoorInteractable : PlayerWorldInteractable
     /// </summary>
     private bool ResolveConfiguredOpenState()
     {
+        if (openingStyle == DoorOpeningStyle.Upwards && upwardsDoorVisual != null)
+            return upwardsDoorVisual.color.a <= 0.5f;
+
         if (doorPivot == null)
             return false;
 

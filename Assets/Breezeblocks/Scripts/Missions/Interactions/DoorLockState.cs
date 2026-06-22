@@ -16,10 +16,13 @@ public sealed class DoorLockState : MonoBehaviour, ILockpickSessionTarget
     [FoldoutGroup("Lock State")]
     [SerializeField] private bool startsLocked = true;
 
-    [FoldoutGroup("Lock State")]
+    [FoldoutGroup("Lock State"), ShowIf(nameof(startsLocked))]
+    [SerializeField] private bool notPickable;
+
+    [FoldoutGroup("Lock State"), ShowIf(nameof(CanConfigureLockpicking))]
     [SerializeField] private string lockedInteractionLabel = DefaultLockedInteractionLabel;
 
-    [FoldoutGroup("Lock State"), AssetsOnly]
+    [FoldoutGroup("Lock State"), ShowIf(nameof(CanConfigureLockpicking)), AssetsOnly]
     [SerializeField] private LockpickMinigameDefinition definition;
 
     [FoldoutGroup("Enemy Overrides"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
@@ -29,13 +32,16 @@ public sealed class DoorLockState : MonoBehaviour, ILockpickSessionTarget
     public bool IsLocked => isLocked;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public bool NotPickable => notPickable;
+
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public string LockedInteractionDisplayName => string.IsNullOrWhiteSpace(lockedInteractionLabel) ? DefaultLockedInteractionLabel : lockedInteractionLabel;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool StartsLocked => startsLocked;
 
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
-    public LockpickMinigameDefinition Definition => definition;
+    public LockpickMinigameDefinition Definition => notPickable ? null : definition;
 
     private DoorInteractable doorInteractable;
     private bool isLocked;
@@ -66,6 +72,7 @@ public sealed class DoorLockState : MonoBehaviour, ILockpickSessionTarget
     public bool CanPlayerAttemptUnlock(GameObject interactorRoot)
     {
         return isLocked &&
+               !notPickable &&
                interactorRoot != null &&
                definition != null &&
                PlayerLockpickInventoryUtility.HasAnyLockpickUses(interactorRoot) &&
@@ -77,7 +84,7 @@ public sealed class DoorLockState : MonoBehaviour, ILockpickSessionTarget
     /// </summary>
     public bool CanPlayerInspectLockedState(GameObject interactorRoot)
     {
-        return isLocked && interactorRoot != null && definition != null;
+        return isLocked && interactorRoot != null && (notPickable || definition != null);
     }
 
     /// <summary>
@@ -93,7 +100,7 @@ public sealed class DoorLockState : MonoBehaviour, ILockpickSessionTarget
     /// </summary>
     public string GetPlayerLockedInteractionDisplayName(GameObject interactorRoot)
     {
-        if (HasPlayerLockpickUses(interactorRoot))
+        if (!notPickable && HasPlayerLockpickUses(interactorRoot))
             return LockedInteractionDisplayName;
 
         return LockpickMinigameController.ResolveNoLockpickDisplayName(blockedAttemptRevealed);
@@ -151,10 +158,18 @@ public sealed class DoorLockState : MonoBehaviour, ILockpickSessionTarget
     /// </summary>
     public void NotifyUnlocked(GameObject interactorRoot)
     {
-        if (!isLocked)
+        SetLocked(false);
+    }
+
+    /// <summary>
+    /// Applies an explicit runtime lock state for external controls such as door buttons.
+    /// </summary>
+    public void SetLocked(bool locked)
+    {
+        if (isLocked == locked)
             return;
 
-        isLocked = false;
+        isLocked = locked;
         blockedAttemptRevealed = false;
         doorInteractable?.RefreshInteractionPresentation();
     }
@@ -164,9 +179,17 @@ public sealed class DoorLockState : MonoBehaviour, ILockpickSessionTarget
     /// </summary>
     public void ResetLock()
     {
-        isLocked = startsLocked;
+        SetLocked(startsLocked);
         blockedAttemptRevealed = false;
         doorInteractable?.RefreshInteractionPresentation();
+    }
+
+    /// <summary>
+    /// Returns whether Odin should expose lockpicking-specific authoring fields.
+    /// </summary>
+    private bool CanConfigureLockpicking()
+    {
+        return startsLocked && !notPickable;
     }
 
     /// <summary>

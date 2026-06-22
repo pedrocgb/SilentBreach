@@ -27,6 +27,9 @@ public sealed class NoiseManager : MonoBehaviour
 
     private NoiseEvent _lastNoiseEvent;
 
+    /// <summary>
+    /// Clears shared listener and singleton state before a new runtime session starts.
+    /// </summary>
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStaticState()
     {
@@ -34,6 +37,9 @@ public sealed class NoiseManager : MonoBehaviour
         _instance = null;
     }
 
+    /// <summary>
+    /// Registers the active scene noise manager singleton.
+    /// </summary>
     private void Awake()
     {
         if (_instance != null && _instance != this)
@@ -45,12 +51,18 @@ public sealed class NoiseManager : MonoBehaviour
         _instance = this;
     }
 
+    /// <summary>
+    /// Clears the singleton reference when this manager is destroyed.
+    /// </summary>
     private void OnDestroy()
     {
         if (_instance == this)
             _instance = null;
     }
 
+    /// <summary>
+    /// Registers one active AI hearing listener for global noise broadcasts.
+    /// </summary>
     public static void RegisterListener(AIHearing listener)
     {
         if (listener == null || Listeners.Contains(listener))
@@ -59,6 +71,9 @@ public sealed class NoiseManager : MonoBehaviour
         Listeners.Add(listener);
     }
 
+    /// <summary>
+    /// Removes one AI hearing listener from global noise broadcasts.
+    /// </summary>
     public static void UnregisterListener(AIHearing listener)
     {
         if (listener == null)
@@ -67,11 +82,17 @@ public sealed class NoiseManager : MonoBehaviour
         Listeners.Remove(listener);
     }
 
+    /// <summary>
+    /// Creates and broadcasts one noise event to every registered listener.
+    /// </summary>
     public static void EmitNoise(Vector2 position, float intensity, NoiseType noiseType, GameObject source = null, bool isExtremeNoise = false)
     {
         EmitNoise(new NoiseEvent(position, intensity, noiseType, source, isExtremeNoise));
     }
 
+    /// <summary>
+    /// Broadcasts one noise event to every registered listener.
+    /// </summary>
     public static void EmitNoise(NoiseEvent noiseEvent)
     {
         if (noiseEvent.Intensity <= 0f)
@@ -93,6 +114,30 @@ public sealed class NoiseManager : MonoBehaviour
             _instance.RecordNoise(noiseEvent);
     }
 
+    /// <summary>
+    /// Sends one noise event only to the supplied registered hearing listeners.
+    /// </summary>
+    public static void EmitNoiseToListeners(NoiseEvent noiseEvent, IReadOnlyList<AIHearing> targetedListeners)
+    {
+        if (noiseEvent.Intensity <= 0f || targetedListeners == null)
+            return;
+
+        for (int i = 0; i < targetedListeners.Count; i++)
+        {
+            AIHearing listener = targetedListeners[i];
+            if (listener == null || !listener.isActiveAndEnabled || !Listeners.Contains(listener))
+                continue;
+
+            listener.ReceiveNoise(noiseEvent);
+        }
+
+        if (_instance != null)
+            _instance.RecordNoise(noiseEvent);
+    }
+
+    /// <summary>
+    /// Stores diagnostics for the most recently emitted global or targeted noise event.
+    /// </summary>
     private void RecordNoise(NoiseEvent noiseEvent)
     {
         _totalNoiseEventsEmitted++;

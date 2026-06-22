@@ -18,5 +18,5 @@ MonoBehaviour:
   hotspotMaxDepth: 80
   maxPushDepth: 80
   pushSpeed: 90
-  hotspotWindowDuration: 0.3
+  hotspotWindowDuration: 0.25
   hotspotShakeRampStartNormalizedDepth: 0.8

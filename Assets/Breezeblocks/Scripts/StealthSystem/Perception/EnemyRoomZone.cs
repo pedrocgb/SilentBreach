@@ -12,9 +12,6 @@ public class EnemyRoomZone : MonoBehaviour
     private static readonly List<EnemyRoomZone> ActiveZonesInternal = new();
 
     [FoldoutGroup("References")]
-    [SerializeField] private Collider2D roomCollider;
-
-    [FoldoutGroup("References")]
     [SerializeField] private LightSwitchInteractable lightSwitch;
 
     [FoldoutGroup("Lights"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
@@ -23,12 +20,6 @@ public class EnemyRoomZone : MonoBehaviour
     [FoldoutGroup("Doors"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
     [SerializeField] private List<DoorInteractable> connectedDoors = new();
 
-    [FoldoutGroup("Look Around"), SuffixLabel("deg", true)]
-    [SerializeField] private float lookAroundMinAngle = -70f;
-
-    [FoldoutGroup("Look Around"), SuffixLabel("deg", true)]
-    [SerializeField] private float lookAroundMaxAngle = 70f;
-
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool AreLightsOn => areLightsOn;
 
@@ -36,17 +27,39 @@ public class EnemyRoomZone : MonoBehaviour
 
     public LightSwitchInteractable LightSwitch => lightSwitch;
     public Vector2 SwitchPosition => lightSwitch != null ? (Vector2)lightSwitch.transform.position : (Vector2)transform.position;
-    public float LookAroundMinAngle => lookAroundMinAngle;
-    public float LookAroundMaxAngle => lookAroundMaxAngle;
+    public float LookAroundMinAngle
+    {
+        get
+        {
+            ResolveLookaroundAngles(out float minAngle, out _);
+            return minAngle;
+        }
+    }
+
+    public float LookAroundMaxAngle
+    {
+        get
+        {
+            ResolveLookaroundAngles(out _, out float maxAngle);
+            return maxAngle;
+        }
+    }
     public static IReadOnlyList<EnemyRoomZone> ActiveZones => ActiveZonesInternal;
 
+    private Collider2D roomCollider;
     private bool areLightsOn = true;
 
+    /// <summary>
+    /// Caches the mandatory room collider when this component is added in the editor.
+    /// </summary>
     private void Reset()
     {
         roomCollider = GetComponent<Collider2D>();
     }
 
+    /// <summary>
+    /// Caches room references and initializes the current light state.
+    /// </summary>
     private void Awake()
     {
         CacheReferences();
@@ -54,6 +67,9 @@ public class EnemyRoomZone : MonoBehaviour
         areLightsOn = ComputeAreLightsOn();
     }
 
+    /// <summary>
+    /// Registers this room and subscribes to its configured light switch.
+    /// </summary>
     private void OnEnable()
     {
         CacheReferences();
@@ -67,6 +83,9 @@ public class EnemyRoomZone : MonoBehaviour
         RefreshLightState(notifyListeners: false);
     }
 
+    /// <summary>
+    /// Unregisters this room and removes light-switch callbacks.
+    /// </summary>
     private void OnDisable()
     {
         if (lightSwitch != null)
@@ -75,25 +94,34 @@ public class EnemyRoomZone : MonoBehaviour
         ActiveZonesInternal.Remove(this);
     }
 
+    /// <summary>
+    /// Refreshes external references and removes invalid authored entries while editing.
+    /// </summary>
     private void OnValidate()
     {
         CacheReferences();
         SanitizeConfiguration();
-
-        if (lookAroundMaxAngle < lookAroundMinAngle)
-            lookAroundMaxAngle = lookAroundMinAngle;
     }
 
+    /// <summary>
+    /// Detects direct light-object state changes not routed through the light switch.
+    /// </summary>
     private void Update()
     {
         RefreshLightState(notifyListeners: true);
     }
 
+    /// <summary>
+    /// Returns whether the supplied world point lies inside this room collider.
+    /// </summary>
     public bool ContainsPoint(Vector2 worldPoint)
     {
         return roomCollider != null && roomCollider.enabled && roomCollider.OverlapPoint(worldPoint);
     }
 
+    /// <summary>
+    /// Turns this room's lights on through its switch or direct light references.
+    /// </summary>
     public bool TryTurnLightsOn(GameObject interactorRoot = null, bool playSfx = true)
     {
         if (lightSwitch != null)
@@ -110,6 +138,9 @@ public class EnemyRoomZone : MonoBehaviour
         return changed;
     }
 
+    /// <summary>
+    /// Finds the smallest active room zone containing the supplied world point.
+    /// </summary>
     public static EnemyRoomZone FindContainingPoint(Vector2 worldPoint)
     {
         EnemyRoomZone bestMatch = null;
@@ -132,6 +163,9 @@ public class EnemyRoomZone : MonoBehaviour
         return bestMatch;
     }
 
+    /// <summary>
+    /// Fills the supplied list with explicitly configured or spatially connected doors.
+    /// </summary>
     public void GetConnectedDoors(List<DoorInteractable> results)
     {
         if (results == null)
@@ -157,6 +191,9 @@ public class EnemyRoomZone : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Resolves the direction used as the basis for enemy lookaround angles at the switch.
+    /// </summary>
     public Vector2 ResolveLookAroundBaseDirection(Vector2 fallbackOrigin)
     {
         Vector2 switchPosition = SwitchPosition;
@@ -172,12 +209,36 @@ public class EnemyRoomZone : MonoBehaviour
         return basis.normalized;
     }
 
+    /// <summary>
+    /// Resolves this room's enemy lookaround range from its assigned light-switch preset.
+    /// </summary>
+    private void ResolveLookaroundAngles(out float minAngle, out float maxAngle)
+    {
+        LightSwitchLookaroundPreset preset = lightSwitch != null
+            ? lightSwitch.EnemyLookaroundPreset
+            : LightSwitchLookaroundPreset.RightLookaround;
+
+        if (GlobalSettings.Instance != null)
+        {
+            GlobalSettings.Instance.GetLightSwitchLookaroundAngles(preset, out minAngle, out maxAngle);
+            return;
+        }
+
+        LightSwitchLookaroundPresetDefaults.Resolve(preset, out minAngle, out maxAngle);
+    }
+
+    /// <summary>
+    /// Caches the same-object room collider.
+    /// </summary>
     private void CacheReferences()
     {
         if (roomCollider == null)
             roomCollider = GetComponent<Collider2D>();
     }
 
+    /// <summary>
+    /// Initializes room collections and removes missing scene references.
+    /// </summary>
     private void SanitizeConfiguration()
     {
         roomLights ??= new List<GameObject>();
@@ -196,6 +257,9 @@ public class EnemyRoomZone : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Refreshes room light state after its configured switch changes.
+    /// </summary>
     private void HandleLightSwitchStateChanged(LightSwitchInteractable source, bool lightsOn)
     {
         if (source != lightSwitch)
@@ -204,6 +268,9 @@ public class EnemyRoomZone : MonoBehaviour
         RefreshLightState(notifyListeners: true, fallbackValue: lightsOn);
     }
 
+    /// <summary>
+    /// Recomputes room light state and optionally notifies awareness listeners.
+    /// </summary>
     private void RefreshLightState(bool notifyListeners, bool? fallbackValue = null)
     {
         bool nextState = fallbackValue ?? ComputeAreLightsOn();
@@ -215,6 +282,9 @@ public class EnemyRoomZone : MonoBehaviour
             LightStateChanged?.Invoke(this, areLightsOn);
     }
 
+    /// <summary>
+    /// Determines whether any valid light associated with this room is active.
+    /// </summary>
     private bool ComputeAreLightsOn()
     {
         IReadOnlyList<GameObject> lights = ResolveLights();
@@ -236,6 +306,9 @@ public class EnemyRoomZone : MonoBehaviour
         return !hasAnyValidLightReference;
     }
 
+    /// <summary>
+    /// Returns explicit room lights or falls back to lights controlled by the switch.
+    /// </summary>
     private IReadOnlyList<GameObject> ResolveLights()
     {
         if (roomLights != null && roomLights.Count > 0)
@@ -244,6 +317,9 @@ public class EnemyRoomZone : MonoBehaviour
         return lightSwitch != null ? lightSwitch.ControlledLights : null;
     }
 
+    /// <summary>
+    /// Applies one active state to every light associated with this room.
+    /// </summary>
     private void SetLightsActive(bool active)
     {
         IReadOnlyList<GameObject> lights = ResolveLights();
@@ -257,6 +333,9 @@ public class EnemyRoomZone : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Returns room collider area for nested-room selection.
+    /// </summary>
     private float GetBoundsArea()
     {
         if (roomCollider == null)
@@ -266,6 +345,9 @@ public class EnemyRoomZone : MonoBehaviour
         return Mathf.Abs(size.x * size.y);
     }
 
+    /// <summary>
+    /// Returns whether a door's awareness bounds overlap this room.
+    /// </summary>
     private bool IsDoorConnectedToRoom(DoorInteractable door)
     {
         if (door == null || roomCollider == null)

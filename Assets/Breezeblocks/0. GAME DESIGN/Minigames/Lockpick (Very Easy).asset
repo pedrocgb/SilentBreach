@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 46a5f4fd55d24cf882b492fc93d2442c, type: 3}
   m_Name: Lockpick (Very Easy)
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.Missions.LockpickMinigameDefinition
-  difficulty: 1
+  difficulty: 0
   tumblerCount: 5
   hotspotMinDepth: 40
   hotspotMaxDepth: 80
   maxPushDepth: 80
   pushSpeed: 90
   hotspotWindowDuration: 0.3
-  hotspotShakeRampStartNormalizedDepth: 0.8
+  hotspotShakeRampStartNormalizedDepth: 0.087

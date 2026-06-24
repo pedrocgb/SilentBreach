@@ -6,6 +6,37 @@ using UnityEngine;
 namespace Breezeblocks.Missions
 {
 
+[System.Serializable]
+public sealed class DoorBellEnemyReactionTarget
+{
+    [Required]
+    [SerializeField] private EnemyMovementController enemy;
+
+    [Required]
+    [SerializeField] private Transform reactionPoint;
+
+    public EnemyMovementController Enemy => enemy;
+    public Vector2 ReactionPosition => reactionPoint != null ? (Vector2)reactionPoint.position : Vector2.zero;
+    public bool HasReactionPoint => reactionPoint != null;
+
+    /// <summary>
+    /// Returns whether this entry has an enemy that can hear doorbell events.
+    /// </summary>
+    public bool TryGetHearing(out AIHearing hearing)
+    {
+        hearing = null;
+        return enemy != null && enemy.TryGetComponent(out hearing) && hearing != null;
+    }
+
+    /// <summary>
+    /// Returns whether this entry points to the supplied enemy.
+    /// </summary>
+    public bool Matches(EnemyMovementController candidate)
+    {
+        return enemy != null && enemy == candidate;
+    }
+}
+
 [DisallowMultipleComponent]
 [AddComponentMenu("Breezeblocks/Missions/Door Bell Interactable")]
 public sealed class DoorBellInteractable : PlayerWorldInteractable
@@ -34,7 +65,7 @@ public sealed class DoorBellInteractable : PlayerWorldInteractable
     [SerializeField] private bool extremeNoise;
 
     [FoldoutGroup("Affected Enemies"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
-    [SerializeField] private List<EnemyMovementController> affectedEnemies = new();
+    [SerializeField] private List<DoorBellEnemyReactionTarget> affectedEnemies = new();
 
     public override string InteractionDisplayName => string.IsNullOrWhiteSpace(interactionLabel)
         ? DefaultInteractionLabel
@@ -72,7 +103,7 @@ public sealed class DoorBellInteractable : PlayerWorldInteractable
         ringSfx.Validate();
         sfxVolume = Mathf.Clamp01(sfxVolume);
         noiseAmount = Mathf.Max(0f, noiseAmount);
-        affectedEnemies.RemoveAll(enemy => enemy == null);
+        affectedEnemies.RemoveAll(target => target == null);
     }
 
     /// <summary>
@@ -95,6 +126,28 @@ public sealed class DoorBellInteractable : PlayerWorldInteractable
     }
 
     /// <summary>
+    /// Returns whether the supplied enemy is configured to react to this bell and where it should move.
+    /// </summary>
+    public bool TryGetReactionPointForEnemy(EnemyMovementController enemyMovementController, out Vector2 reactionPoint)
+    {
+        reactionPoint = transform.position;
+        if (enemyMovementController == null)
+            return false;
+
+        for (int i = 0; i < affectedEnemies.Count; i++)
+        {
+            DoorBellEnemyReactionTarget target = affectedEnemies[i];
+            if (target == null || !target.Matches(enemyMovementController))
+                continue;
+
+            reactionPoint = target.HasReactionPoint ? target.ReactionPosition : (Vector2)transform.position;
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Resolves and de-duplicates AI hearing components from the configured enemy list.
     /// </summary>
     private void RebuildAffectedHearingListeners()
@@ -102,8 +155,8 @@ public sealed class DoorBellInteractable : PlayerWorldInteractable
         affectedHearingListeners.Clear();
         for (int i = 0; i < affectedEnemies.Count; i++)
         {
-            EnemyMovementController enemy = affectedEnemies[i];
-            if (enemy == null || !enemy.TryGetComponent(out AIHearing hearing) || hearing == null)
+            DoorBellEnemyReactionTarget target = affectedEnemies[i];
+            if (target == null || !target.TryGetHearing(out AIHearing hearing))
                 continue;
 
             if (!affectedHearingListeners.Contains(hearing))

@@ -53,7 +53,23 @@ public sealed class DoorButtonTarget
         if (door.IsOpen == active)
             return true;
 
+        UnlockDoorIfOpening(active);
         return door.TrySetOpen(active, playFeedback: true, interactorRoot);
+    }
+
+    /// <summary>
+    /// Allows door buttons to open locked doors without requiring player lockpicking first.
+    /// </summary>
+    private void UnlockDoorIfOpening(bool active)
+    {
+        if (!active)
+            return;
+
+        if (doorLockState == null)
+            CacheReferences();
+
+        if (doorLockState != null && doorLockState.IsLocked)
+            doorLockState.SetLocked(false);
     }
 }
 

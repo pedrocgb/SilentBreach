@@ -158,6 +158,45 @@ public class EnemyRoomAwarenessSettings
 }
 
 [Serializable]
+public class EnemyDoorBellReactionSettings
+{
+    private const float MinimumInterval = 0.02f;
+
+    [FoldoutGroup("Door Bell Reaction")]
+    public bool ReactToDoorBell = true;
+
+    [FoldoutGroup("Door Bell Reaction"), ShowIf(nameof(ReactToDoorBell)), MinValue(0)]
+    public int ReactionsBeforeAlert = 2;
+
+    [FoldoutGroup("Door Bell Reaction"), ShowIf(nameof(ReactToDoorBell)), MinValue(0f), SuffixLabel("s", true)]
+    public float RepeatIgnoreDuration = 1.5f;
+
+    [FoldoutGroup("Door Bell Reaction"), ShowIf(nameof(ReactToDoorBell)), EnumToggleButtons]
+    public EnemySpeedType MoveSpeed = EnemySpeedType.Walk;
+
+    [FoldoutGroup("Door Bell Reaction"), ShowIf(nameof(ReactToDoorBell)), MinValue(0f), SuffixLabel("s", true)]
+    public float StandDuration = 1f;
+
+    [FoldoutGroup("Door Bell Reaction"), ShowIf(nameof(ReactToDoorBell)), MinValue(0f), SuffixLabel("s", true)]
+    public float LookAroundDuration = 2.5f;
+
+    [FoldoutGroup("Door Bell Reaction"), ShowIf(nameof(ReactToDoorBell)), MinValue(MinimumInterval), SuffixLabel("s", true)]
+    public float LookAroundTurnInterval = 0.5f;
+
+    /// <summary>
+    /// Clamps doorbell reaction settings to safe runtime ranges.
+    /// </summary>
+    public void Validate()
+    {
+        ReactionsBeforeAlert = Mathf.Max(0, ReactionsBeforeAlert);
+        RepeatIgnoreDuration = Mathf.Max(0f, RepeatIgnoreDuration);
+        StandDuration = Mathf.Max(0f, StandDuration);
+        LookAroundDuration = Mathf.Max(0f, LookAroundDuration);
+        LookAroundTurnInterval = Mathf.Max(MinimumInterval, LookAroundTurnInterval);
+    }
+}
+
+[Serializable]
 public class EnemyConfusedReactionSettings
 {
     [FoldoutGroup("Animation"), SuffixLabel("s", true), MinValue(0.02f)]
@@ -996,6 +1035,9 @@ public class EnemyMovementSettings
     public bool AllowClosedDoorTraversalWhileSearching = true;
 
     [FoldoutGroup("Doors")]
+    public bool AllowClosedDoorTraversalWhileReturningToStart = true;
+
+    [FoldoutGroup("Doors")]
     public bool AllowClosedDoorTraversalWhileFleeing = true;
 
     [FoldoutGroup("Doors")]
@@ -1027,6 +1069,18 @@ public class EnemyMovementSettings
 
     [FoldoutGroup("Doors"), MinValue(MinimumDistance), SuffixLabel("u", true)]
     public float DoorPreferredRouteProbeWidth = 0.75f;
+
+    [FoldoutGroup("Doors")]
+    public bool CloseDoorsAfterPassing;
+
+    [FoldoutGroup("Doors"), ShowIf(nameof(CloseDoorsAfterPassing))]
+    public bool RelockIgnoredLockedDoorsAfterPassing;
+
+    [FoldoutGroup("Doors"), ShowIf(nameof(CloseDoorsAfterPassing)), MinValue(MinimumDistance), SuffixLabel("u", true)]
+    public float DoorCloseAfterPassDistance = 0.75f;
+
+    [FoldoutGroup("Doors"), ShowIf(nameof(CloseDoorsAfterPassing)), MinValue(0f), SuffixLabel("s", true)]
+    public float DoorCloseAfterOpenDelay = 0.25f;
 
     private bool ShouldShowMissingFleeFallback =>
         DetectionBehavior == EnemyDetectionBehavior.FleeToPoint && !CanFlee;

@@ -116,6 +116,7 @@ public partial class EnemyMovementController
         if (resetExternalInvestigation)
             ResetExternalInvestigationState();
 
+        ResetDoorBellReactionState();
         lastKnownTargetPosition = position;
         fleeCompleted = false;
         patrolWaiting = false;
@@ -232,6 +233,13 @@ public partial class EnemyMovementController
         doorAutoOpenCooldown = Mathf.Max(0f, doorAutoOpenCooldown);
         doorPreferredRouteProbeDistance = Mathf.Max(MinimumDoorAutoOpenRange, doorPreferredRouteProbeDistance);
         doorPreferredRouteProbeWidth = Mathf.Max(MinimumDoorRouteProbeWidth, doorPreferredRouteProbeWidth);
+        doorCloseAfterPassDistance = Mathf.Max(MinimumDistance, doorCloseAfterPassDistance);
+        doorCloseAfterOpenDelay = Mathf.Max(0f, doorCloseAfterOpenDelay);
+        doorBellReactionsBeforeAlert = Mathf.Max(0, doorBellReactionsBeforeAlert);
+        doorBellRepeatIgnoreDuration = Mathf.Max(0f, doorBellRepeatIgnoreDuration);
+        doorBellStandDuration = Mathf.Max(0f, doorBellStandDuration);
+        doorBellLookAroundDuration = Mathf.Max(0f, doorBellLookAroundDuration);
+        doorBellLookAroundTurnInterval = Mathf.Max(MinimumInterval, doorBellLookAroundTurnInterval);
 
         if (!useMovePosition && !useVelocityMovement)
             useMovePosition = true;
@@ -269,6 +277,16 @@ public partial class EnemyMovementController
                currentState != EnemyState.Disabled &&
                currentState != EnemyState.Sleeping &&
                currentState != EnemyState.Alert;
+    }
+
+    /// <summary>
+    /// Returns whether a doorbell reaction may interrupt the current low-priority state.
+    /// </summary>
+    private bool CanEnterDoorBellReactionState()
+    {
+        return reactToDoorBell &&
+               !doorBellReactionActive &&
+               (currentState == EnemyState.Idle || currentState == EnemyState.Patrol);
     }
 
     /// <summary>
@@ -402,6 +420,17 @@ public partial class EnemyMovementController
     {
         hasExternalInvestigation = false;
         externalInvestigationState = EnemyState.Suspicious;
+    }
+
+    /// <summary>
+    /// Clears the active doorbell reaction without changing remembered reaction counts.
+    /// </summary>
+    private void ResetDoorBellReactionState()
+    {
+        activeDoorBell = null;
+        doorBellReactionActive = false;
+        doorBellWaitingAtTarget = false;
+        doorBellStandUntil = float.NegativeInfinity;
     }
 
     /// <summary>

@@ -35,18 +35,13 @@ MonoBehaviour:
   rewardInfluencePoints: 1
   rewardText: "R$ 200,00 | 1 ponto de influ\xEAncia"
   objectivesText: "- Encontre e furte o rel\xF3gio antiquado.\n- Fuja sem ser percebido."
-  termsOfFailureText: "- N\xE3o seja detectado.\n- N\xE3o machuque ningu\xE9m.\n-
-    N\xE3o mate ningu\xE9m."
+  termsOfFailureText: "- N\xE3o seja detectado.\n- N\xE3o mate ningu\xE9m."
   gameplayObjectives:
   - objectiveType: 1
     referenceId: pocket_watch
     displayText: "Rel\xF3gio de Bolso"
     requiredCount: 1
   gameplayFailures:
-  - failureType: 2
-    displayText: "N\xE3o machuque ningu\xE9m."
-    failureScreenMessage: "N\xE3o era permitido machucar qualquer indiv\xEDduo..."
-    timeLimitSeconds: 300
   - failureType: 3
     displayText: "N\xE3o mate ningu\xE9m."
     failureScreenMessage: "Assissnato n\xE3o era permiido..."

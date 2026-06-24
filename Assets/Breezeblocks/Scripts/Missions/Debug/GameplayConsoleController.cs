@@ -42,6 +42,12 @@ public class GameplayConsoleController : MonoBehaviour
     [FoldoutGroup("Rewired")]
     [SerializeField] private string toggleConsoleAction = DefaultToggleConsoleAction;
 
+    [FoldoutGroup("Rewired")]
+    [SerializeField] private string commandHistoryVerticalAction = "Move Vertical";
+
+    [FoldoutGroup("Rewired"), Range(0.01f, 1f)]
+    [SerializeField] private float commandHistoryAxisThreshold = 0.5f;
+
     [FoldoutGroup("Legacy"), HideInInspector]
     [SerializeField] private KeyCode keyboardToggleConsoleFallbackKey = KeyCode.BackQuote;
 
@@ -121,6 +127,7 @@ public class GameplayConsoleController : MonoBehaviour
     private readonly StringBuilder logBuilder = new();
     private readonly List<Collider2D> cachedGhostModeColliders = new();
     private readonly List<bool> cachedGhostModeColliderStates = new();
+    private readonly List<string> commandHistory = new();
 
     private IPlayerInputReader inputReader;
     private float cachedTimeScaleBeforeConsole = 1f;
@@ -128,6 +135,9 @@ public class GameplayConsoleController : MonoBehaviour
     private EquipmentItemRuntimeCatalog equipmentCatalog;
     private bool defaultGlobalLightStateCached;
     private bool defaultGlobalLightEnabled;
+    private bool ghostModeColliderCacheValid;
+    private bool commandHistoryAxisEngaged;
+    private int commandHistoryCursor = -1;
 
     // Executes the EnsureOn routine.
     public static GameplayConsoleController EnsureOn(GameObject host)
@@ -195,11 +205,13 @@ public class GameplayConsoleController : MonoBehaviour
             return;
 
         RefreshSystemTimeLabel();
+        HandleCommandHistoryInput();
     }
 
     // Executes the OnValidate routine.
     private void OnValidate()
     {
+        commandHistoryAxisThreshold = Mathf.Clamp(commandHistoryAxisThreshold, 0.01f, 1f);
         EnsureCommandHelpEntries();
     }
 
@@ -456,6 +468,7 @@ public class GameplayConsoleController : MonoBehaviour
         if (!consoleVisible)
             return;
 
+        AddCommandToHistory(submittedText);
         ExecuteCommand(submittedText);
         if (commandInputField == null)
             return;
@@ -476,6 +489,7 @@ public class GameplayConsoleController : MonoBehaviour
 
         if (trimmedCommand.StartsWith(CreateEquipmentCommandPrefix, StringComparison.OrdinalIgnoreCase))
         {
+            GameplayConsoleCheatState.RegisterCommandUse("create_equipment");
             string requestedEquipmentName = trimmedCommand.Substring(CreateEquipmentCommandPrefix.Length).Trim();
             HandleCreateEquipmentCommand(requestedEquipmentName);
             return;
@@ -504,6 +518,7 @@ public class GameplayConsoleController : MonoBehaviour
                 break;
 
             case "restart_level":
+                GameplayConsoleCheatState.RegisterCommandUse("restart_level");
                 RestartCurrentLevel();
                 break;
 
@@ -532,7 +547,35 @@ public class GameplayConsoleController : MonoBehaviour
                 break;
 
             case AddPerkCommandName:
+                GameplayConsoleCheatState.RegisterCommandUse(AddPerkCommandName);
                 HandleAddPerkCommand(argument);
+                break;
+
+            case "no_failures":
+                HandleBooleanCheatCommand(argument, "no_failures", GameplayConsoleCheatState.SetNoFailures);
+                break;
+
+            case "win_game":
+                GameplayConsoleCheatState.RegisterCommandUse("win_game");
+                HandleWinGameCommand();
+                break;
+
+            case "instant_lockpicking":
+                HandleBooleanCheatCommand(argument, "instant_lockpicking", GameplayConsoleCheatState.SetInstantLockpicking);
+                break;
+
+            case "infinite_lockpicks":
+                HandleBooleanCheatCommand(argument, "infinite_lockpicks", GameplayConsoleCheatState.SetInfiniteLockpicks);
+                break;
+
+            case "unlock_all":
+                GameplayConsoleCheatState.RegisterCommandUse("unlock_all");
+                HandleUnlockAllCommand();
+                break;
+
+            case "show_active_cheats":
+                GameplayConsoleCheatState.RegisterCommandUse("show_active_cheats");
+                HandleShowActiveCheatsCommand();
                 break;
 
             default:
@@ -584,9 +627,49 @@ public class GameplayConsoleController : MonoBehaviour
             return;
         }
 
+        GameplayConsoleCheatState.RegisterCommandUse(commandName);
         setter?.Invoke(enabled);
         ApplyCheatState();
         AppendLog($"{commandName} set to {enabled.ToString().ToLowerInvariant()}.");
+    }
+
+    // Executes the HandleWinGameCommand routine.
+    private void HandleWinGameCommand()
+    {
+        GameplayMissionController missionController = GetComponent<GameplayMissionController>() ?? FindFirstObjectByType<GameplayMissionController>();
+        if (missionController == null)
+        {
+            AppendLog("GameplayMissionController is not available in this scene.");
+            return;
+        }
+
+        bool completed = missionController.CompleteAllObjectivesFromConsole();
+        AppendLog(completed ? "All objectives completed. Go to exit zone." : "Could not complete objectives.");
+    }
+
+    // Executes the HandleUnlockAllCommand routine.
+    private void HandleUnlockAllCommand()
+    {
+        DoorLockState[] doorLocks = FindSceneObjectsIncludingInactive<DoorLockState>();
+        int unlockedCount = 0;
+        for (int i = 0; i < doorLocks.Length; i++)
+        {
+            DoorLockState doorLock = doorLocks[i];
+            if (doorLock == null || !doorLock.IsLocked)
+                continue;
+
+            doorLock.SetLocked(false);
+            unlockedCount++;
+        }
+
+        AppendLog($"Unlocked doors: {unlockedCount}.");
+    }
+
+    // Executes the HandleShowActiveCheatsCommand routine.
+    private void HandleShowActiveCheatsCommand()
+    {
+        AppendLog($"Active cheats: {GameplayConsoleCheatState.BuildActiveCheatsReport()}");
+        AppendLog($"Used commands: {GameplayConsoleCheatState.BuildUsedCommandsReport()}");
     }
 
     // Executes the HandleAddPerkCommand routine.
@@ -661,7 +744,7 @@ public class GameplayConsoleController : MonoBehaviour
     private void ApplyCheatState()
     {
         CacheReferences();
-        CacheGhostModeColliders();
+        EnsureGhostModeColliderCache();
 
         if (playerHealth != null)
             playerHealth.SetConsoleInvincibleOverride(GameplayConsoleCheatState.GodMode);
@@ -733,6 +816,17 @@ public class GameplayConsoleController : MonoBehaviour
             cachedGhostModeColliders.Add(collider);
             cachedGhostModeColliderStates.Add(collider.enabled);
         }
+
+        ghostModeColliderCacheValid = true;
+    }
+
+    // Executes the EnsureGhostModeColliderCache routine.
+    private void EnsureGhostModeColliderCache()
+    {
+        if (ghostModeColliderCacheValid && cachedGhostModeColliders.Count > 0)
+            return;
+
+        CacheGhostModeColliders();
     }
 
     // Executes the HandleCheatStateChanged routine.
@@ -770,6 +864,8 @@ public class GameplayConsoleController : MonoBehaviour
 
         if (visible)
         {
+            commandHistoryCursor = commandHistory.Count;
+            commandHistoryAxisEngaged = false;
             if (pauseGameplayWhileOpen)
             {
                 cachedTimeScaleBeforeConsole = Time.timeScale > 0f ? Time.timeScale : cachedTimeScaleBeforeConsole;
@@ -813,6 +909,57 @@ public class GameplayConsoleController : MonoBehaviour
         playerMeleeController?.SetInputBlocked(blocked);
         playerPickupInteractor?.SetInputBlocked(blocked);
         playerFocusController?.SetInputBlocked(blocked);
+    }
+
+    // Executes the AddCommandToHistory routine.
+    private void AddCommandToHistory(string submittedText)
+    {
+        string trimmedCommand = submittedText != null ? submittedText.Trim() : string.Empty;
+        if (string.IsNullOrEmpty(trimmedCommand))
+            return;
+
+        if (commandHistory.Count == 0 || !string.Equals(commandHistory[commandHistory.Count - 1], trimmedCommand, StringComparison.Ordinal))
+            commandHistory.Add(trimmedCommand);
+
+        commandHistoryCursor = commandHistory.Count;
+    }
+
+    // Executes the HandleCommandHistoryInput routine.
+    private void HandleCommandHistoryInput()
+    {
+        if (inputReader == null || commandInputField == null || commandHistory.Count == 0)
+            return;
+
+        float axis = inputReader.GetAxis(commandHistoryVerticalAction);
+        if (Mathf.Abs(axis) < 0.01f)
+        {
+            commandHistoryAxisEngaged = false;
+            return;
+        }
+
+        if (commandHistoryAxisEngaged || Mathf.Abs(axis) < commandHistoryAxisThreshold)
+            return;
+
+        commandHistoryAxisEngaged = true;
+        MoveCommandHistory(axis > 0f ? -1 : 1);
+    }
+
+    // Executes the MoveCommandHistory routine.
+    private void MoveCommandHistory(int direction)
+    {
+        if (commandInputField == null || commandHistory.Count == 0)
+            return;
+
+        commandHistoryCursor = Mathf.Clamp(commandHistoryCursor + direction, 0, commandHistory.Count);
+        string commandText = commandHistoryCursor >= 0 && commandHistoryCursor < commandHistory.Count
+            ? commandHistory[commandHistoryCursor]
+            : string.Empty;
+
+        commandInputField.SetTextWithoutNotify(commandText);
+        commandInputField.caretPosition = commandText.Length;
+        commandInputField.MoveTextEnd(false);
+        commandInputField.ActivateInputField();
+        commandInputField.Select();
     }
 
     // Executes the AppendLog routine.
@@ -1071,6 +1218,30 @@ public class GameplayConsoleController : MonoBehaviour
             AddPerkCommandName,
             "add_perk PERKNAME",
             "Equips a perk by ScriptableObject perk name without respecting the normal perk slot cap.");
+        EnsureCommandHelpEntry(
+            "no_failures",
+            "no_failures true|false",
+            "Prevents job failure rules from ending the mission.");
+        EnsureCommandHelpEntry(
+            "win_game",
+            "win_game",
+            "Completes all mission objectives but still requires entering the exit zone.");
+        EnsureCommandHelpEntry(
+            "instant_lockpicking",
+            "instant_lockpicking true|false",
+            "Makes any started lockpicking attempt succeed immediately without lockpicks.");
+        EnsureCommandHelpEntry(
+            "infinite_lockpicks",
+            "infinite_lockpicks true|false",
+            "Lets lockpicking start without lockpicks and prevents lockpick use consumption.");
+        EnsureCommandHelpEntry(
+            "unlock_all",
+            "unlock_all",
+            "Unlocks every locked door in the current scene.");
+        EnsureCommandHelpEntry(
+            "show_active_cheats",
+            "show_active_cheats",
+            "Lists active toggle cheats and command use counts.");
     }
 
     // Executes the EnsureCommandHelpEntry routine.

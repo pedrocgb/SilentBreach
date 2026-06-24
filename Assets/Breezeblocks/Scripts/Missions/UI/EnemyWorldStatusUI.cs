@@ -231,7 +231,8 @@ public class EnemyWorldStatusUI : MonoBehaviour
                             !showVisibility &&
                             enemyMovementController != null &&
                             (currentState == EnemyState.Suspicious ||
-                             currentState == EnemyState.Searching);
+                             currentState == EnemyState.Searching ||
+                             enemyMovementController.IsDoorBellReactionActive);
 
         if (visibilityFillImage != null)
             visibilityFillImage.fillAmount = detectionValue;

@@ -487,6 +487,13 @@ public sealed class LockpickMinigameController : MonoBehaviour
             return false;
         }
 
+        if (GameplayConsoleCheatState.InstantLockpicking)
+        {
+            lockpickTarget.NotifyUnlocked(interactorRoot);
+            Unlocked?.Invoke(lockpickTarget);
+            return true;
+        }
+
         ResolveReferences();
         RebuildResolvedTumblerViews();
 
@@ -1061,6 +1068,12 @@ public sealed class LockpickMinigameController : MonoBehaviour
     /// </summary>
     private void HandleLockpickBroken()
     {
+        if (GameplayConsoleCheatState.InfiniteLockpicks || GameplayConsoleCheatState.InstantLockpicking)
+        {
+            RefreshLockpickUsesText();
+            return;
+        }
+
         if (!PlayerLockpickInventoryUtility.TryConsumeLockpickUse(activeInteractorRoot))
         {
             RefreshLockpickUsesText();
@@ -1284,6 +1297,12 @@ public sealed class LockpickMinigameController : MonoBehaviour
     {
         if (lockpickUsesText == null)
             return;
+
+        if (GameplayConsoleCheatState.InfiniteLockpicks || GameplayConsoleCheatState.InstantLockpicking)
+        {
+            lockpickUsesText.text = "INF";
+            return;
+        }
 
         int totalUses = 0;
         PlayerLockpickInventoryUtility.TryGetTotalLockpickUses(activeInteractorRoot, out totalUses);

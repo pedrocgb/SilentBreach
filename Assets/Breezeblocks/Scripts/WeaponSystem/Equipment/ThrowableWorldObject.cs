@@ -381,7 +381,7 @@ public class ThrowableWorldObject : MonoBehaviour
         lastImpactNoiseTime = Time.time;
 
         if (activeData.ImpactNoise > 0f)
-            NoiseManager.EmitNoise(impactPoint, activeData.ImpactNoise, activeData.ImpactNoiseType, gameObject, activeData.ImpactExtremeNoise);
+            NoiseManager.EmitNoise(impactPoint, activeData.ImpactNoise, activeData.ImpactNoiseType, ResolveNoiseSource(), activeData.ImpactExtremeNoise);
 
         worldSfxManager = WeaponRuntimeUtility.ResolveWorldSfxManager(worldSfxManager);
         worldSfxManager?.PlayClipSetAt(impactPoint, activeData.ImpactSfx, activeData.ImpactNoiseType);
@@ -395,7 +395,7 @@ public class ThrowableWorldObject : MonoBehaviour
         if (activeData == null || activeData.DetonationNoise <= 0f)
             return;
 
-        NoiseManager.EmitNoise(detonationPoint, activeData.DetonationNoise, activeData.DetonationNoiseType, gameObject, activeData.DetonationExtremeNoise);
+        NoiseManager.EmitNoise(detonationPoint, activeData.DetonationNoise, activeData.DetonationNoiseType, ResolveNoiseSource(), activeData.DetonationExtremeNoise);
     }
 
     /// <summary>
@@ -408,6 +408,14 @@ public class ThrowableWorldObject : MonoBehaviour
 
         worldSfxManager = WeaponRuntimeUtility.ResolveWorldSfxManager(worldSfxManager);
         worldSfxManager?.PlayClipSetAt(detonationPoint, activeData.DetonationSfx, activeData.DetonationNoiseType);
+    }
+
+    /// <summary>
+    /// Resolves the owning actor as the noise source so AI ignores its own thrown utility noise.
+    /// </summary>
+    private GameObject ResolveNoiseSource()
+    {
+        return ownerRoot != null ? ownerRoot : gameObject;
     }
 
     /// <summary>

@@ -212,6 +212,6 @@ MonoBehaviour:
     MinSpeedThreshold: 0.2
     SpeedForFastestStep: 5
     SlowStepInterval: 0.5
-    FastStepInterval: 0.22
+    FastStepInterval: 0.12
     MinimumVolumeMultiplier: 0.7
     MaximumVolumeMultiplier: 1

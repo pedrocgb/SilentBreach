@@ -74,6 +74,31 @@ public partial class GameplayMissionController
     }
 
     /// <summary>
+    /// Handles objective activation events raised by world interactables.
+    /// </summary>
+    private void HandleObjectiveObjectActivated(MissionObjectiveObjectEvent objectiveEvent)
+    {
+        if (missionEnded || !IsPlayerRoot(objectiveEvent.InteractorRoot))
+            return;
+
+        int sourceId = objectiveEvent.SourceObject != null ? objectiveEvent.SourceObject.GetInstanceID() : 0;
+        RegisterObjectiveProgress(HideoutJobObjectiveType.ActivateObject, objectiveEvent.ObjectiveId, sourceId);
+    }
+
+    /// <summary>
+    /// Handles kidnapping delivery events raised by extraction zones.
+    /// </summary>
+    private void HandleKidnappingDelivered(MissionKidnappingEvent kidnappingEvent)
+    {
+        if (missionEnded)
+            return;
+
+        int sourceId = kidnappingEvent.ActorHealth != null ? kidnappingEvent.ActorHealth.GetInstanceID() : 0;
+        string actorId = kidnappingEvent.Identity != null ? kidnappingEvent.Identity.ActorId : string.Empty;
+        RegisterObjectiveProgress(HideoutJobObjectiveType.Kidnapping, actorId, sourceId);
+    }
+
+    /// <summary>
     /// Handles enemy alert-state entry for alert-based failure rules.
     /// </summary>
     private void HandleEnemyStateChanged(EnemyStateChangedEvent stateEvent)
@@ -183,6 +208,33 @@ public partial class GameplayMissionController
     }
 
     /// <summary>
+    /// Registers objective progress for object-driven objective events.
+    /// </summary>
+    private void RegisterObjectiveProgress(HideoutJobObjectiveType objectiveType, string referenceId, int sourceId)
+    {
+        for (int i = 0; i < objectiveStates.Count; i++)
+        {
+            ObjectiveRuntimeState state = objectiveStates[i];
+            if (state == null ||
+                state.Definition == null ||
+                state.Definition.ObjectiveType != objectiveType ||
+                state.IsComplete ||
+                (sourceId != 0 && state.CountedSourceIds.Contains(sourceId)) ||
+                !MatchesReferenceId(state.Definition.ReferenceId, referenceId))
+            {
+                continue;
+            }
+
+            if (sourceId != 0)
+                state.CountedSourceIds.Add(sourceId);
+
+            state.CompletedCount = Mathf.Min(state.CompletedCount + 1, state.RequiredCount);
+        }
+
+        RefreshObjectivesAndEscapeState();
+    }
+
+    /// <summary>
     /// Evaluates actor-based failure rules after player harms or kills someone.
     /// </summary>
     private void EvaluateFailureRulesForActorEvent(MissionActorEvent actorEvent, bool harmed, bool killed)
@@ -230,6 +282,27 @@ public partial class GameplayMissionController
 
         if (!wereObjectivesCompleted && objectivesCompleted)
             HandleAllObjectivesCompleted();
+    }
+
+    /// <summary>
+    /// Completes every active mission objective from the gameplay console while keeping escape extraction required.
+    /// </summary>
+    public bool CompleteAllObjectivesFromConsole()
+    {
+        if (missionEnded)
+            return false;
+
+        for (int i = 0; i < objectiveStates.Count; i++)
+        {
+            ObjectiveRuntimeState state = objectiveStates[i];
+            if (state == null)
+                continue;
+
+            state.CompletedCount = state.RequiredCount;
+        }
+
+        RefreshObjectivesAndEscapeState();
+        return objectivesCompleted;
     }
 
     /// <summary>
@@ -592,13 +665,20 @@ public partial class GameplayMissionController
         if (activeTimeLimit == null)
         {
             timerContent.gameObject.SetActive(false);
-            timeLimitText.text = string.Empty;
-            timeLimitText.color = timeLimitDefaultColor;
+            if (timeLimitText != null)
+            {
+                timeLimitText.text = string.Empty;
+                timeLimitText.color = timeLimitDefaultColor;
+            }
+
             StopTimeLimitWarningPulse();
             return;
         }
 
         timerContent.gameObject.SetActive(true);
+        if (timeLimitText == null)
+            return;
+
         float remainingTime = Mathf.Max(0f, activeTimeLimit.TimeRemaining);
         timeLimitText.text = FormatTimeLimitText(remainingTime);
 

@@ -25,6 +25,8 @@ public static class HideoutJobTextUtility
             HideoutJobObjectiveType.KillTarget => $"Kill {readableId}",
             HideoutJobObjectiveType.RetrieveItem => $"Retrieve {readableId}",
             HideoutJobObjectiveType.IncapacitateTarget => $"Incapacitate {readableId}",
+            HideoutJobObjectiveType.Kidnapping => $"Kidnap {readableId}",
+            HideoutJobObjectiveType.ActivateObject => $"Activate {readableId}",
             _ => readableId
         };
     }

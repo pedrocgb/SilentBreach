@@ -60,6 +60,8 @@ public partial class GameplayMissionController
         MissionRuntimeEvents.ItemPickedUp += HandleItemPickedUp;
         MissionRuntimeEvents.EnemyStateChanged += HandleEnemyStateChanged;
         MissionRuntimeEvents.EnemyPlayerFullyDetected += HandleEnemyPlayerFullyDetected;
+        MissionRuntimeEvents.ObjectiveObjectActivated += HandleObjectiveObjectActivated;
+        MissionRuntimeEvents.KidnappingDelivered += HandleKidnappingDelivered;
         RegisterScreenButtonCallbacks();
 
         if (playerHealth != null)
@@ -105,6 +107,8 @@ public partial class GameplayMissionController
         MissionRuntimeEvents.ItemPickedUp -= HandleItemPickedUp;
         MissionRuntimeEvents.EnemyStateChanged -= HandleEnemyStateChanged;
         MissionRuntimeEvents.EnemyPlayerFullyDetected -= HandleEnemyPlayerFullyDetected;
+        MissionRuntimeEvents.ObjectiveObjectActivated -= HandleObjectiveObjectActivated;
+        MissionRuntimeEvents.KidnappingDelivered -= HandleKidnappingDelivered;
         UnregisterScreenButtonCallbacks();
 
         if (playerHealth != null)

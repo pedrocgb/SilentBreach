@@ -61,6 +61,7 @@ public partial class EnemyMovementController
         {
             EnemyState.Patrol when patrolWaiting => 0f,
             EnemyState.Patrol => walkSpeed,
+            EnemyState.Suspicious when doorBellReactionActive && hasDestination => ResolveSpeed(doorBellReactionSpeed),
             EnemyState.Suspicious when hasDestination => runSpeed,
             EnemyState.Searching when hasDestination => runSpeed,
             EnemyState.ReturningToStart when hasDestination => ResolveSpeed(returnToStartSpeedType),

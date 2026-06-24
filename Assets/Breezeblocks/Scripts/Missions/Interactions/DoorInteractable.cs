@@ -104,6 +104,9 @@ public class DoorInteractable : PlayerWorldInteractable
     [SerializeField] private bool allowPlayerInteraction = true;
 
     [FoldoutGroup("Interaction")]
+    [SerializeField] private bool manualOpen = true;
+
+    [FoldoutGroup("Interaction")]
     [SerializeField] private bool allowEnemyAutoOpen = true;
 
     [FoldoutGroup("Interaction")]
@@ -144,6 +147,8 @@ public class DoorInteractable : PlayerWorldInteractable
 
     public static System.Collections.Generic.IReadOnlyList<DoorInteractable> ActiveDoors => ActiveDoorsInternal;
     public DoorDefaultState DefaultStateTag => defaultState;
+    public bool ManualOpen => manualOpen;
+    public DoorLockState LockState => doorLockState;
     public bool HasDefaultStateTag => defaultState != DoorDefaultState.None;
     public bool IsInDefaultState => !HasDefaultStateTag || isOpen == (defaultState == DoorDefaultState.Open);
     public Vector2 AwarenessSamplePosition => awarenessSamplePoint != null ? (Vector2)awarenessSamplePoint.position : (Vector2)InteractionPosition;
@@ -310,6 +315,14 @@ public class DoorInteractable : PlayerWorldInteractable
     }
 
     /// <summary>
+    /// Attempts to close this door for the supplied enemy after it has traversed the doorway.
+    /// </summary>
+    public bool TryCloseForEnemy(EnemyMovementController enemyMovementController)
+    {
+        return TrySetOpen(false, playFeedback: true, enemyMovementController != null ? enemyMovementController.gameObject : null);
+    }
+
+    /// <summary>
     /// Restores the door to its authored default state when one exists and the actor may operate the door.
     /// </summary>
     public bool TryRestoreDefaultState(GameObject interactorRoot = null)
@@ -349,7 +362,7 @@ public class DoorInteractable : PlayerWorldInteractable
         ApplyBlockingColliderState(open: true);
 
         if (playFeedback)
-            PlayDoorFeedback(open);
+            PlayDoorFeedback(open, interactorRoot);
 
         doorAnimationTween?.Kill();
         doorAnimationTween = null;
@@ -402,6 +415,9 @@ public class DoorInteractable : PlayerWorldInteractable
             doorLockState.PlayBlockedAttemptWorldFeedback(GetClosestInteractionPosition(interactorRoot != null ? interactorRoot.transform.position : InteractionPosition), gameObject);
             return false;
         }
+
+        if (!manualOpen)
+            return false;
 
         return TrySetOpen(!isOpen, playFeedback: true, interactorRoot);
     }
@@ -689,16 +705,17 @@ public class DoorInteractable : PlayerWorldInteractable
     /// <summary>
     /// Plays door SFX and emits matching world noise for the requested open or close action.
     /// </summary>
-    private void PlayDoorFeedback(bool opening)
+    private void PlayDoorFeedback(bool opening, GameObject interactorRoot)
     {
         DoorAudioDefinition audioDefinition = opening ? openAudio : closeAudio;
         if (audioDefinition == null)
             return;
 
         Vector3 feedbackPosition = audioOrigin != null ? audioOrigin.position : transform.position;
+        GameObject noiseSource = interactorRoot != null ? interactorRoot : gameObject;
 
         if (audioDefinition.NoiseAmount > 0f)
-            NoiseManager.EmitNoise(feedbackPosition, audioDefinition.NoiseAmount, audioDefinition.NoiseType, gameObject, audioDefinition.ExtremeNoise);
+            NoiseManager.EmitNoise(feedbackPosition, audioDefinition.NoiseAmount, audioDefinition.NoiseType, noiseSource, audioDefinition.ExtremeNoise);
 
         if (audioDefinition.Sfx == null || !audioDefinition.Sfx.HasAnyClip)
             return;

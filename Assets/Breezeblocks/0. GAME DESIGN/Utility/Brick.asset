@@ -46,7 +46,10 @@ MonoBehaviour:
   impactNoiseCooldown: 0.5
   impactSfx:
     clips:
-    - {fileID: 8300000, guid: d06ba275e105e6b359e6b19aa71103bb, type: 3}
+    - {fileID: 8300000, guid: 79713c47c8fb7f46b87396d9f05cf918, type: 3}
+    - {fileID: 8300000, guid: 4050c8de6ecce5439867950e0f0619f9, type: 3}
+    - {fileID: 8300000, guid: 322f8b21e653340d19af38bf173910fe, type: 3}
+    - {fileID: 8300000, guid: 85d4dfa3c27ecd3f4b8db6713bb5214f, type: 3}
     volume: 0.75
     pitchRange: {x: 1, y: 1}
     overrideSpatialBlend: 1

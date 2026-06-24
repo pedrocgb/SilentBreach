@@ -210,7 +210,7 @@ public class AIHearing : MonoBehaviour
             0f,
             maximumAccumulatedDetection);
 
-        if (noiseEvent.IsExtremeNoise)
+        if (noiseEvent.IsExtremeNoise && !IsDoorBellNoise(noiseEvent))
         {
             RouteNoiseReaction(noiseEvent, heardValue, true);
             return;
@@ -385,6 +385,9 @@ public class AIHearing : MonoBehaviour
     /// </summary>
     private void RouteNoiseReaction(NoiseEvent noiseEvent, float heardValue, bool extremeNoise)
     {
+        if (TryRouteDoorBellReaction(noiseEvent))
+            return;
+
         if (extremeNoise)
         {
             currentAccumulatedDetection = Mathf.Max(currentAccumulatedDetection, hearingThreshold);
@@ -408,6 +411,34 @@ public class AIHearing : MonoBehaviour
         Debug.Log(
             $"{name} heard {reactionPrefix}{noiseEvent.NoiseType} noise with value {heardValue:0.00} at {noiseEvent.Position}{thresholdSuffix}.",
             this);
+    }
+
+    /// <summary>
+    /// Returns whether the supplied event was emitted by a doorbell interactable.
+    /// </summary>
+    private static bool IsDoorBellNoise(NoiseEvent noiseEvent)
+    {
+        return noiseEvent.Source != null && noiseEvent.Source.TryGetComponent(out DoorBellInteractable _);
+    }
+
+    /// <summary>
+    /// Consumes doorbell noise and routes it through the dedicated low-priority doorbell reaction.
+    /// </summary>
+    private bool TryRouteDoorBellReaction(NoiseEvent noiseEvent)
+    {
+        if (noiseEvent.Source == null || !noiseEvent.Source.TryGetComponent(out DoorBellInteractable doorBell))
+            return false;
+
+        if (enemyMovementController != null &&
+            doorBell.TryGetReactionPointForEnemy(enemyMovementController, out Vector2 reactionPoint))
+        {
+            enemyMovementController.TryHandleDoorBellReaction(doorBell, reactionPoint);
+        }
+
+        if (debugHearing)
+            Debug.Log($"{name} processed doorbell noise at {noiseEvent.Position}.", this);
+
+        return true;
     }
 
     /// <summary>

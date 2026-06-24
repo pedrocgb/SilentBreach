@@ -13,7 +13,9 @@ public enum HideoutJobObjectiveType
 {
     KillTarget,
     RetrieveItem,
-    IncapacitateTarget
+    IncapacitateTarget,
+    Kidnapping,
+    ActivateObject
 }
 
 public enum HideoutJobFailureType

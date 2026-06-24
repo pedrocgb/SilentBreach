@@ -28,6 +28,9 @@ public class EnemyStatsProfile : ScriptableObject
     [TabGroup("Profile", "Room Awareness"), InlineProperty, HideLabel]
     public EnemyConfusedReactionSettings ConfusedReaction = new();
 
+    [TabGroup("Profile", "Door Bell"), InlineProperty, HideLabel]
+    public EnemyDoorBellReactionSettings DoorBellReaction = new();
+
     [TabGroup("Profile", "Sleep"), InlineProperty, HideLabel]
     public EnemySleepSettings Sleep = new();
 
@@ -61,6 +64,7 @@ public class EnemyStatsProfile : ScriptableObject
         Hearing ??= new EnemyHearingSettings();
         RoomAwareness ??= new EnemyRoomAwarenessSettings();
         ConfusedReaction ??= new EnemyConfusedReactionSettings();
+        DoorBellReaction ??= new EnemyDoorBellReactionSettings();
         Sleep ??= new EnemySleepSettings();
         Combat ??= new EnemyCombatSettings();
         Melee ??= new EnemyMeleeSettings();
@@ -71,6 +75,7 @@ public class EnemyStatsProfile : ScriptableObject
         Health.Validate();
         RoomAwareness.Validate();
         ConfusedReaction.Validate();
+        DoorBellReaction.Validate();
         Sleep.Validate();
         Hands.Validate();
         Footsteps.Validate();

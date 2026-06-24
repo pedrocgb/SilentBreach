@@ -10,6 +10,9 @@ public static class PlayerLockpickInventoryUtility
     /// </summary>
     public static bool HasAnyLockpickUses(GameObject interactorRoot)
     {
+        if (GameplayConsoleCheatState.InfiniteLockpicks || GameplayConsoleCheatState.InstantLockpicking)
+            return true;
+
         return TryGetTotalLockpickUses(interactorRoot, out int totalUses) && totalUses > 0;
     }
 
@@ -28,6 +31,9 @@ public static class PlayerLockpickInventoryUtility
     /// </summary>
     public static bool TryConsumeLockpickUse(GameObject interactorRoot)
     {
+        if (GameplayConsoleCheatState.InfiniteLockpicks || GameplayConsoleCheatState.InstantLockpicking)
+            return true;
+
         PlayerEquipmentController equipmentController = ResolveEquipmentController(interactorRoot);
         return equipmentController != null && equipmentController.TryConsumeLockpickUse();
     }

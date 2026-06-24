@@ -59,7 +59,8 @@ Transform:
   m_LocalPosition: {x: -0.5, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 8517007338917423761}
   m_Father: {fileID: 5664193020427497813}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5056331054968936110
@@ -121,11 +122,11 @@ Transform:
   m_GameObject: {fileID: 5161089480062413366}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.004000008, y: 0, z: 0}
+  m_LocalPosition: {x: 0.496, y: 0, z: 0}
   m_LocalScale: {x: 1.6, y: 2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 5664193020427497813}
+  m_Father: {fileID: 5725202294505543102}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &21262070655902232
 SpriteRenderer:
@@ -320,7 +321,6 @@ Transform:
   - {fileID: 509131358113576565}
   - {fileID: 2247174155362162584}
   - {fileID: 8165719913451162174}
-  - {fileID: 8517007338917423761}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1473329827121351
@@ -353,6 +353,7 @@ MonoBehaviour:
   animationDuration: 0.28
   animationEase: 9
   allowPlayerInteraction: 1
+  manualOpen: 1
   allowEnemyAutoOpen: 1
   openInteractionLabel: Abrir
   closeInteractionLabel: Fechar
@@ -402,6 +403,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.Missions.DoorLockState
   startsLocked: 0
+  notPickable: 0
   lockedInteractionLabel: Destrancar
   definition: {fileID: 11400000, guid: a3627c786acfa75329d7b24ba1d8e14c, type: 2}
   enemiesThatIgnoreLockedState: []

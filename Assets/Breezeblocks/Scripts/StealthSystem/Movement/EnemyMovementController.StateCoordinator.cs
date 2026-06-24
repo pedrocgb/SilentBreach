@@ -199,6 +199,8 @@ public partial class EnemyMovementController
     /// </summary>
     public void HandleHeardNoise(Vector2 position)
     {
+        ResetDoorBellReactionState();
+
         if (currentState == EnemyState.Alert)
         {
             FocusAlertOnPoint(position);
@@ -212,6 +214,34 @@ public partial class EnemyMovementController
         }
 
         SetSuspicious(position);
+    }
+
+    /// <summary>
+    /// Routes a doorbell stimulus into its low-priority response or escalates repeated calls into alert.
+    /// </summary>
+    public bool TryHandleDoorBellReaction(Breezeblocks.Missions.DoorBellInteractable doorBell, Vector2 reactionPoint)
+    {
+        if (doorBell == null || !reactToDoorBell)
+            return false;
+
+        if (IsDoorBellTemporarilyIgnored(doorBell))
+            return true;
+
+        if (!CanEnterDoorBellReactionState())
+            return false;
+
+        int reactionCount = GetDoorBellReactionCount(doorBell);
+        if (reactionCount >= doorBellReactionsBeforeAlert)
+        {
+            doorBellNextAllowedTimes[doorBell] = Time.time + doorBellRepeatIgnoreDuration;
+            EnterAlertState(force: true);
+            FocusAlertOnPoint(reactionPoint);
+            return true;
+        }
+
+        doorBellReactionCounts[doorBell] = reactionCount + 1;
+        BeginDoorBellReaction(doorBell, reactionPoint);
+        return true;
     }
 
     /// <summary>
@@ -274,6 +304,7 @@ public partial class EnemyMovementController
         }
 
         ResetExternalInvestigationState();
+        ResetDoorBellReactionState();
         detectedTarget = target;
         lastKnownTargetPosition = target.position;
         fleeCompleted = false;
@@ -351,6 +382,7 @@ public partial class EnemyMovementController
         }
 
         ResetExternalInvestigationState();
+        ResetDoorBellReactionState();
         if (fleePoint == null)
         {
             if (debugMovement)
@@ -399,6 +431,7 @@ public partial class EnemyMovementController
             return;
 
         ResetExternalInvestigationState();
+        ResetDoorBellReactionState();
         detectedTarget = null;
         patrolWaiting = false;
         itineraryPatrolCompletionPending = false;
@@ -451,6 +484,7 @@ public partial class EnemyMovementController
         Vector2 rememberedTargetPosition = lastKnownTargetPosition;
 
         ResetExternalInvestigationState();
+        ResetDoorBellReactionState();
         detectedTarget = null;
         patrolWaiting = false;
         itineraryPatrolCompletionPending = false;
@@ -532,6 +566,8 @@ public partial class EnemyMovementController
         if (currentState == EnemyState.Disabled || currentState == EnemyState.Sleeping)
             return;
 
+        ResetDoorBellReactionState();
+
         if (ResolveDetectionBehavior() == EnemyDetectionBehavior.FleeToPoint)
         {
             Flee();
@@ -551,6 +587,7 @@ public partial class EnemyMovementController
             return;
 
         ResetExternalInvestigationState();
+        ResetDoorBellReactionState();
         detectedTarget = target;
         RememberAlertStimulus(targetPosition);
         ClearManualFacingOverride();
@@ -698,6 +735,12 @@ public partial class EnemyMovementController
     /// </summary>
     private void UpdateInvestigativeState(EnemyLookAroundContext context)
     {
+        if (doorBellReactionActive)
+        {
+            UpdateDoorBellReactionState();
+            return;
+        }
+
         if (currentState == EnemyState.Suspicious && !investigate)
         {
             UpdateStationarySuspicion();
@@ -744,6 +787,10 @@ public partial class EnemyMovementController
                     patrolWaiting = false;
                     AdvanceToNextPatrolPoint();
                 }
+                break;
+
+            case EnemyLookAroundContext.DoorBell:
+                CompleteDoorBellReaction();
                 break;
 
             case EnemyLookAroundContext.Searching:
@@ -932,6 +979,100 @@ public partial class EnemyMovementController
         hasDestination = true;
         currentDestination = position;
         SetDirectDestination(position, true);
+    }
+
+    /// <summary>
+    /// Starts moving toward a doorbell reaction point while using suspicious presentation.
+    /// </summary>
+    private void BeginDoorBellReaction(Breezeblocks.Missions.DoorBellInteractable doorBell, Vector2 reactionPoint)
+    {
+        activeDoorBell = doorBell;
+        doorBellReactionActive = true;
+        doorBellWaitingAtTarget = false;
+        doorBellStandUntil = float.NegativeInfinity;
+        doorBellNextAllowedTimes[doorBell] = Time.time + doorBellRepeatIgnoreDuration;
+        hasExternalInvestigation = false;
+        externalInvestigationState = EnemyState.Suspicious;
+        detectedTarget = null;
+        lastKnownTargetPosition = reactionPoint;
+        fleeCompleted = false;
+        patrolWaiting = false;
+        itineraryPatrolCompletionPending = false;
+        ClearAlertFocus();
+        ClearManualFacingOverride();
+        ChangeState(EnemyState.Suspicious);
+        hasDestination = true;
+        currentDestination = reactionPoint;
+        SetDirectDestination(reactionPoint, true);
+    }
+
+    /// <summary>
+    /// Updates arrival wait and look-around handoff for the active doorbell reaction.
+    /// </summary>
+    private void UpdateDoorBellReactionState()
+    {
+        if (!doorBellWaitingAtTarget)
+        {
+            if (!hasReachedDestination)
+                return;
+
+            StopMovementImmediately();
+            doorBellWaitingAtTarget = true;
+            doorBellStandUntil = Time.time + doorBellStandDuration;
+            SetFacingPoint(lastKnownTargetPosition);
+            return;
+        }
+
+        StopMovementImmediately();
+        if (Time.time < doorBellStandUntil)
+            return;
+
+        if (doorBellLookAroundDuration <= 0f)
+        {
+            CompleteDoorBellReaction();
+            return;
+        }
+
+        BeginLookAround(doorBellLookAroundDuration, doorBellLookAroundTurnInterval, EnemyLookAroundContext.DoorBell);
+    }
+
+    /// <summary>
+    /// Finishes the doorbell response and resumes the enemy's normal route.
+    /// </summary>
+    private void CompleteDoorBellReaction()
+    {
+        Breezeblocks.Missions.DoorBellInteractable completedDoorBell = activeDoorBell;
+        ResetDoorBellReactionState();
+
+        if (completedDoorBell != null)
+            doorBellNextAllowedTimes[completedDoorBell] = Time.time + doorBellRepeatIgnoreDuration;
+
+        if (returnToStartAfterTemporaryStates)
+            ReturnToStart();
+        else
+            ResumeStartingState();
+    }
+
+    /// <summary>
+    /// Returns how many reactions this enemy has used for the supplied bell.
+    /// </summary>
+    private int GetDoorBellReactionCount(Breezeblocks.Missions.DoorBellInteractable doorBell)
+    {
+        return doorBell != null && doorBellReactionCounts.TryGetValue(doorBell, out int count) ? count : 0;
+    }
+
+    /// <summary>
+    /// Returns whether repeated bell rings should be ignored while active or cooling down.
+    /// </summary>
+    private bool IsDoorBellTemporarilyIgnored(Breezeblocks.Missions.DoorBellInteractable doorBell)
+    {
+        if (doorBell == null)
+            return false;
+
+        if (doorBellReactionActive && activeDoorBell == doorBell)
+            return true;
+
+        return doorBellNextAllowedTimes.TryGetValue(doorBell, out float allowedTime) && Time.time < allowedTime;
     }
 
     /// <summary>

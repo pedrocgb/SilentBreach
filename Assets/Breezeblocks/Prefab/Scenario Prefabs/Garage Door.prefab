@@ -353,6 +353,7 @@ MonoBehaviour:
   animationDuration: 0.28
   animationEase: 9
   allowPlayerInteraction: 0
+  manualOpen: 1
   allowEnemyAutoOpen: 0
   openInteractionLabel: 
   closeInteractionLabel: 

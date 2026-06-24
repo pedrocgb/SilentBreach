@@ -230,7 +230,7 @@ public partial class GameplayMissionController
     /// </summary>
     private void TriggerMissionFailure(FailureRuntimeState failureState, Transform focusTarget = null)
     {
-        if (failureState == null)
+        if (failureState == null || GameplayConsoleCheatState.NoFailures)
             return;
 
         failureState.Triggered = true;

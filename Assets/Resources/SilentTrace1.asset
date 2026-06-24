@@ -1,0 +1,79 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa0e64ca3c7f48a6981e5c81b0f25812, type: 3}
+  m_Name: SilentTrace1
+  m_EditorClassIdentifier: Assembly-CSharp::Breezeblocks.HideoutSystem.HideoutJobDefinition
+  jobTitle: Rastro Silencioso 1
+  jobId: rastro_silencioso_1
+  jobDescription: "\tImplante um GPS no carro do alvo, n\xE3o seja detectado e n\xE3o
+    levante nenhuma suspeita."
+  briefingTitle: Espionagem caseira
+  jobBriefing: "O alvo se chama **D\xE1rio Valente**.\n\nD\xE1rio \xE9 um homem extremamente
+    cuidadoso. Ele n\xE3o fala sobre seus neg\xF3cios dentro de casa, nem com a esposa,
+    nem com seus pr\xF3prios homens. Raramente usa o telefone e, como era de se esperar,
+    n\xE3o deixa qualquer evid\xEAncia comprometora em sua resid\xEAncia.\n\nMas
+    existe um detalhe que chama aten\xE7\xE3o.\n\nTodas as madrugadas, por volta
+    das **2 horas da manh\xE3**, D\xE1rio sai de casa e s\xF3 retorna horas depois.
+    Acreditamos que ele esteja se reunindo em algum lugar reservado para planejar
+    seus pr\xF3ximos movimentos \u2014 seja l\xE1 o que ele esteja preparando.\n\nO
+    problema \xE9 que os homens dele s\xE3o altamente treinados. Segui-los durante
+    a madrugada seria arriscado demais. Eles conhecem as ruas, reconhecem padr\xF5es
+    e sabem identificar quando est\xE3o sendo vigiados.\n\nPor isso, precisamos de
+    outro m\xE9todo.\n\nConsegui um rastreador GPS militar, pequeno o bastante para
+    passar despercebido e preciso o suficiente para nos mostrar exatamente para onde
+    D\xE1rio est\xE1 indo.\n\n\xC9 a\xED que voc\xEA entra.\n\nV\xE1 at\xE9 a casa
+    de D\xE1rio Valente, infiltre-se sem ser visto, encontre a garagem e plante o
+    GPS no carro dele.\n\nLembre-se: ningu\xE9m pode suspeitar que voc\xEA esteve
+    l\xE1. Nenhum alarme. Nenhuma testemunha. Nenhum erro.\n\nNesta miss\xE3o, voc\xEA
+    precisa ser uma sombra.\n\nBoa sorte.\n"
+  jobLevel: 1
+  jobType: 5
+  rewardCash: 700
+  rewardInfluencePoints: 2
+  rewardText: "R$ 700,00 | 2 pontos de influ\xEAncia"
+  objectivesText: '- Encontre o Carro do alvo.
+
+    - Plante o GPS.'
+  termsOfFailureText: "- N\xE3o seja detectado.\n- N\xE3o mate ningu\xE9m.\n- N\xE3o
+    machuque ningu\xE9m.\n- N\xE3o alerte ningu\xE9m."
+  gameplayObjectives:
+  - objectiveType: 4
+    referenceId: car_theft_objective_interactable
+    displayText: Plante o GPS no Carro do Alvo.
+    requiredCount: 1
+  gameplayFailures:
+  - failureType: 3
+    displayText: "N\xE3o mate ningu\xE9m."
+    failureScreenMessage: "Assassinato era pro\xEDbido..."
+    timeLimitSeconds: 300
+  - failureType: 2
+    displayText: "N\xE3o machuque ningu\xE9m"
+    failureScreenMessage: "Ferir pessoas era pro\xEDbido..."
+    timeLimitSeconds: 300
+  - failureType: 5
+    displayText: "N\xE3o seja detectado."
+    failureScreenMessage: "Voc\xEA foi detectado..."
+    timeLimitSeconds: 300
+  - failureType: 4
+    displayText: "N\xE3o alerte ningu\xE9m."
+    failureScreenMessage: "Voc\xEA alertou as pessoas de sua presen\xE7a..."
+    timeLimitSeconds: 300
+  fixerName: Alana Poatan
+  jobImage: {fileID: 2019514821, guid: 4d2f4671147f73a33bc8aae5d2946330, type: 3}
+  missionSceneBuildIndex: 3
+  missionSceneName: '[4] Silent Trace 1'
+  unlockJobs:
+  - {fileID: 11400000}
+  shopTitle: The Fence
+  shopDescription: 
+  shopImage: {fileID: 0}
+  fenceOffers: []

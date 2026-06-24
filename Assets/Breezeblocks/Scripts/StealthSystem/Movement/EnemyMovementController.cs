@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Breezeblocks.Missions;
 using Pathfinding;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -165,7 +166,8 @@ internal enum EnemyLookAroundContext
     Suspicious,
     Searching,
     LostTarget,
-    Manual
+    Manual,
+    DoorBell
 }
 
 internal enum EnemyReturnContext
@@ -179,6 +181,19 @@ internal enum EnemyReturnContext
 [AddComponentMenu("Breezeblocks/Stealth/Enemy Movement Controller")]
 public partial class EnemyMovementController : MonoBehaviour
 {
+    private sealed class AutoDoorTraversalRecord
+    {
+        public DoorInteractable Door;
+        public DoorLockState LockState;
+        public bool ShouldRelock;
+        public bool CloseRequested;
+        public Vector2 DoorPosition;
+        public Vector2 PassDirection;
+        public int InitialSideSign;
+        public bool HasCrossedDoorPlane;
+        public float CloseAllowedTime;
+    }
+
     private const float MinimumSpeed = 0f;
     private const float MinimumAcceleration = 0f;
     private const float MinimumDistance = 0.01f;
@@ -208,6 +223,7 @@ public partial class EnemyMovementController : MonoBehaviour
     private bool allowClosedDoorTraversalWhileAlert = true;
     private bool allowClosedDoorTraversalWhileSuspicious = true;
     private bool allowClosedDoorTraversalWhileSearching = true;
+    private bool allowClosedDoorTraversalWhileReturningToStart = true;
     private bool allowClosedDoorTraversalWhileFleeing = true;
     private bool allowClosedDoorTraversalWhileDetected;
     private int closedDoorPathTag = 1;
@@ -219,6 +235,10 @@ public partial class EnemyMovementController : MonoBehaviour
     private float doorAutoOpenCooldown = 0.2f;
     private float doorPreferredRouteProbeDistance = 3f;
     private float doorPreferredRouteProbeWidth = 0.75f;
+    private bool closeDoorsAfterPassing;
+    private bool relockIgnoredLockedDoorsAfterPassing;
+    private float doorCloseAfterPassDistance = 0.75f;
+    private float doorCloseAfterOpenDelay = 0.25f;
 
     private EnemyState startingState = EnemyState.Idle;
     private EnemyFacingSettings startingPointFacing = new();
@@ -383,6 +403,9 @@ public partial class EnemyMovementController : MonoBehaviour
     [FoldoutGroup("State"), ShowInInspector, ReadOnly]
     public bool HasAlertTrackedTarget => currentState == EnemyState.Alert && detectedTarget != null;
 
+    [FoldoutGroup("State"), ShowInInspector, ReadOnly]
+    public bool IsDoorBellReactionActive => doorBellReactionActive || currentLookAroundContext == EnemyLookAroundContext.DoorBell;
+
     [FoldoutGroup("A* Pathfinding")]
     [InfoBox("When AIPath is assigned, it remains the low-level path steering and Rigidbody2D mover. This controller owns the high-level state, destination, speed caps, and custom rotation.")]
     [ShowInInspector, ReadOnly]
@@ -436,6 +459,19 @@ public partial class EnemyMovementController : MonoBehaviour
     private float staggerTurnSpeedMultiplier = 1f;
     private bool hasExternalInvestigation;
     private EnemyState externalInvestigationState = EnemyState.Suspicious;
+    private bool reactToDoorBell = true;
+    private int doorBellReactionsBeforeAlert = 2;
+    private float doorBellRepeatIgnoreDuration = 1.5f;
+    private EnemySpeedType doorBellReactionSpeed = EnemySpeedType.Walk;
+    private float doorBellStandDuration = 1f;
+    private float doorBellLookAroundDuration = 2.5f;
+    private float doorBellLookAroundTurnInterval = 0.5f;
+    private Breezeblocks.Missions.DoorBellInteractable activeDoorBell;
+    private bool doorBellReactionActive;
+    private bool doorBellWaitingAtTarget;
+    private float doorBellStandUntil = float.NegativeInfinity;
+    private readonly Dictionary<Breezeblocks.Missions.DoorBellInteractable, int> doorBellReactionCounts = new();
+    private readonly Dictionary<Breezeblocks.Missions.DoorBellInteractable, float> doorBellNextAllowedTimes = new();
     private float stationarySuspicionUntil = float.NegativeInfinity;
     private bool alertHasNoiseFocus;
     private float alertNoiseFocusUntil = float.NegativeInfinity;
@@ -447,6 +483,7 @@ public partial class EnemyMovementController : MonoBehaviour
     private bool doorTraversalPreferencesInitialized;
     private bool doorTraversalPreferenceDirty = true;
     private float nextDoorAutoOpenTime;
+    private readonly List<AutoDoorTraversalRecord> pendingAutoDoorTraversals = new();
     private readonly RaycastHit2D[] doorAutoOpenHits = new RaycastHit2D[8];
     private readonly Collider2D[] doorAutoOpenOverlapHits = new Collider2D[8];
     private ContactFilter2D doorDetectionContactFilter;

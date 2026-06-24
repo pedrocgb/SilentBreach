@@ -147,7 +147,10 @@ public class ActorStatsInitializer : MonoBehaviour
             staggerController.ApplySettings(enemyProfile.Stagger);
 
         if (TryGetComponent(out EnemyMovementController movementController))
+        {
             movementController.ApplySettings(enemyProfile.Movement);
+            movementController.ApplyDoorBellReactionSettings(enemyProfile.DoorBellReaction);
+        }
 
         if (TryGetComponent(out EnemyVisionAI visionAI))
             visionAI.ApplySettings(enemyProfile.Vision);

@@ -104,6 +104,8 @@ public partial class EnemyMovementController
     /// </summary>
     private void OnDisable()
     {
+        ClearPendingAutoDoorClosure();
+
         if (debugMovement && Application.isPlaying)
             Debug.LogWarning($"{name} EnemyMovementController component was disabled externally.", this);
     }
@@ -322,6 +324,7 @@ public partial class EnemyMovementController
         allowClosedDoorTraversalWhileAlert = settings.AllowClosedDoorTraversalWhileAlert;
         allowClosedDoorTraversalWhileSuspicious = settings.AllowClosedDoorTraversalWhileSuspicious;
         allowClosedDoorTraversalWhileSearching = settings.AllowClosedDoorTraversalWhileSearching;
+        allowClosedDoorTraversalWhileReturningToStart = settings.AllowClosedDoorTraversalWhileReturningToStart;
         allowClosedDoorTraversalWhileFleeing = settings.AllowClosedDoorTraversalWhileFleeing;
         allowClosedDoorTraversalWhileDetected = settings.AllowClosedDoorTraversalWhileDetected;
         closedDoorPathTag = settings.ClosedDoorPathTag;
@@ -333,10 +336,31 @@ public partial class EnemyMovementController
         doorAutoOpenCooldown = settings.DoorAutoOpenCooldown;
         doorPreferredRouteProbeDistance = settings.DoorPreferredRouteProbeDistance;
         doorPreferredRouteProbeWidth = settings.DoorPreferredRouteProbeWidth;
+        closeDoorsAfterPassing = settings.CloseDoorsAfterPassing;
+        relockIgnoredLockedDoorsAfterPassing = settings.RelockIgnoredLockedDoorsAfterPassing;
+        doorCloseAfterPassDistance = settings.DoorCloseAfterPassDistance;
+        doorCloseAfterOpenDelay = settings.DoorCloseAfterOpenDelay;
 
         ClampSettings();
         ApplyRigidbodyRecommendations();
         RefreshAstarDriverConfiguration();
+    }
+
+    /// <summary>
+    /// Applies doorbell reaction settings loaded from the enemy actor profile.
+    /// </summary>
+    public void ApplyDoorBellReactionSettings(EnemyDoorBellReactionSettings settings)
+    {
+        if (settings == null)
+            return;
+
+        reactToDoorBell = settings.ReactToDoorBell;
+        doorBellReactionsBeforeAlert = Mathf.Max(0, settings.ReactionsBeforeAlert);
+        doorBellRepeatIgnoreDuration = Mathf.Max(0f, settings.RepeatIgnoreDuration);
+        doorBellReactionSpeed = settings.MoveSpeed;
+        doorBellStandDuration = Mathf.Max(0f, settings.StandDuration);
+        doorBellLookAroundDuration = Mathf.Max(0f, settings.LookAroundDuration);
+        doorBellLookAroundTurnInterval = Mathf.Max(0.02f, settings.LookAroundTurnInterval);
     }
 
     /// <summary>

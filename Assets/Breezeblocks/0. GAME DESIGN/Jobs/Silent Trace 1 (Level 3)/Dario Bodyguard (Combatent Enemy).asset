@@ -10,23 +10,31 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bfb037fa2fd9482fab94a9e06f6ba17f, type: 3}
-  m_Name: Common Enemy (Enemy AI) - Money Counter
+  m_Name: Dario Bodyguard (Combatent Enemy)
   m_EditorClassIdentifier: Assembly-CSharp::EnemyStatsProfile
+  Identity:
+    ActorId: dario_bodyguard_1
+    ActorDisplayName: Guardacosta
+    IsInnocent: 0
   Health:
     MaxHealth: 1
     IsInvincible: 0
+    RestoredHealthFractionOnWake: 1
+    IncapacitatedSprite: {fileID: -6089007737513708103, guid: c7493064e8fa40389881165fd46f88e3, type: 3}
+    DeadSprite: {fileID: 7474744633217478141, guid: c7493064e8fa40389881165fd46f88e3, type: 3}
+    SleepingSprite: {fileID: -6948837563952519065, guid: 0a87a1e4fa840f313a2876b6e6ea53f2, type: 3}
   Stagger:
-    EnableStagger: 1
+    EnableStagger: 0
     StaggeredMoveSpeed: 0.25
     TurnSpeedReductionPercent: 80
   Movement:
-    StartingState: 1
+    StartingState: 0
     StartingPointFacing:
-      FacingMode: 1
+      FacingMode: 0
       CustomAngle: 0
-    WalkSpeed: 1
-    RunSpeed: 2.8
-    SprintSpeed: 4.5
+    WalkSpeed: 1.5
+    RunSpeed: 2.5
+    SprintSpeed: 4
     Acceleration: 10
     Deceleration: 14
     StoppingDistance: 0.2
@@ -41,20 +49,19 @@ MonoBehaviour:
     LockRotationWhenIdle: 1
     PatrolMode: 0
     ReturnToStartAfterTemporaryStates: 1
-    Investigate: 0
+    Investigate: 1
     ReturnToStartSpeedType: 0
     EnterAlertStateWhenTargetLost: 0
     ChaseTarget: 0
     AlertNoiseFocusDuration: 0
     AlertTargetLostDuration: 0
-    ConfusedByLightsOff: 1
     DefaultLookAroundDuration: 2.5
     LookAroundTurnInterval: 0.5
     LookAroundRotationSpeed: 360
     RandomLookAngleRange: 180
     UseItinerary: 1
     LoopItinerary: 1
-    DetectionBehavior: 1
+    DetectionBehavior: 0
     SearchLastKnownTargetPositionWhenTargetLost: 0
     MissingFleePointFallbackBehavior: 2
     CanFlee: 1
@@ -72,6 +79,7 @@ MonoBehaviour:
     AllowClosedDoorTraversalWhileAlert: 1
     AllowClosedDoorTraversalWhileSuspicious: 1
     AllowClosedDoorTraversalWhileSearching: 1
+    AllowClosedDoorTraversalWhileReturningToStart: 1
     AllowClosedDoorTraversalWhileFleeing: 1
     AllowClosedDoorTraversalWhileDetected: 1
     ClosedDoorPathTag: 1
@@ -83,6 +91,12 @@ MonoBehaviour:
     DoorAutoOpenRange: 0.9
     DoorAutoOpenRadius: 0.18
     DoorAutoOpenCooldown: 0.2
+    DoorPreferredRouteProbeDistance: 3
+    DoorPreferredRouteProbeWidth: 0.75
+    CloseDoorsAfterPassing: 1
+    RelockIgnoredLockedDoorsAfterPassing: 1
+    DoorCloseAfterPassDistance: 0.5
+    DoorCloseAfterOpenDelay: 0.25
   Vision:
     VisionRange: 12
     VisionAngle: 140
@@ -115,7 +129,7 @@ MonoBehaviour:
     LoudHearingRange: 35
     CommonHearingRange: 9
     SilentHearingRange: 3
-    IgnoreSilentSounds: 1
+    IgnoreSilentSounds: 0
     HearingThreshold: 0.2
     MaximumAccumulatedDetection: 1
     DetectionDecayDelay: 1
@@ -153,12 +167,46 @@ MonoBehaviour:
     MaxObstructionChecks: 4
     StackObstructionMultipliers: 1
     DebugHearing: 1
+  RoomAwareness:
+    RoomAwareness: 1
+    RoomCheckInterval: 0.15
+    ConfusedByLightsOff: 0
+    WaitBeforeSwitchDuration: 1
+    LookAroundDurationAfterTurningLightsOn: 2.5
+    LookAroundTurnInterval: 0.45
+    LookAroundRotationSpeed: 420
+    ConfusedReactionDuration: 1.2
+    DoorStateAwareness: 1
+    WaitBeforeDoorStateFixDuration: 1
+  ConfusedReaction:
+    PoseHoldDuration: 0.2
+    FirstLocalPosition: {x: 1, y: 0}
+    FirstLocalRotationZ: 30
+    SecondLocalPosition: {x: -1, y: 0}
+    SecondLocalRotationZ: -30
+  DoorBellReaction:
+    ReactToDoorBell: 1
+    ReactionsBeforeAlert: 1
+    RepeatIgnoreDuration: 1.5
+    MoveSpeed: 0
+    StandDuration: 1
+    LookAroundDuration: 2
+    LookAroundTurnInterval: 0.5
+  Sleep:
+    StartSleeping: 0
+    StartSleepType: 1
+    NormalSleepWakeThreshold: 0.15
+    DeepSleepWakeThreshold: 0.3
+    NormalSleepAutoWakeDelay: 800
+    DeepSleepAutoWakeDelay: 1050
+    ForcedSleepAutoWakeDelay: 460
+  IsCombatant: 1
   Combat:
     StartArmed: 0
-    StartingFirearm: {fileID: 0}
-    StartingProjectile: {fileID: 0}
-    StartingLoadedAmmo: 0
-    StartingReserveAmmo: 0
+    StartingFirearm: {fileID: 11400000, guid: c7e8e44f593459e458e60c5bb09f8f77, type: 2}
+    StartingProjectile: {fileID: 11400000, guid: 891f5d528892fad49833ba5d9fd4ba7e, type: 2}
+    StartingLoadedAmmo: 6
+    StartingReserveAmmo: 40
     CombatIntelligence: 0
     CombatDelay: 0.75
     LostSightLingerDuration: 6
@@ -193,3 +241,42 @@ MonoBehaviour:
     StartingWeapon: {fileID: 0}
     AttackDecisionInterval: 0.05
     DebugMelee: 0
+  Hands:
+    SideOffset: 0.55
+    LocomotionSwingAmplitude: 0.28
+    HoldDistance: 0.52
+    HoldHandSeparation: 0.12
+    HeldItemScale: 0.75
+    BodyDragHoldDistance: 0.24
+    BodyDragHandSeparation: 0.05
+    HeldItemRotationOffset: 0
+    AutoCreatedHandScale: 0.7
+    SwingCyclesPerSpeedUnit: 1.35
+    MinimumMoveSpeedForSwing: 0.05
+    LocomotionDirectionSmoothing: 18
+    EnemyUnarmedHandSmoothing: 5
+  Footsteps:
+    FootstepSfx:
+      clips:
+      - {fileID: 8300000, guid: 2c04c8d394e86b94a95d0bb2cce021d6, type: 3}
+      - {fileID: 8300000, guid: a22edc009c123594a9d4a258a2c0afbe, type: 3}
+      - {fileID: 8300000, guid: 450f4bb3f89eb2e458a4b2efee44af82, type: 3}
+      - {fileID: 8300000, guid: 465bf01a55b05b849a8409dda2d31a92, type: 3}
+      - {fileID: 8300000, guid: 29793f92ebc53024eb8e2801e99dce24, type: 3}
+      - {fileID: 8300000, guid: e49dee4f8e4854246accae485121e4f5, type: 3}
+      - {fileID: 8300000, guid: cf5e801bd5b4e3d4db957e71b0744cd2, type: 3}
+      - {fileID: 8300000, guid: c8f50566564e46344957f7e3ebed5d59, type: 3}
+      volume: 1
+      pitchRange: {x: 1, y: 1}
+      overrideSpatialBlend: 1
+      spatialBlend: 1
+      overrideDistanceRange: 1
+      minDistance: 1
+      maxDistance: 6
+    FootstepSoundType: 1
+    MinSpeedThreshold: 0.2
+    SpeedForFastestStep: 5
+    SlowStepInterval: 0.5
+    FastStepInterval: 0.12
+    MinimumVolumeMultiplier: 0.7
+    MaximumVolumeMultiplier: 1

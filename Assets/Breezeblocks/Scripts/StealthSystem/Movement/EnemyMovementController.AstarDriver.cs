@@ -273,6 +273,7 @@ public partial class EnemyMovementController
             EnemyState.Alert => allowClosedDoorTraversalWhileAlert,
             EnemyState.Suspicious => allowClosedDoorTraversalWhileSuspicious,
             EnemyState.Searching => allowClosedDoorTraversalWhileSearching,
+            EnemyState.ReturningToStart => allowClosedDoorTraversalWhileReturningToStart,
             EnemyState.Fleeing => allowClosedDoorTraversalWhileFleeing,
             EnemyState.Detected => allowClosedDoorTraversalWhileDetected,
             _ => false
@@ -294,6 +295,8 @@ public partial class EnemyMovementController
     /// </summary>
     private bool TryAutoOpenDoorInPath()
     {
+        UpdatePendingAutoDoorClosures();
+
         if (!ShouldAllowClosedDoorTraversalForCurrentState() ||
             !hasDestination ||
             Time.time < nextDoorAutoOpenTime)
@@ -304,18 +307,206 @@ public partial class EnemyMovementController
 
         Vector2 direction = (targetPosition - CurrentPosition).normalized;
         DoorInteractable nearestDoor = FindNearestPreferredRouteDoor(targetPosition, direction);
+        if (nearestDoor != null && !IsDoorWithinAutoOpenRange(nearestDoor))
+            nearestDoor = null;
+
         nearestDoor ??= FindNearestAutoOpenDoorByCircleCast(direction);
         nearestDoor ??= FindNearestAutoOpenDoorByOverlap(CurrentPosition + (direction * doorAutoOpenRange * 0.5f), direction);
         nearestDoor ??= TryResolveSteeringTargetOverlapCenter(out Vector2 steeringOverlapCenter)
             ? FindNearestAutoOpenDoorByOverlap(steeringOverlapCenter, direction)
             : null;
 
-        if (nearestDoor == null || !nearestDoor.TryOpenForEnemy(this))
+        if (nearestDoor == null || !IsDoorWithinAutoOpenRange(nearestDoor) || !TryOpenDoorForTraversal(nearestDoor, direction))
             return false;
 
         nextDoorAutoOpenTime = Time.time + doorAutoOpenCooldown;
         RequestAstarPathSearchIfNeeded(forceSearchPath: true);
         return true;
+    }
+
+    /// <summary>
+    /// Returns whether the door is close enough to be operated by this enemy's auto-open range.
+    /// </summary>
+    private bool IsDoorWithinAutoOpenRange(DoorInteractable door)
+    {
+        if (door == null)
+            return false;
+
+        float allowedDistance = doorAutoOpenRange + doorAutoOpenRadius;
+        Vector2 toDoor = (Vector2)door.InteractionPosition - CurrentPosition;
+        return toDoor.sqrMagnitude <= allowedDistance * allowedDistance;
+    }
+
+    /// <summary>
+    /// Opens a path-blocking door for this enemy and records whether it should be closed or relocked after traversal.
+    /// </summary>
+    private bool TryOpenDoorForTraversal(DoorInteractable door, Vector2 passDirection)
+    {
+        if (door == null)
+            return false;
+
+        DoorLockState lockState = door.LockState;
+        bool unlockedIgnoredLock = lockState != null &&
+                                   lockState.IsLocked &&
+                                   lockState.CanEnemyIgnoreLockedState(this);
+
+        if (unlockedIgnoredLock)
+            lockState.SetLocked(false);
+
+        if (!door.TryOpenForEnemy(this))
+        {
+            if (unlockedIgnoredLock)
+                lockState.SetLocked(true);
+
+            return false;
+        }
+
+        RegisterAutoOpenedDoorTraversal(door, lockState, unlockedIgnoredLock, passDirection);
+        return true;
+    }
+
+    /// <summary>
+    /// Adds or refreshes runtime tracking for a door this enemy opened through pathfinding.
+    /// </summary>
+    private void RegisterAutoOpenedDoorTraversal(DoorInteractable door, DoorLockState lockState, bool unlockedIgnoredLock, Vector2 passDirection)
+    {
+        if (!closeDoorsAfterPassing || door == null)
+            return;
+
+        Vector2 normalizedDirection = passDirection.sqrMagnitude > MinimumDirectionSqr ? passDirection.normalized : Vector2.up;
+        for (int i = 0; i < pendingAutoDoorTraversals.Count; i++)
+        {
+            AutoDoorTraversalRecord existingRecord = pendingAutoDoorTraversals[i];
+            if (existingRecord == null || existingRecord.Door != door)
+                continue;
+
+            existingRecord.LockState = lockState;
+            existingRecord.ShouldRelock = unlockedIgnoredLock && relockIgnoredLockedDoorsAfterPassing;
+            existingRecord.CloseRequested = false;
+            existingRecord.DoorPosition = door.InteractionPosition;
+            existingRecord.PassDirection = normalizedDirection;
+            existingRecord.InitialSideSign = ResolveAutoDoorSideSign(existingRecord.DoorPosition, normalizedDirection);
+            existingRecord.HasCrossedDoorPlane = false;
+            existingRecord.CloseAllowedTime = Time.time + doorCloseAfterOpenDelay;
+            return;
+        }
+
+        pendingAutoDoorTraversals.Add(new AutoDoorTraversalRecord
+        {
+            Door = door,
+            LockState = lockState,
+            ShouldRelock = unlockedIgnoredLock && relockIgnoredLockedDoorsAfterPassing,
+            DoorPosition = door.InteractionPosition,
+            PassDirection = normalizedDirection,
+            InitialSideSign = ResolveAutoDoorSideSign(door.InteractionPosition, normalizedDirection),
+            CloseAllowedTime = Time.time + doorCloseAfterOpenDelay
+        });
+    }
+
+    /// <summary>
+    /// Closes doors this enemy opened once it has moved safely away from their doorway on either side.
+    /// </summary>
+    private void UpdatePendingAutoDoorClosures()
+    {
+        for (int i = pendingAutoDoorTraversals.Count - 1; i >= 0; i--)
+        {
+            AutoDoorTraversalRecord record = pendingAutoDoorTraversals[i];
+            if (record == null || record.Door == null)
+            {
+                pendingAutoDoorTraversals.RemoveAt(i);
+                continue;
+            }
+
+            if (!record.Door.IsOpen && !record.Door.IsTransitioning)
+            {
+                CompleteAutoDoorTraversalRecord(record);
+                pendingAutoDoorTraversals.RemoveAt(i);
+                continue;
+            }
+
+            if (record.CloseRequested || Time.time < record.CloseAllowedTime || !HasPassedAutoOpenedDoor(record))
+                continue;
+
+            if (record.Door.TryCloseForEnemy(this))
+                record.CloseRequested = true;
+        }
+    }
+
+    /// <summary>
+    /// Returns whether the enemy is far enough from a tracked door to close it without blocking itself.
+    /// </summary>
+    private bool HasPassedAutoOpenedDoor(AutoDoorTraversalRecord record)
+    {
+        Vector2 toEnemy = CurrentPosition - record.DoorPosition;
+        float closeDistanceSqr = doorCloseAfterPassDistance * doorCloseAfterPassDistance;
+        if (toEnemy.sqrMagnitude < closeDistanceSqr)
+            return false;
+
+        if (record.PassDirection.sqrMagnitude <= MinimumDirectionSqr)
+            return true;
+
+        float doorPlaneOffset = Vector2.Dot(toEnemy, record.PassDirection.normalized);
+        int currentSideSign = ResolveSideSign(doorPlaneOffset);
+        if (!record.HasCrossedDoorPlane)
+        {
+            if (record.InitialSideSign != 0 && (currentSideSign == 0 || currentSideSign == record.InitialSideSign))
+                return false;
+
+            record.HasCrossedDoorPlane = true;
+        }
+
+        return Mathf.Abs(doorPlaneOffset) >= doorCloseAfterPassDistance;
+    }
+
+    /// <summary>
+    /// Resolves which side of an auto-opened door the enemy was on when the door tracking began.
+    /// </summary>
+    private int ResolveAutoDoorSideSign(Vector2 doorPosition, Vector2 passDirection)
+    {
+        if (passDirection.sqrMagnitude <= MinimumDirectionSqr)
+            return 0;
+
+        float doorPlaneOffset = Vector2.Dot(CurrentPosition - doorPosition, passDirection.normalized);
+        return ResolveSideSign(doorPlaneOffset);
+    }
+
+    /// <summary>
+    /// Converts a signed door-plane offset into a stable side marker with a small dead zone around the doorway.
+    /// </summary>
+    private static int ResolveSideSign(float value)
+    {
+        if (value > MinimumDistance)
+            return 1;
+
+        return value < -MinimumDistance ? -1 : 0;
+    }
+
+    /// <summary>
+    /// Applies any final relock requested for a door after it has finished closing.
+    /// </summary>
+    private void CompleteAutoDoorTraversalRecord(AutoDoorTraversalRecord record)
+    {
+        if (record == null || !record.ShouldRelock || record.LockState == null)
+            return;
+
+        record.LockState.SetLocked(true);
+    }
+
+    /// <summary>
+    /// Clears tracked auto-opened doors and safely relocks any already-closed door that still needs it.
+    /// </summary>
+    private void ClearPendingAutoDoorClosure()
+    {
+        for (int i = 0; i < pendingAutoDoorTraversals.Count; i++)
+        {
+            AutoDoorTraversalRecord record = pendingAutoDoorTraversals[i];
+            if (record == null || record.Door == null || record.Door.IsOpen || record.Door.IsTransitioning)
+                continue;
+
+            CompleteAutoDoorTraversalRecord(record);
+        }
+
+        pendingAutoDoorTraversals.Clear();
     }
 
     /// <summary>

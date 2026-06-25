@@ -990,6 +990,7 @@ public partial class EnemyMovementController
         doorBellReactionActive = true;
         doorBellWaitingAtTarget = false;
         doorBellStandUntil = float.NegativeInfinity;
+        currentReturnContext = EnemyReturnContext.None;
         doorBellNextAllowedTimes[doorBell] = Time.time + doorBellRepeatIgnoreDuration;
         hasExternalInvestigation = false;
         externalInvestigationState = EnemyState.Suspicious;
@@ -1045,7 +1046,7 @@ public partial class EnemyMovementController
         ResetDoorBellReactionState();
 
         if (completedDoorBell != null)
-            doorBellNextAllowedTimes[completedDoorBell] = Time.time + doorBellRepeatIgnoreDuration;
+            doorBellNextAllowedTimes.Remove(completedDoorBell);
 
         if (returnToStartAfterTemporaryStates)
             ReturnToStart();

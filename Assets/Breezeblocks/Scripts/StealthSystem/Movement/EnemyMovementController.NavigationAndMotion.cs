@@ -286,7 +286,9 @@ public partial class EnemyMovementController
     {
         return reactToDoorBell &&
                !doorBellReactionActive &&
-               (currentState == EnemyState.Idle || currentState == EnemyState.Patrol);
+               (currentState == EnemyState.Idle ||
+                currentState == EnemyState.Patrol ||
+                currentState == EnemyState.ReturningToStart);
     }
 
     /// <summary>

@@ -177,6 +177,13 @@ internal enum EnemyReturnContext
     ItineraryStep
 }
 
+internal enum AutoDoorTraversalPhase
+{
+    None,
+    Approach,
+    Exit
+}
+
 [DisallowMultipleComponent]
 [AddComponentMenu("Breezeblocks/Stealth/Enemy Movement Controller")]
 public partial class EnemyMovementController : MonoBehaviour
@@ -483,7 +490,12 @@ public partial class EnemyMovementController : MonoBehaviour
     private bool doorTraversalPreferencesInitialized;
     private bool doorTraversalPreferenceDirty = true;
     private float nextDoorAutoOpenTime;
+    private DoorInteractable activeAutoDoor;
+    private AutoDoorTraversalPhase activeAutoDoorPhase = AutoDoorTraversalPhase.None;
+    private Vector2 activeAutoDoorApproachPosition;
+    private Vector2 activeAutoDoorExitPosition;
     private readonly List<AutoDoorTraversalRecord> pendingAutoDoorTraversals = new();
+    private readonly Dictionary<DoorInteractable, float> recentlyClosedAutoDoorCooldowns = new();
     private readonly RaycastHit2D[] doorAutoOpenHits = new RaycastHit2D[8];
     private readonly Collider2D[] doorAutoOpenOverlapHits = new Collider2D[8];
     private ContactFilter2D doorDetectionContactFilter;

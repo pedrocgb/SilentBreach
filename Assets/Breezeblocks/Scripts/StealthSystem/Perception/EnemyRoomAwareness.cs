@@ -225,15 +225,20 @@ public class EnemyRoomAwareness : MonoBehaviour
             return;
         }
 
-        if (lightsOn)
+        if (room.IsLightStateInDefaultState)
+        {
             pendingConfusedLightReaction = false;
+            RequestCancelReaction(keepCurrentBehavior: false);
+            return;
+        }
 
         if (!roomAwareness)
             return;
 
-        if (!lightsOn)
+        if (room.IsPlayerCausedLightStateMismatch)
         {
-            if (confusedByLightsOff &&
+            if (!lightsOn &&
+                confusedByLightsOff &&
                 enemyMovementController != null &&
                 !IsHigherPriorityState(enemyMovementController.CurrentState))
             {
@@ -321,12 +326,12 @@ public class EnemyRoomAwareness : MonoBehaviour
         if (!CanReactToRoomStimuli())
             return;
 
-        if (!currentRoomLightsOn)
+        if (currentRoom.IsPlayerCausedLightStateMismatch)
         {
             if (IsRoomPowerDisabled(currentRoom))
                 return;
 
-            if (confusedByLightsOff)
+            if (!currentRoomLightsOn && confusedByLightsOff)
                 TryStartConfusedLightReaction(currentRoom);
             else
                 TryStartDarkRoomReaction(currentRoom);
@@ -345,7 +350,7 @@ public class EnemyRoomAwareness : MonoBehaviour
         return CanReactToRoomStimuli() &&
                room != null &&
                !IsRoomPowerDisabled(room) &&
-               !room.AreLightsOn;
+               room.IsPlayerCausedLightStateMismatch;
     }
 
     /// <summary>
@@ -402,28 +407,30 @@ public class EnemyRoomAwareness : MonoBehaviour
         bool completedNormally = false;
 
         Vector2 switchPosition = room.LightSwitch != null ? room.SwitchPosition : (Vector2)transform.position;
+        bool cancelIfLightsReturnOn = room.DefaultLightsOn;
+        bool cancelIfLightsReturnOff = !room.DefaultLightsOn;
 
         enemyMovementController.SetExternalInvestigation(transform.position, EnemyState.Suspicious);
-        yield return WaitWhileSuspicious(room, waitBeforeSwitchDuration, switchPosition, cancelIfLightsTurnOn: true);
+        yield return WaitWhileSuspicious(room, waitBeforeSwitchDuration, switchPosition, cancelIfLightsReturnOn, cancelIfLightsReturnOff);
         if (cancelReactionRequested)
         {
             FinishReaction(completedNormally);
             yield break;
         }
 
-        if (room.LightSwitch != null && !room.AreLightsOn)
+        if (!room.IsLightStateInDefaultState)
         {
             enemyMovementController.SetExternalInvestigation(switchPosition, EnemyState.Suspicious);
             while (!cancelReactionRequested && !enemyMovementController.HasReachedDestination)
             {
-                if (!CanContinueCurrentReaction(room, cancelIfLightsTurnOn: true, cancelIfLightsTurnOff: false))
+                if (!CanContinueCurrentReaction(room, cancelIfLightsReturnOn, cancelIfLightsReturnOff))
                     break;
 
                 yield return null;
             }
 
-            if (!cancelReactionRequested && !room.AreLightsOn)
-                room.TryTurnLightsOn(gameObject, playSfx: true);
+            if (!cancelReactionRequested && !room.IsLightStateInDefaultState)
+                room.TryRestoreDefaultLightState(gameObject, playSfx: true);
         }
 
         if (cancelReactionRequested)
@@ -433,7 +440,7 @@ public class EnemyRoomAwareness : MonoBehaviour
         }
 
         enemyMovementController.SetExternalInvestigation(transform.position, EnemyState.Suspicious);
-        yield return LookAroundAfterTurningLightsOn(room);
+        yield return LookAroundAfterRestoringLightState(room);
         if (!cancelReactionRequested)
             completedNormally = true;
 
@@ -491,7 +498,7 @@ public class EnemyRoomAwareness : MonoBehaviour
 
             reactingDoor = nextDoor;
 
-            if (!reactingDoor.IsInDefaultState)
+            if (reactingDoor.IsPlayerCausedDefaultStateMismatch)
             {
                 enemyMovementController.SetExternalInvestigation(transform.position, EnemyState.Suspicious);
                 yield return WaitWhileSuspicious(
@@ -505,7 +512,7 @@ public class EnemyRoomAwareness : MonoBehaviour
             if (cancelReactionRequested)
                 break;
 
-            if (reactingDoor == null || !reactingDoor.isActiveAndEnabled || reactingDoor.IsInDefaultState)
+            if (reactingDoor == null || !reactingDoor.isActiveAndEnabled || !reactingDoor.IsPlayerCausedDefaultStateMismatch)
             {
                 reactingDoor = null;
                 continue;
@@ -525,7 +532,7 @@ public class EnemyRoomAwareness : MonoBehaviour
 
             if (reactingDoor != null &&
                 reactingDoor.isActiveAndEnabled &&
-                !reactingDoor.IsInDefaultState)
+                reactingDoor.IsPlayerCausedDefaultStateMismatch)
             {
                 reactingDoor.TryRestoreDefaultState(gameObject);
             }
@@ -558,9 +565,9 @@ public class EnemyRoomAwareness : MonoBehaviour
     }
 
     /// <summary>
-    /// Rotates the enemy through a temporary look-around after lights are restored.
+    /// Rotates the enemy through a temporary look-around after the room light default is restored.
     /// </summary>
-    private IEnumerator LookAroundAfterTurningLightsOn(EnemyRoomZone room)
+    private IEnumerator LookAroundAfterRestoringLightState(EnemyRoomZone room)
     {
         Vector2 baseDirection = room != null
             ? room.ResolveLookAroundBaseDirection(transform.position)
@@ -572,9 +579,11 @@ public class EnemyRoomAwareness : MonoBehaviour
 
         float endTime = Time.time + Mathf.Max(0f, lookAroundDurationAfterTurningLightsOn);
         float nextTurnTime = Time.time;
+        bool cancelIfLightsReturnOn = room != null && !room.DefaultLightsOn;
+        bool cancelIfLightsReturnOff = room != null && room.DefaultLightsOn;
         while (!cancelReactionRequested && Time.time < endTime)
         {
-            if (!CanContinueCurrentReaction(room, cancelIfLightsTurnOn: false, cancelIfLightsTurnOff: true))
+            if (!CanContinueCurrentReaction(room, cancelIfLightsReturnOn, cancelIfLightsReturnOff))
                 yield break;
 
             if (Time.time >= nextTurnTime)
@@ -612,7 +621,7 @@ public class EnemyRoomAwareness : MonoBehaviour
             if (door == null ||
                 !door.isActiveAndEnabled ||
                 !door.HasDefaultStateTag ||
-                door.IsInDefaultState)
+                !door.IsPlayerCausedDefaultStateMismatch)
             {
                 continue;
             }
@@ -653,7 +662,7 @@ public class EnemyRoomAwareness : MonoBehaviour
         for (int i = pendingDoorFixes.Count - 1; i >= 0; i--)
         {
             DoorInteractable candidateDoor = pendingDoorFixes[i];
-            if (candidateDoor == null || !candidateDoor.isActiveAndEnabled || candidateDoor.IsInDefaultState)
+            if (candidateDoor == null || !candidateDoor.isActiveAndEnabled || !candidateDoor.IsPlayerCausedDefaultStateMismatch)
             {
                 pendingDoorFixes.RemoveAt(i);
                 continue;
@@ -724,7 +733,7 @@ public class EnemyRoomAwareness : MonoBehaviour
         if (!CanContinueCurrentReaction(room, cancelIfLightsTurnOn: false, cancelIfLightsTurnOff: true))
             return false;
 
-        return door != null && door.isActiveAndEnabled && !door.IsInDefaultState;
+        return door != null && door.isActiveAndEnabled && door.IsPlayerCausedDefaultStateMismatch;
     }
 
     /// <summary>

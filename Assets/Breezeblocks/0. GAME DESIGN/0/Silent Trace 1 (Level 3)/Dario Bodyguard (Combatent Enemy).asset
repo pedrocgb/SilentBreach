@@ -10,31 +10,31 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bfb037fa2fd9482fab94a9e06f6ba17f, type: 3}
-  m_Name: Old Lady (Passive Enemy)
+  m_Name: Dario Bodyguard (Combatent Enemy)
   m_EditorClassIdentifier: Assembly-CSharp::EnemyStatsProfile
   Identity:
-    ActorId: old_lady
-    ActorDisplayName: Senhora
-    IsInnocent: 1
+    ActorId: dario_bodyguard_1
+    ActorDisplayName: Guardacosta
+    IsInnocent: 0
   Health:
     MaxHealth: 1
     IsInvincible: 0
     RestoredHealthFractionOnWake: 1
-    IncapacitatedSprite: {fileID: -3758309851019258040, guid: c7493064e8fa40389881165fd46f88e3, type: 3}
-    DeadSprite: {fileID: 1705875912708360774, guid: c7493064e8fa40389881165fd46f88e3, type: 3}
-    SleepingSprite: {fileID: -2654583614043827042, guid: 0a87a1e4fa840f313a2876b6e6ea53f2, type: 3}
+    IncapacitatedSprite: {fileID: -6089007737513708103, guid: c7493064e8fa40389881165fd46f88e3, type: 3}
+    DeadSprite: {fileID: 7474744633217478141, guid: c7493064e8fa40389881165fd46f88e3, type: 3}
+    SleepingSprite: {fileID: -6948837563952519065, guid: 0a87a1e4fa840f313a2876b6e6ea53f2, type: 3}
   Stagger:
     EnableStagger: 0
     StaggeredMoveSpeed: 0.25
     TurnSpeedReductionPercent: 80
   Movement:
-    StartingState: 10
+    StartingState: 0
     StartingPointFacing:
-      FacingMode: 1
+      FacingMode: 0
       CustomAngle: 0
-    WalkSpeed: 0.8
-    RunSpeed: 1.2
-    SprintSpeed: 1.5
+    WalkSpeed: 1.5
+    RunSpeed: 2.5
+    SprintSpeed: 4
     Acceleration: 10
     Deceleration: 14
     StoppingDistance: 0.2
@@ -59,9 +59,9 @@ MonoBehaviour:
     LookAroundTurnInterval: 0.5
     LookAroundRotationSpeed: 360
     RandomLookAngleRange: 180
-    UseItinerary: 0
+    UseItinerary: 1
     LoopItinerary: 1
-    DetectionBehavior: 1
+    DetectionBehavior: 0
     SearchLastKnownTargetPositionWhenTargetLost: 0
     MissingFleePointFallbackBehavior: 2
     CanFlee: 1
@@ -88,14 +88,14 @@ MonoBehaviour:
     DoorDetectionMask:
       serializedVersion: 2
       m_Bits: 8192
-    DoorAutoOpenRange: 0.9
-    DoorAutoOpenRadius: 0.18
-    DoorAutoOpenCooldown: 0.2
+    DoorAutoOpenRange: 0.75
+    DoorAutoOpenRadius: 0.25
+    DoorAutoOpenCooldown: 0.5
     DoorPreferredRouteProbeDistance: 3
     DoorPreferredRouteProbeWidth: 0.75
     CloseDoorsAfterPassing: 1
     RelockIgnoredLockedDoorsAfterPassing: 1
-    DoorCloseAfterPassDistance: 0.25
+    DoorCloseAfterPassDistance: 0.75
     DoorCloseAfterOpenDelay: 0.25
   Vision:
     VisionRange: 12
@@ -168,7 +168,7 @@ MonoBehaviour:
     StackObstructionMultipliers: 1
     DebugHearing: 1
   RoomAwareness:
-    RoomAwareness: 0
+    RoomAwareness: 1
     RoomCheckInterval: 0.15
     ConfusedByLightsOff: 0
     WaitBeforeSwitchDuration: 1
@@ -176,7 +176,7 @@ MonoBehaviour:
     LookAroundTurnInterval: 0.45
     LookAroundRotationSpeed: 420
     ConfusedReactionDuration: 1.2
-    DoorStateAwareness: 0
+    DoorStateAwareness: 1
     WaitBeforeDoorStateFixDuration: 1
   ConfusedReaction:
     PoseHoldDuration: 0.2
@@ -186,27 +186,27 @@ MonoBehaviour:
     SecondLocalRotationZ: -30
   DoorBellReaction:
     ReactToDoorBell: 1
-    ReactionsBeforeAlert: 3
+    ReactionsBeforeAlert: 1
     RepeatIgnoreDuration: 1.5
     MoveSpeed: 0
     StandDuration: 1
     LookAroundDuration: 2
     LookAroundTurnInterval: 0.5
   Sleep:
-    StartSleeping: 1
+    StartSleeping: 0
     StartSleepType: 1
     NormalSleepWakeThreshold: 0.15
     DeepSleepWakeThreshold: 0.3
     NormalSleepAutoWakeDelay: 800
     DeepSleepAutoWakeDelay: 1050
     ForcedSleepAutoWakeDelay: 460
-  IsCombatant: 0
+  IsCombatant: 1
   Combat:
     StartArmed: 0
-    StartingFirearm: {fileID: 0}
-    StartingProjectile: {fileID: 0}
-    StartingLoadedAmmo: 0
-    StartingReserveAmmo: 0
+    StartingFirearm: {fileID: 11400000, guid: c7e8e44f593459e458e60c5bb09f8f77, type: 2}
+    StartingProjectile: {fileID: 11400000, guid: 891f5d528892fad49833ba5d9fd4ba7e, type: 2}
+    StartingLoadedAmmo: 6
+    StartingReserveAmmo: 40
     CombatIntelligence: 0
     CombatDelay: 0.75
     LostSightLingerDuration: 6
@@ -277,6 +277,6 @@ MonoBehaviour:
     MinSpeedThreshold: 0.2
     SpeedForFastestStep: 5
     SlowStepInterval: 0.5
-    FastStepInterval: 0.22
+    FastStepInterval: 0.12
     MinimumVolumeMultiplier: 0.7
     MaximumVolumeMultiplier: 1

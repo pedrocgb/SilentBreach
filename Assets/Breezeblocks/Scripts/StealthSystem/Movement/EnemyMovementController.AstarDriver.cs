@@ -22,6 +22,12 @@ public partial class EnemyMovementController
     private void RefreshRuntimeNavigationState()
     {
         ApplyDoorTraversalPreferencesIfNeeded(force: true);
+        if (activeAutoDoor != null)
+        {
+            RequestAstarPathSearchIfNeeded(forceSearchPath: true);
+            return;
+        }
+
         RefreshRuntimeNavigationForCurrentState();
         SyncAstarTargets();
     }
@@ -75,6 +81,7 @@ public partial class EnemyMovementController
         if (target == null)
             return;
 
+        ClearAutoDoorTraversal();
         ClearManualFacingOverride();
         currentDestination = target.position;
         hasDestination = true;
@@ -88,6 +95,7 @@ public partial class EnemyMovementController
     /// </summary>
     private void SetDirectDestination(Vector2 destination, bool forceSearchPath)
     {
+        ClearAutoDoorTraversal();
         ClearManualFacingOverride();
         currentDestination = destination;
         hasDestination = true;
@@ -298,30 +306,215 @@ public partial class EnemyMovementController
         UpdatePendingAutoDoorClosures();
 
         if (!ShouldAllowClosedDoorTraversalForCurrentState() ||
-            !hasDestination ||
-            Time.time < nextDoorAutoOpenTime)
+            !hasDestination)
+        {
+            ClearAutoDoorTraversal();
             return false;
+        }
 
         if (!TryResolveDoorAutoOpenTarget(out Vector2 targetPosition))
             return false;
 
-        Vector2 direction = (targetPosition - CurrentPosition).normalized;
-        DoorInteractable nearestDoor = FindNearestPreferredRouteDoor(targetPosition, direction);
-        if (nearestDoor != null && !IsDoorWithinAutoOpenRange(nearestDoor))
-            nearestDoor = null;
+        Vector2 direction = ResolveDoorProbeDirection(targetPosition);
+        if (TryUpdateAutoDoorTraversal(direction))
+            return true;
 
+        if (Time.time < nextDoorAutoOpenTime)
+            return false;
+
+        DoorInteractable preferredDoor = FindNearestPreferredRouteDoor(targetPosition, direction);
+        if (preferredDoor != null && !IsDoorWithinAutoOpenRange(preferredDoor))
+        {
+            BeginAutoDoorApproach(preferredDoor, forceSearchPath: true);
+            return true;
+        }
+
+        DoorInteractable nearestDoor = preferredDoor;
         nearestDoor ??= FindNearestAutoOpenDoorByCircleCast(direction);
         nearestDoor ??= FindNearestAutoOpenDoorByOverlap(CurrentPosition + (direction * doorAutoOpenRange * 0.5f), direction);
         nearestDoor ??= TryResolveSteeringTargetOverlapCenter(out Vector2 steeringOverlapCenter)
             ? FindNearestAutoOpenDoorByOverlap(steeringOverlapCenter, direction)
             : null;
+        nearestDoor ??= FindNearestAutoOpenDoorNearEnemy();
 
-        if (nearestDoor == null || !IsDoorWithinAutoOpenRange(nearestDoor) || !TryOpenDoorForTraversal(nearestDoor, direction))
+        if (nearestDoor == null)
             return false;
 
+        if (!IsDoorWithinAutoOpenRange(nearestDoor))
+        {
+            BeginAutoDoorApproach(nearestDoor, forceSearchPath: true);
+            return true;
+        }
+
+        if (!TryOpenDoorForTraversal(nearestDoor, direction))
+            return false;
+
+        BeginAutoDoorExit(nearestDoor, direction, forceSearchPath: true);
         nextDoorAutoOpenTime = Time.time + doorAutoOpenCooldown;
-        RequestAstarPathSearchIfNeeded(forceSearchPath: true);
         return true;
+    }
+
+    /// <summary>
+    /// Resolves a stable direction for probing path-blocking doors.
+    /// </summary>
+    private Vector2 ResolveDoorProbeDirection(Vector2 targetPosition)
+    {
+        Vector2 direction = targetPosition - CurrentPosition;
+        if (direction.sqrMagnitude > MinimumDirectionSqr)
+            return direction.normalized;
+
+        if (aiPath != null)
+        {
+            Vector2 steeringDirection = (Vector2)aiPath.steeringTarget - CurrentPosition;
+            if (steeringDirection.sqrMagnitude > MinimumDirectionSqr)
+                return steeringDirection.normalized;
+        }
+
+        return hasDestination && (currentDestination - CurrentPosition).sqrMagnitude > MinimumDirectionSqr
+            ? (currentDestination - CurrentPosition).normalized
+            : (Vector2)transform.up;
+    }
+
+    /// <summary>
+    /// Keeps active automatic door traversal moving through approach and exit phases.
+    /// </summary>
+    private bool TryUpdateAutoDoorTraversal(Vector2 passDirection)
+    {
+        if (aiPath == null)
+        {
+            ClearAutoDoorTraversal();
+            return false;
+        }
+
+        if (activeAutoDoor == null || activeAutoDoorPhase == AutoDoorTraversalPhase.None)
+            return false;
+
+        if (activeAutoDoorPhase == AutoDoorTraversalPhase.Exit)
+            return TryUpdateAutoDoorExit();
+
+        if (activeAutoDoor.IsTransitioning)
+            return true;
+
+        if (activeAutoDoor.IsOpen)
+        {
+            BeginAutoDoorExit(activeAutoDoor, passDirection, forceSearchPath: true);
+            return true;
+        }
+
+        if (!activeAutoDoor.CanBeAutoOpenedByEnemy(this))
+        {
+            ClearAutoDoorTraversal();
+            return false;
+        }
+
+        if (IsDoorWithinAutoOpenRange(activeAutoDoor))
+        {
+            if (TryOpenDoorForTraversal(activeAutoDoor, passDirection))
+            {
+                BeginAutoDoorExit(activeAutoDoor, passDirection, forceSearchPath: true);
+                nextDoorAutoOpenTime = Time.time + doorAutoOpenCooldown;
+            }
+
+            return true;
+        }
+
+        AssignAutoDoorApproachDestination(activeAutoDoor, forceSearchPath: false);
+        return true;
+    }
+
+    /// <summary>
+    /// Keeps the enemy moving to the opposite side of an opened door before resuming its original destination.
+    /// </summary>
+    private bool TryUpdateAutoDoorExit()
+    {
+        if (activeAutoDoor == null)
+        {
+            ClearAutoDoorTraversal();
+            return false;
+        }
+
+        float exitDistanceSqr = (activeAutoDoorExitPosition - CurrentPosition).sqrMagnitude;
+        float requiredDistance = Mathf.Max(stoppingDistance, doorAutoOpenRadius);
+        if (exitDistanceSqr <= requiredDistance * requiredDistance)
+        {
+            ClearAutoDoorTraversal();
+            RequestAstarPathSearchIfNeeded(forceSearchPath: true);
+            return false;
+        }
+
+        AssignAutoDoorExitDestination(forceSearchPath: false);
+        return true;
+    }
+
+    /// <summary>
+    /// Starts a temporary pathing sub-goal to the actor-side point of a closed door.
+    /// </summary>
+    private void BeginAutoDoorApproach(DoorInteractable door, bool forceSearchPath)
+    {
+        if (door == null || aiPath == null)
+            return;
+
+        activeAutoDoor = door;
+        activeAutoDoorPhase = AutoDoorTraversalPhase.Approach;
+        activeAutoDoorApproachPosition = ResolveDoorOperationPosition(door);
+        activeAutoDoorExitPosition = ResolveDoorExitPosition(door);
+        AssignAutoDoorApproachDestination(door, forceSearchPath);
+    }
+
+    /// <summary>
+    /// Starts the post-open traversal waypoint on the side opposite the enemy.
+    /// </summary>
+    private void BeginAutoDoorExit(DoorInteractable door, Vector2 passDirection, bool forceSearchPath)
+    {
+        if (door == null || aiPath == null)
+            return;
+
+        activeAutoDoor = door;
+        activeAutoDoorPhase = AutoDoorTraversalPhase.Exit;
+        activeAutoDoorApproachPosition = ResolveDoorOperationPosition(door);
+        activeAutoDoorExitPosition = ResolveDoorExitPosition(door, passDirection);
+        AssignAutoDoorExitDestination(forceSearchPath);
+    }
+
+    /// <summary>
+    /// Assigns the A* mover to the current door approach point without changing the high-level state destination.
+    /// </summary>
+    private void AssignAutoDoorApproachDestination(DoorInteractable door, bool forceSearchPath)
+    {
+        if (door == null || aiPath == null)
+            return;
+
+        Vector2 approachPosition = ResolveDoorOperationPosition(door);
+        bool approachChanged = (activeAutoDoorApproachPosition - approachPosition).sqrMagnitude > DestinationRefreshSqrDistance;
+        activeAutoDoorApproachPosition = approachPosition;
+
+        ClearAstarTargetBinding();
+        AssignAstarDestination(approachPosition);
+        RequestAstarPathSearchIfNeeded(forceSearchPath || approachChanged);
+    }
+
+    /// <summary>
+    /// Assigns the A* mover to the current door exit point without changing the high-level state destination.
+    /// </summary>
+    private void AssignAutoDoorExitDestination(bool forceSearchPath)
+    {
+        if (aiPath == null)
+            return;
+
+        ClearAstarTargetBinding();
+        AssignAstarDestination(activeAutoDoorExitPosition);
+        RequestAstarPathSearchIfNeeded(forceSearchPath);
+    }
+
+    /// <summary>
+    /// Clears any temporary door traversal sub-goal so normal state destinations drive A* again.
+    /// </summary>
+    private void ClearAutoDoorTraversal()
+    {
+        activeAutoDoor = null;
+        activeAutoDoorPhase = AutoDoorTraversalPhase.None;
+        activeAutoDoorApproachPosition = Vector2.zero;
+        activeAutoDoorExitPosition = Vector2.zero;
     }
 
     /// <summary>
@@ -333,8 +526,7 @@ public partial class EnemyMovementController
             return false;
 
         float allowedDistance = doorAutoOpenRange + doorAutoOpenRadius;
-        Vector2 toDoor = (Vector2)door.InteractionPosition - CurrentPosition;
-        return toDoor.sqrMagnitude <= allowedDistance * allowedDistance;
+        return ResolveDoorAutoOpenDistanceSqr(door) <= allowedDistance * allowedDistance;
     }
 
     /// <summary>
@@ -383,7 +575,7 @@ public partial class EnemyMovementController
             existingRecord.LockState = lockState;
             existingRecord.ShouldRelock = unlockedIgnoredLock && relockIgnoredLockedDoorsAfterPassing;
             existingRecord.CloseRequested = false;
-            existingRecord.DoorPosition = door.InteractionPosition;
+            existingRecord.DoorPosition = ResolveDoorRoutePosition(door);
             existingRecord.PassDirection = normalizedDirection;
             existingRecord.InitialSideSign = ResolveAutoDoorSideSign(existingRecord.DoorPosition, normalizedDirection);
             existingRecord.HasCrossedDoorPlane = false;
@@ -391,14 +583,15 @@ public partial class EnemyMovementController
             return;
         }
 
+        Vector2 doorPosition = ResolveDoorRoutePosition(door);
         pendingAutoDoorTraversals.Add(new AutoDoorTraversalRecord
         {
             Door = door,
             LockState = lockState,
             ShouldRelock = unlockedIgnoredLock && relockIgnoredLockedDoorsAfterPassing,
-            DoorPosition = door.InteractionPosition,
+            DoorPosition = doorPosition,
             PassDirection = normalizedDirection,
-            InitialSideSign = ResolveAutoDoorSideSign(door.InteractionPosition, normalizedDirection),
+            InitialSideSign = ResolveAutoDoorSideSign(doorPosition, normalizedDirection),
             CloseAllowedTime = Time.time + doorCloseAfterOpenDelay
         });
     }
@@ -486,10 +679,39 @@ public partial class EnemyMovementController
     /// </summary>
     private void CompleteAutoDoorTraversalRecord(AutoDoorTraversalRecord record)
     {
-        if (record == null || !record.ShouldRelock || record.LockState == null)
+        if (record == null)
             return;
 
-        record.LockState.SetLocked(true);
+        RegisterRecentlyClosedAutoDoor(record.Door);
+        if (record.ShouldRelock && record.LockState != null)
+            record.LockState.SetLocked(true);
+    }
+
+    /// <summary>
+    /// Temporarily suppresses a door this enemy just closed so path refresh does not immediately reopen it.
+    /// </summary>
+    private void RegisterRecentlyClosedAutoDoor(DoorInteractable door)
+    {
+        if (door == null)
+            return;
+
+        float cooldownDuration = Mathf.Max(doorAutoOpenCooldown, doorCloseAfterOpenDelay) + 0.35f;
+        recentlyClosedAutoDoorCooldowns[door] = Time.time + cooldownDuration;
+    }
+
+    /// <summary>
+    /// Returns whether a door was just closed by this enemy and should be ignored for auto-opening.
+    /// </summary>
+    private bool IsAutoDoorRecentlyClosed(DoorInteractable door)
+    {
+        if (door == null || !recentlyClosedAutoDoorCooldowns.TryGetValue(door, out float cooldownEndTime))
+            return false;
+
+        if (Time.time <= cooldownEndTime)
+            return true;
+
+        recentlyClosedAutoDoorCooldowns.Remove(door);
+        return false;
     }
 
     /// <summary>
@@ -530,10 +752,14 @@ public partial class EnemyMovementController
         for (int i = 0; i < activeDoors.Count; i++)
         {
             DoorInteractable candidateDoor = activeDoors[i];
-            if (candidateDoor == null || !candidateDoor.CanBeAutoOpenedByEnemy(this))
+            if (candidateDoor == null ||
+                IsAutoDoorRecentlyClosed(candidateDoor) ||
+                !candidateDoor.CanBeAutoOpenedByEnemy(this))
+            {
                 continue;
+            }
 
-            Vector2 doorPosition = candidateDoor.InteractionPosition;
+            Vector2 doorPosition = ResolveDoorRoutePosition(candidateDoor);
             Vector2 toDoor = doorPosition - CurrentPosition;
             float forwardDistance = Vector2.Dot(direction, toDoor);
             if (forwardDistance <= 0f || forwardDistance > maxForwardDistance)
@@ -599,7 +825,7 @@ public partial class EnemyMovementController
             if (candidateDoor == null)
                 continue;
 
-            Vector2 toDoor = (Vector2)candidateDoor.InteractionPosition - CurrentPosition;
+            Vector2 toDoor = ResolveDoorRoutePosition(candidateDoor) - CurrentPosition;
             if (toDoor.sqrMagnitude <= MinimumDirectionSqr)
                 continue;
 
@@ -615,6 +841,116 @@ public partial class EnemyMovementController
         }
 
         return nearestDoor;
+    }
+
+    /// <summary>
+    /// Finds the nearest automatically openable door without a forward-facing requirement for stuck-at-door recovery.
+    /// </summary>
+    private DoorInteractable FindNearestAutoOpenDoorNearEnemy()
+    {
+        var activeDoors = DoorInteractable.ActiveDoors;
+        if (activeDoors == null || activeDoors.Count == 0)
+            return null;
+
+        DoorInteractable nearestDoor = null;
+        float nearestDistanceSqr = float.PositiveInfinity;
+
+        for (int i = 0; i < activeDoors.Count; i++)
+        {
+            DoorInteractable candidateDoor = activeDoors[i];
+            if (candidateDoor == null ||
+                IsAutoDoorRecentlyClosed(candidateDoor) ||
+                !IsDoorWithinAutoOpenRange(candidateDoor))
+            {
+                continue;
+            }
+
+            if (!candidateDoor.CanBeAutoOpenedByEnemy(this))
+                continue;
+
+            float distanceSqr = ResolveDoorAutoOpenDistanceSqr(candidateDoor);
+            if (distanceSqr >= nearestDistanceSqr)
+                continue;
+
+            nearestDistanceSqr = distanceSqr;
+            nearestDoor = candidateDoor;
+        }
+
+        return nearestDoor;
+    }
+
+    /// <summary>
+    /// Resolves the closest usable interaction side of a door for operation distance checks.
+    /// </summary>
+    private Vector2 ResolveDoorOperationPosition(DoorInteractable door)
+    {
+        if (door == null)
+            return CurrentPosition;
+
+        Vector2 sidePoint = door.GetApproachSidePosition(CurrentPosition);
+        if (door.HasTwoSidedInteractionPoints)
+            return sidePoint;
+
+        if (!door.TryGetBoundsApproachSidePosition(CurrentPosition, out Vector2 boundsPoint))
+            return sidePoint;
+
+        float authoredDistanceSqr = (sidePoint - CurrentPosition).sqrMagnitude;
+        float boundsDistanceSqr = (boundsPoint - CurrentPosition).sqrMagnitude;
+        return boundsDistanceSqr < authoredDistanceSqr ? boundsPoint : sidePoint;
+    }
+
+    /// <summary>
+    /// Resolves the side point opposite this enemy for forced through-door traversal after opening.
+    /// </summary>
+    private Vector2 ResolveDoorExitPosition(DoorInteractable door, Vector2 passDirection = default)
+    {
+        if (door == null)
+            return CurrentPosition;
+
+        Vector2 exitPosition = door.GetExitSidePosition(CurrentPosition);
+        if ((exitPosition - CurrentPosition).sqrMagnitude > MinimumDirectionSqr)
+            return exitPosition;
+
+        Bounds doorBounds = door.AwarenessBounds;
+        if (doorBounds.size.sqrMagnitude <= Mathf.Epsilon)
+            return CurrentPosition;
+
+        Vector2 direction = passDirection.sqrMagnitude > MinimumDirectionSqr
+            ? passDirection.normalized
+            : (currentDestination - CurrentPosition).normalized;
+
+        if (direction.sqrMagnitude <= MinimumDirectionSqr)
+            direction = (Vector2)transform.up;
+
+        float probeDistance = Mathf.Max(doorBounds.extents.x, doorBounds.extents.y) + Mathf.Max(stoppingDistance, doorAutoOpenRadius);
+        return (Vector2)doorBounds.center + (direction * probeDistance);
+    }
+
+    /// <summary>
+    /// Resolves the shortest useful distance to a door using both side interaction points and doorway center.
+    /// </summary>
+    private float ResolveDoorAutoOpenDistanceSqr(DoorInteractable door)
+    {
+        if (door == null)
+            return float.PositiveInfinity;
+
+        float operationDistanceSqr = (ResolveDoorOperationPosition(door) - CurrentPosition).sqrMagnitude;
+        float routeDistanceSqr = (ResolveDoorRoutePosition(door) - CurrentPosition).sqrMagnitude;
+        return Mathf.Min(operationDistanceSqr, routeDistanceSqr);
+    }
+
+    /// <summary>
+    /// Resolves the physical doorway center used for route and pass-through tests.
+    /// </summary>
+    private Vector2 ResolveDoorRoutePosition(DoorInteractable door)
+    {
+        if (door == null)
+            return CurrentPosition;
+
+        Bounds doorBounds = door.AwarenessBounds;
+        return doorBounds.size.sqrMagnitude > Mathf.Epsilon
+            ? (Vector2)doorBounds.center
+            : ResolveDoorOperationPosition(door);
     }
 
     /// <summary>
@@ -644,7 +980,9 @@ public partial class EnemyMovementController
             return null;
 
         DoorInteractable candidateDoor = hitCollider.GetComponentInParent<DoorInteractable>();
-        return candidateDoor != null && candidateDoor.CanBeAutoOpenedByEnemy(this)
+        return candidateDoor != null &&
+               !IsAutoDoorRecentlyClosed(candidateDoor) &&
+               candidateDoor.CanBeAutoOpenedByEnemy(this)
             ? candidateDoor
             : null;
     }

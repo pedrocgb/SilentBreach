@@ -104,6 +104,7 @@ public partial class EnemyMovementController
     /// </summary>
     private void OnDisable()
     {
+        ClearAutoDoorTraversal();
         ClearPendingAutoDoorClosure();
 
         if (debugMovement && Application.isPlaying)

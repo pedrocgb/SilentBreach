@@ -37,10 +37,14 @@ public class LightSwitchInteractable : PlayerWorldInteractable
 
     public IReadOnlyList<GameObject> ControlledLights => controlledLights;
     public LightSwitchLookaroundPreset EnemyLookaroundPreset => enemyLookaroundPreset;
+    public WorldStateChangeSource LastStateChangeSource => lastStateChangeSource;
+    public GameObject LastStateChangeActor => lastStateChangeActor;
 
     private bool isOn;
     private bool isPowerDisabled;
     private WorldSfxManager worldSfxManager;
+    private WorldStateChangeSource lastStateChangeSource = WorldStateChangeSource.System;
+    private GameObject lastStateChangeActor;
 
     /// <summary>
     /// Applies the authored starting state unless an external power shutdown already disabled this switch.
@@ -49,6 +53,8 @@ public class LightSwitchInteractable : PlayerWorldInteractable
     {
         base.OnEnable();
         isOn = !isPowerDisabled && startEnabled;
+        lastStateChangeSource = WorldStateChangeSource.System;
+        lastStateChangeActor = null;
         ApplyLightState();
     }
 
@@ -90,6 +96,8 @@ public class LightSwitchInteractable : PlayerWorldInteractable
             return false;
 
         isOn = enabled;
+        lastStateChangeSource = ResolveStateChangeSource(interactorRoot);
+        lastStateChangeActor = interactorRoot;
         ApplyLightState();
 
         if (playSfx)
@@ -113,6 +121,8 @@ public class LightSwitchInteractable : PlayerWorldInteractable
         if (disabled)
         {
             isOn = false;
+            lastStateChangeSource = WorldStateChangeSource.System;
+            lastStateChangeActor = null;
             ApplyLightState();
         }
 
@@ -146,6 +156,19 @@ public class LightSwitchInteractable : PlayerWorldInteractable
             worldSfxManager = WorldSfxManager.Instance;
 
         worldSfxManager?.PlayClipSetAt(transform.position, toggleSfx, toggleSfxType);
+    }
+
+    /// <summary>
+    /// Classifies the actor that requested a light-switch state change for room-awareness filtering.
+    /// </summary>
+    private static WorldStateChangeSource ResolveStateChangeSource(GameObject actorRoot)
+    {
+        if (actorRoot == null)
+            return WorldStateChangeSource.System;
+
+        return actorRoot.GetComponentInParent<EnemyMovementController>() != null
+            ? WorldStateChangeSource.Enemy
+            : WorldStateChangeSource.Player;
     }
 }
 

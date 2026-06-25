@@ -7,6 +7,7 @@ public partial class EnemyMovementController
     /// </summary>
     private void StopMovementImmediately()
     {
+        ClearAutoDoorTraversal();
         hasDestination = false;
         ClearAstarTargetBinding();
         ApplyImmediateStopToDrivers();
@@ -42,6 +43,9 @@ public partial class EnemyMovementController
     private bool EvaluateHasReachedDestination()
     {
         if (!hasDestination)
+            return false;
+
+        if (activeAutoDoor != null)
             return false;
 
         float activeStoppingDistance = ResolveCurrentStoppingDistance();

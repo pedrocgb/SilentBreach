@@ -149,8 +149,12 @@ public class DoorInteractable : PlayerWorldInteractable
     public DoorDefaultState DefaultStateTag => defaultState;
     public bool ManualOpen => manualOpen;
     public DoorLockState LockState => doorLockState;
+    public bool HasTwoSidedInteractionPoints => interactionPoint != null && oppositeInteractionPoint != null;
     public bool HasDefaultStateTag => defaultState != DoorDefaultState.None;
     public bool IsInDefaultState => !HasDefaultStateTag || isOpen == (defaultState == DoorDefaultState.Open);
+    public WorldStateChangeSource LastStateChangeSource => lastStateChangeSource;
+    public GameObject LastStateChangeActor => lastStateChangeActor;
+    public bool IsPlayerCausedDefaultStateMismatch => HasDefaultStateTag && !IsInDefaultState && lastStateChangeSource == WorldStateChangeSource.Player;
     public Vector2 AwarenessSamplePosition => awarenessSamplePoint != null ? (Vector2)awarenessSamplePoint.position : (Vector2)InteractionPosition;
     public Bounds AwarenessBounds => ResolveAwarenessBounds();
 
@@ -174,6 +178,10 @@ public class DoorInteractable : PlayerWorldInteractable
     private float nextVisibilitySampleTime = float.NegativeInfinity;
     private DoorLockState doorLockState;
     private WorldSfxManager worldSfxManager;
+    private WorldStateChangeSource lastStateChangeSource = WorldStateChangeSource.System;
+    private WorldStateChangeSource pendingStateChangeSource = WorldStateChangeSource.System;
+    private GameObject lastStateChangeActor;
+    private GameObject pendingStateChangeActor;
 
     /// <summary>
     /// Caches nearby authoring references and records the currently authored closed angle when reset.
@@ -279,6 +287,42 @@ public class DoorInteractable : PlayerWorldInteractable
     }
 
     /// <summary>
+    /// Returns the side point the actor should approach before operating the door.
+    /// </summary>
+    public Vector2 GetApproachSidePosition(Vector2 actorPosition)
+    {
+        return (Vector2)GetClosestInteractionPosition(actorPosition);
+    }
+
+    /// <summary>
+    /// Returns the side point opposite the actor so AI can move through after opening the door.
+    /// </summary>
+    public Vector2 GetExitSidePosition(Vector2 actorPosition)
+    {
+        Vector2 primaryPosition = interactionPoint != null ? (Vector2)interactionPoint.position : (Vector2)base.InteractionPosition;
+        if (oppositeInteractionPoint != null)
+        {
+            Vector2 oppositePosition = (Vector2)oppositeInteractionPoint.position;
+            float primaryDistanceSqr = (primaryPosition - actorPosition).sqrMagnitude;
+            float oppositeDistanceSqr = (oppositePosition - actorPosition).sqrMagnitude;
+            return oppositeDistanceSqr < primaryDistanceSqr ? primaryPosition : oppositePosition;
+        }
+
+        if (TryResolveBoundsSidePosition(actorPosition, oppositeSide: true, out Vector2 boundsExitPosition))
+            return boundsExitPosition;
+
+        return primaryPosition;
+    }
+
+    /// <summary>
+    /// Returns an approach point from bounds when explicit side points are incomplete.
+    /// </summary>
+    public bool TryGetBoundsApproachSidePosition(Vector2 actorPosition, out Vector2 sidePosition)
+    {
+        return TryResolveBoundsSidePosition(actorPosition, oppositeSide: false, out sidePosition);
+    }
+
+    /// <summary>
     /// Returns whether the player may currently interact with this door or start its lockpick flow.
     /// </summary>
     public override bool CanInteract(GameObject interactorRoot)
@@ -358,6 +402,8 @@ public class DoorInteractable : PlayerWorldInteractable
             return false;
 
         isTransitioning = true;
+        pendingStateChangeActor = interactorRoot;
+        pendingStateChangeSource = ResolveStateChangeSource(interactorRoot);
         // Keep the blocking collider disabled during close animation so moving actors are not pushed.
         ApplyBlockingColliderState(open: true);
 
@@ -515,6 +561,30 @@ public class DoorInteractable : PlayerWorldInteractable
     }
 
     /// <summary>
+    /// Resolves a side point from doorway bounds when explicit front/back points are unavailable.
+    /// </summary>
+    private bool TryResolveBoundsSidePosition(Vector2 actorPosition, bool oppositeSide, out Vector2 sidePosition)
+    {
+        sidePosition = (Vector2)InteractionPosition;
+        Bounds bounds = ResolveAwarenessBounds();
+        if (bounds.size.sqrMagnitude <= Mathf.Epsilon)
+            return false;
+
+        Vector2 center = (Vector2)bounds.center;
+        Vector2 direction = actorPosition - center;
+        if (direction.sqrMagnitude <= Mathf.Epsilon)
+            direction = (Vector2)transform.up;
+
+        direction.Normalize();
+        if (oppositeSide)
+            direction = -direction;
+
+        float probeDistance = Mathf.Max(bounds.extents.x, bounds.extents.y) + 0.25f;
+        sidePosition = center + (direction * probeDistance);
+        return true;
+    }
+
+    /// <summary>
     /// Finalizes the new door state, refreshes pathfinding, and notifies any listeners or prompt UI.
     /// </summary>
     private void CompleteDoorStateChange(bool open)
@@ -523,6 +593,10 @@ public class DoorInteractable : PlayerWorldInteractable
         ApplyBlockingColliderState(open);
         isOpen = open;
         isTransitioning = false;
+        lastStateChangeActor = pendingStateChangeActor;
+        lastStateChangeSource = pendingStateChangeSource;
+        pendingStateChangeActor = null;
+        pendingStateChangeSource = WorldStateChangeSource.System;
         ApplyDoorPathTags(flushGraphUpdatesImmediately, repathEnemiesAfterStateChange);
         DoorStateChanged?.Invoke(this, isOpen);
         RefreshInteractionPresentation();
@@ -673,6 +747,19 @@ public class DoorInteractable : PlayerWorldInteractable
     private bool CanActorOperateDoor(GameObject actorRoot)
     {
         return doorLockState == null || !doorLockState.IsLocked || doorLockState.CanActorBypassLockedState(actorRoot);
+    }
+
+    /// <summary>
+    /// Classifies the actor that requested a door state change for room-awareness filtering.
+    /// </summary>
+    private static WorldStateChangeSource ResolveStateChangeSource(GameObject actorRoot)
+    {
+        if (actorRoot == null)
+            return WorldStateChangeSource.System;
+
+        return actorRoot.GetComponentInParent<EnemyMovementController>() != null
+            ? WorldStateChangeSource.Enemy
+            : WorldStateChangeSource.Player;
     }
 
     /// <summary>

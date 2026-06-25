@@ -490,6 +490,7 @@ public class GlobalSettings : MonoBehaviour
     [Tooltip("How long sleeping enemies wait after waking up before resuming their requested behavior.")]
     [SerializeField] private float sleepWakeActionDelay = 1f;
 
+    [FoldoutGroup("AI")]
     [FoldoutGroup("AI/Light Switch Lookaround"), HorizontalGroup("AI/Light Switch Lookaround/Left"), LabelText("Left Min"), SuffixLabel("deg", true)]
     [SerializeField] private float leftLookaroundMinAngle = 135f;
 

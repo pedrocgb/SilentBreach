@@ -4,6 +4,13 @@ using Breezeblocks.Missions;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
+public enum RoomLightDefaultState
+{
+    CurrentSceneState,
+    On,
+    Off
+}
+
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Collider2D))]
 [AddComponentMenu("Breezeblocks/Stealth/Enemy Room Zone")]
@@ -17,6 +24,9 @@ public class EnemyRoomZone : MonoBehaviour
     [FoldoutGroup("Lights"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
     [SerializeField] private List<GameObject> roomLights = new();
 
+    [FoldoutGroup("Lights")]
+    [SerializeField] private RoomLightDefaultState defaultLightState = RoomLightDefaultState.On;
+
     [FoldoutGroup("Doors"), ListDrawerSettings(ShowFoldout = true, DefaultExpandedState = true)]
     [SerializeField] private List<DoorInteractable> connectedDoors = new();
 
@@ -27,6 +37,11 @@ public class EnemyRoomZone : MonoBehaviour
 
     public LightSwitchInteractable LightSwitch => lightSwitch;
     public Vector2 SwitchPosition => lightSwitch != null ? (Vector2)lightSwitch.transform.position : (Vector2)transform.position;
+    public bool DefaultLightsOn => ResolveDefaultLightsOn();
+    public bool IsLightStateInDefaultState => areLightsOn == ResolveDefaultLightsOn();
+    public bool IsPlayerCausedLightStateMismatch => !IsLightStateInDefaultState && lastLightStateChangeSource == WorldStateChangeSource.Player;
+    public WorldStateChangeSource LastLightStateChangeSource => lastLightStateChangeSource;
+    public GameObject LastLightStateChangeActor => lastLightStateChangeActor;
     public float LookAroundMinAngle
     {
         get
@@ -48,6 +63,9 @@ public class EnemyRoomZone : MonoBehaviour
 
     private Collider2D roomCollider;
     private bool areLightsOn = true;
+    private bool initialLightsOn = true;
+    private WorldStateChangeSource lastLightStateChangeSource = WorldStateChangeSource.System;
+    private GameObject lastLightStateChangeActor;
 
     /// <summary>
     /// Caches the mandatory room collider when this component is added in the editor.
@@ -65,6 +83,9 @@ public class EnemyRoomZone : MonoBehaviour
         CacheReferences();
         SanitizeConfiguration();
         areLightsOn = ComputeAreLightsOn();
+        initialLightsOn = areLightsOn;
+        lastLightStateChangeSource = WorldStateChangeSource.System;
+        lastLightStateChangeActor = null;
     }
 
     /// <summary>
@@ -132,10 +153,43 @@ public class EnemyRoomZone : MonoBehaviour
         if (changed)
         {
             areLightsOn = true;
+            lastLightStateChangeSource = ResolveStateChangeSource(interactorRoot);
+            lastLightStateChangeActor = interactorRoot;
             LightStateChanged?.Invoke(this, true);
         }
 
         return changed;
+    }
+
+    /// <summary>
+    /// Turns this room's lights off through its switch or direct light references.
+    /// </summary>
+    public bool TryTurnLightsOff(GameObject interactorRoot = null, bool playSfx = true)
+    {
+        if (lightSwitch != null)
+            return lightSwitch.SetLightState(false, playSfx, interactorRoot);
+
+        bool changed = AreLightsOn;
+        SetLightsActive(false);
+        if (changed)
+        {
+            areLightsOn = false;
+            lastLightStateChangeSource = ResolveStateChangeSource(interactorRoot);
+            lastLightStateChangeActor = interactorRoot;
+            LightStateChanged?.Invoke(this, false);
+        }
+
+        return changed;
+    }
+
+    /// <summary>
+    /// Restores this room's lights to the authored default state.
+    /// </summary>
+    public bool TryRestoreDefaultLightState(GameObject interactorRoot = null, bool playSfx = true)
+    {
+        return ResolveDefaultLightsOn()
+            ? TryTurnLightsOn(interactorRoot, playSfx)
+            : TryTurnLightsOff(interactorRoot, playSfx);
     }
 
     /// <summary>
@@ -265,21 +319,44 @@ public class EnemyRoomZone : MonoBehaviour
         if (source != lightSwitch)
             return;
 
-        RefreshLightState(notifyListeners: true, fallbackValue: lightsOn);
+        RefreshLightState(
+            notifyListeners: true,
+            fallbackValue: lightsOn,
+            source.LastStateChangeSource,
+            source.LastStateChangeActor);
     }
 
     /// <summary>
     /// Recomputes room light state and optionally notifies awareness listeners.
     /// </summary>
-    private void RefreshLightState(bool notifyListeners, bool? fallbackValue = null)
+    private void RefreshLightState(
+        bool notifyListeners,
+        bool? fallbackValue = null,
+        WorldStateChangeSource changeSource = WorldStateChangeSource.System,
+        GameObject changeActor = null)
     {
         bool nextState = fallbackValue ?? ComputeAreLightsOn();
         if (areLightsOn == nextState)
             return;
 
         areLightsOn = nextState;
+        lastLightStateChangeSource = changeSource;
+        lastLightStateChangeActor = changeActor;
         if (notifyListeners)
             LightStateChanged?.Invoke(this, areLightsOn);
+    }
+
+    /// <summary>
+    /// Resolves the authored default light state for awareness comparisons.
+    /// </summary>
+    private bool ResolveDefaultLightsOn()
+    {
+        return defaultLightState switch
+        {
+            RoomLightDefaultState.Off => false,
+            RoomLightDefaultState.CurrentSceneState => initialLightsOn,
+            _ => true
+        };
     }
 
     /// <summary>
@@ -331,6 +408,19 @@ public class EnemyRoomZone : MonoBehaviour
             if (lights[i] != null)
                 lights[i].SetActive(active);
         }
+    }
+
+    /// <summary>
+    /// Classifies the actor that requested a room light-state change for awareness filtering.
+    /// </summary>
+    private static WorldStateChangeSource ResolveStateChangeSource(GameObject actorRoot)
+    {
+        if (actorRoot == null)
+            return WorldStateChangeSource.System;
+
+        return actorRoot.GetComponentInParent<EnemyMovementController>() != null
+            ? WorldStateChangeSource.Enemy
+            : WorldStateChangeSource.Player;
     }
 
     /// <summary>
